@@ -46,8 +46,6 @@ It should already contain this (create it with these exact commands if missing):
 # only if go.mod is missing:
 go mod init github.com/irbgeo/irregular-verbs-tgbot
 go mod edit -go=1.26
-go mod edit -replace github.com/irbgeo/go-tgbot=../go-tgbot
-go mod edit -require github.com/irbgeo/go-tgbot@v0.0.0
 ```
 
 - [ ] **Step 2: Remove the stray package and create `.gitignore`**
