@@ -9,6 +9,9 @@ func startedTest(t *testing.T) (*Service, *fakeUserRepo) {
 	t.Helper()
 	svc, repo := newSvc()
 	svc.rng = func(int) int { return 0 }
+	if _, err := svc.SetVariant(context.Background(), 7, "gb"); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := svc.StartTest(context.Background(), 7, "elementary"); err != nil {
 		t.Fatal(err)
 	}

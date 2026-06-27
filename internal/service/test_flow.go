@@ -92,6 +92,10 @@ func (s *Service) inQuiz(u *User) bool {
 	return u != nil && u.State.Screen == string(ScreenQuiz) && u.State.Session != nil
 }
 
+func (s *Service) inResult(u *User) bool {
+	return u != nil && u.State.Screen == string(ScreenTestResult) && u.State.Session != nil
+}
+
 // Answer processes a typed answer to the current sub-question.
 func (s *Service) Answer(ctx context.Context, userID int64, text string) (View, error) {
 	u, err := s.load(ctx, userID)
@@ -175,7 +179,7 @@ func (s *Service) Keep(ctx context.Context, userID int64) (View, error) {
 	if err != nil {
 		return View{}, err
 	}
-	if u.State.Session == nil {
+	if !s.inResult(u) {
 		return View{}, nil
 	}
 	s.setStudy(u, u.State.Session.Base)
@@ -193,7 +197,7 @@ func (s *Service) Drop(ctx context.Context, userID int64) (View, error) {
 	if err != nil {
 		return View{}, err
 	}
-	if u.State.Session == nil {
+	if !s.inResult(u) {
 		return View{}, nil
 	}
 	s.setSkipped(u, u.State.Session.Base)
