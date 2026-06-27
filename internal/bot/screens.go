@@ -5,8 +5,6 @@ import (
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/service"
 )
 
-const myWordsEmptyText = "📋 Мои слова\n\nУ вас пока нет слов в изучении. Скоро здесь появятся слова."
-
 func btn(text, data string) tgbot.InlineKeyboardButton {
 	return tgbot.InlineKeyboardButton{Text: text, CallbackData: data}
 }
@@ -24,29 +22,38 @@ var levelLabels = map[string]string{
 	"proficiency":        "Proficiency",
 }
 
-// render maps an FSM screen to Telegram text and keyboard.
-func render(screen service.Screen) (string, *tgbot.InlineKeyboardMarkup) {
-	switch screen {
-	case service.ScreenOnboardingLevel:
-		var rows [][]tgbot.InlineKeyboardButton
-		for _, lvl := range service.Levels {
-			rows = append(rows, []tgbot.InlineKeyboardButton{btn(levelLabels[lvl], "level:"+lvl)})
-		}
-		return "Выберите уровень английского:", kb(rows...)
+// render maps a View to Telegram text and keyboard. Returns ("", nil) for
+// ScreenNone (nothing to show).
+func render(v service.View) (string, *tgbot.InlineKeyboardMarkup) {
+	switch v.Screen {
 	case service.ScreenOnboardingVariant:
 		return "Выберите вариант форм:", kb(
 			[]tgbot.InlineKeyboardButton{btn("🇬🇧 British", "variant:gb"), btn("🇺🇸 American", "variant:us")},
 		)
-	case service.ScreenOnboardingOrder:
-		return "Выберите порядок изучения:", kb(
-			[]tgbot.InlineKeyboardButton{btn("🔤 По алфавиту", "order:alpha"), btn("🎲 Случайно", "order:random")},
-		)
 	case service.ScreenMainMenu:
 		return "Главное меню:", kb(
-			[]tgbot.InlineKeyboardButton{btn("📋 Мои слова", "menu:my_words")},
+			[]tgbot.InlineKeyboardButton{btn("🧪 Тест", "menu:test")},
+			[]tgbot.InlineKeyboardButton{btn("🎓 Учить", "menu:learn")},
+			[]tgbot.InlineKeyboardButton{btn("📋 Мои слова", "menu:mywords")},
 		)
-	case service.ScreenMyWords:
-		return myWordsEmptyText, kb(
+	case service.ScreenTestLevel:
+		var rows [][]tgbot.InlineKeyboardButton
+		for _, lvl := range v.Levels {
+			rows = append(rows, []tgbot.InlineKeyboardButton{btn(levelLabels[lvl], "level:"+lvl)})
+		}
+		rows = append(rows, []tgbot.InlineKeyboardButton{btn("⬅️ Меню", "nav:menu")})
+		return "Выберите уровень:", kb(rows...)
+	case service.ScreenQuiz:
+		return v.Feedback + quizPrompt(v.Quiz), kb(
+			[]tgbot.InlineKeyboardButton{btn("💡 Помощь", "quiz:help"), btn("⏭️ Скип", "quiz:skip")},
+			[]tgbot.InlineKeyboardButton{btn("⬅️ Меню", "nav:menu")},
+		)
+	case service.ScreenTestResult:
+		return v.Feedback + "Верно! Добавить слово в изучение?", kb(
+			[]tgbot.InlineKeyboardButton{btn("✅ В изучение", "res:keep"), btn("⏭️ Скип", "res:drop")},
+		)
+	case service.ScreenTestDone:
+		return "Тест уровня пройден 👍", kb(
 			[]tgbot.InlineKeyboardButton{btn("⬅️ Меню", "nav:menu")},
 		)
 	default:

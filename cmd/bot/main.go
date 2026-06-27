@@ -38,16 +38,16 @@ func run() error {
 	}
 	defer st.Disconnect(context.Background())
 
-	svc := service.New(st.Users, st.Verbs)
-
 	list, err := service.LoadVerbs(cfg.VerbsPath)
 	if err != nil {
 		return err
 	}
-	if err := svc.SeedVerbs(ctx, list); err != nil {
+	if err := service.SeedVerbs(ctx, st.Verbs, list); err != nil {
 		return err
 	}
 	log.Printf("seeded %d verbs", len(list))
+
+	svc := service.New(st.Users, list)
 
 	client, err := tgbot.NewClient(cfg.BotToken)
 	if err != nil {

@@ -35,7 +35,7 @@ func TestUserRoundTrip(t *testing.T) {
 	}
 	in := &service.User{
 		ID:       42,
-		Settings: service.Settings{Level: "elementary", Variant: "gb", Order: "alpha"},
+		Settings: service.Settings{Variant: "gb"},
 		State:    service.State{Screen: "main_menu"},
 	}
 	if err := s.Users.Save(ctx, in); err != nil {
@@ -45,7 +45,7 @@ func TestUserRoundTrip(t *testing.T) {
 	if err != nil || got == nil {
 		t.Fatalf("Get: got=%v err=%v", got, err)
 	}
-	if got.Settings.Level != "elementary" || got.State.Screen != "main_menu" {
+	if got.Settings.Variant != "gb" || got.State.Screen != "main_menu" {
 		t.Errorf("got %+v", got)
 	}
 }

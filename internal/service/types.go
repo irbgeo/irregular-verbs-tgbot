@@ -3,7 +3,6 @@ package service
 import "time"
 
 // Verb is one irregular verb with its forms and metadata.
-// The bson "_id" tag on Base lets the store upsert by base form.
 type Verb struct {
 	Base           string              `json:"base" bson:"_id"`
 	Level          string              `json:"level" bson:"level"`
@@ -23,34 +22,76 @@ var Levels = []string{
 	"proficiency",
 }
 
-// Settings holds the user's onboarding choices.
+// Settings holds the user's profile choices (v2: variant only).
 type Settings struct {
-	Level   string `bson:"level"`
 	Variant string `bson:"variant"` // "gb" | "us"
-	Order   string `bson:"order"`   // "alpha" | "random"
 }
 
-// State holds the FSM position.
+// Word statuses and Leitner box bounds.
+const (
+	StatusStudy   = "study"
+	StatusLearned = "learned"
+	StatusSkipped = "skipped"
+	BoxMax        = 5
+)
+
+// WordProgress is per-word learning state.
+type WordProgress struct {
+	Status string `bson:"status"`
+	Mode   int    `bson:"mode"` // 1 | 2 (meaningful while study)
+	Box    int    `bson:"box"`  // 0..5
+}
+
+// Session is the active quiz state (test or learn).
+type Session struct {
+	Mode  string   `bson:"mode"`  // "test" | "learn"
+	Level string   `bson:"level"` // test: chosen level
+	Queue []string `bson:"queue"` // test: remaining word bases
+	Base  string   `bson:"base"`  // current word
+	Step  int      `bson:"step"`  // sub-question 0..3
+}
+
+// State holds the FSM position and optional quiz session.
 type State struct {
-	Screen string `bson:"screen"`
+	Screen  string   `bson:"screen"`
+	Session *Session `bson:"session,omitempty"`
 }
 
 // User is the user aggregate. Only the service writes it.
 type User struct {
-	ID           int64     `bson:"_id"`
-	Settings     Settings  `bson:"settings"`
-	State        State     `bson:"state"`
-	CreatedAt    time.Time `bson:"created_at"`
-	LastActiveAt time.Time `bson:"last_active_at"`
+	ID           int64                   `bson:"_id"`
+	Settings     Settings                `bson:"settings"`
+	State        State                   `bson:"state"`
+	Words        map[string]WordProgress `bson:"words,omitempty"`
+	CreatedAt    time.Time               `bson:"created_at"`
+	LastActiveAt time.Time               `bson:"last_active_at"`
 }
 
 // Screen identifies an FSM screen. The bot maps it to text + keyboard.
 type Screen string
 
 const (
-	ScreenOnboardingLevel   Screen = "onboarding_level"
+	ScreenNone              Screen = ""
 	ScreenOnboardingVariant Screen = "onboarding_variant"
-	ScreenOnboardingOrder   Screen = "onboarding_order"
 	ScreenMainMenu          Screen = "main_menu"
-	ScreenMyWords           Screen = "my_words"
+	ScreenTestLevel         Screen = "test_level"
+	ScreenQuiz              Screen = "quiz"
+	ScreenTestResult        Screen = "test_result"
+	ScreenTestDone          Screen = "test_done"
 )
+
+// QuizView carries the data to render one quiz sub-question.
+type QuizView struct {
+	Base         string
+	Step         int
+	Translations []string
+}
+
+// View is what a use-case returns; the bot renders it.
+type View struct {
+	Screen   Screen
+	Quiz     *QuizView
+	Levels   []string
+	Notice   string // popup via answerCallbackQuery; screen unchanged
+	Feedback string // prepended to the rendered message (quiz feedback)
+}
