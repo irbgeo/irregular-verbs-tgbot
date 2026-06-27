@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -26,4 +27,14 @@ func LoadVerbs(path string) ([]Verb, error) {
 		return nil, fmt.Errorf("service: no verbs in %s", path)
 	}
 	return ds.Verbs, nil
+}
+
+// SeedVerbs upserts all verbs through the verb repository.
+func (s *Service) SeedVerbs(ctx context.Context, verbs []Verb) error {
+	for _, v := range verbs {
+		if err := s.verbs.Upsert(ctx, v); err != nil {
+			return err
+		}
+	}
+	return nil
 }
