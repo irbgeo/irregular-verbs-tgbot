@@ -6,6 +6,7 @@ func TestLoadDefaults(t *testing.T) {
 	t.Setenv("BOT_TOKEN", "abc")
 	t.Setenv("MONGO_URI", "")
 	t.Setenv("MONGO_DB", "")
+	t.Setenv("VERBS_PATH", "")
 	c, err := Load()
 	if err != nil {
 		t.Fatal(err)
@@ -15,6 +16,9 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if c.MongoDB != "irregular_verbs" {
 		t.Errorf("MongoDB = %q", c.MongoDB)
+	}
+	if c.VerbsPath != "data/verbs.json" {
+		t.Errorf("VerbsPath = %q", c.VerbsPath)
 	}
 }
 

@@ -33,7 +33,10 @@ func (r *Router) Handle(ctx context.Context, upd tgbot.Update) error {
 }
 
 func (r *Router) handleStart(ctx context.Context, m *tgbot.Message) error {
-	screen, err := r.svc.Start(ctx, m.Chat.ID)
+	if m.From == nil {
+		return nil
+	}
+	screen, err := r.svc.Start(ctx, m.From.ID)
 	if err != nil {
 		return err
 	}

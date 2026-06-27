@@ -40,7 +40,7 @@ func run() error {
 
 	svc := service.New(st.Users, st.Verbs)
 
-	list, err := service.LoadVerbs("data/verbs.json")
+	list, err := service.LoadVerbs(cfg.VerbsPath)
 	if err != nil {
 		return err
 	}
