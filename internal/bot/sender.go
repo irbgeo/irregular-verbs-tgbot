@@ -11,6 +11,7 @@ type Sender interface {
 	Send(ctx context.Context, chatID int64, text string, kb *tgbot.InlineKeyboardMarkup) error
 	Edit(ctx context.Context, chatID, messageID int64, text string, kb *tgbot.InlineKeyboardMarkup) error
 	Answer(ctx context.Context, callbackID string) error
+	AnswerText(ctx context.Context, callbackID, text string) error
 }
 
 // TelegramSender adapts *tgbot.Client to the Sender interface.
@@ -34,6 +35,11 @@ func (s TelegramSender) Edit(ctx context.Context, chatID, messageID int64, text 
 
 func (s TelegramSender) Answer(ctx context.Context, callbackID string) error {
 	_, err := s.Client.AnswerCallbackQuery(ctx, callbackID, nil)
+	return err
+}
+
+func (s TelegramSender) AnswerText(ctx context.Context, callbackID, text string) error {
+	_, err := s.Client.AnswerCallbackQuery(ctx, callbackID, &tgbot.AnswerCallbackQueryOptions{Text: text})
 	return err
 }
 
