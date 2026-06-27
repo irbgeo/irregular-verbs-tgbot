@@ -4,7 +4,10 @@ go 1.26
 
 replace github.com/irbgeo/go-tgbot => ../go-tgbot
 
-require go.mongodb.org/mongo-driver v1.17.9
+require (
+	github.com/irbgeo/go-tgbot v0.0.0-00010101000000-000000000000
+	go.mongodb.org/mongo-driver v1.17.9
+)
 
 require (
 	github.com/golang/snappy v0.0.4 // indirect
