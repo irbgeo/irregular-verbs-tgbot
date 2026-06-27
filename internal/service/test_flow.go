@@ -162,6 +162,45 @@ func (s *Service) Skip(ctx context.Context, userID int64) (View, error) {
 	return out, nil
 }
 
-// --- stubs for Task 6 ---
-func (s *Service) Keep(ctx context.Context, userID int64) (View, error) { return View{}, nil }
-func (s *Service) Drop(ctx context.Context, userID int64) (View, error) { return View{}, nil }
+func (s *Service) setSkipped(u *User, base string) {
+	if u.Words == nil {
+		u.Words = map[string]WordProgress{}
+	}
+	u.Words[base] = WordProgress{Status: StatusSkipped}
+}
+
+// Keep adds the just-answered word to study and advances.
+func (s *Service) Keep(ctx context.Context, userID int64) (View, error) {
+	u, err := s.load(ctx, userID)
+	if err != nil {
+		return View{}, err
+	}
+	if u.State.Session == nil {
+		return View{}, nil
+	}
+	s.setStudy(u, u.State.Session.Base)
+	u.State.Screen = string(ScreenQuiz)
+	out := s.advance(u)
+	if err := s.save(ctx, u); err != nil {
+		return View{}, err
+	}
+	return out, nil
+}
+
+// Drop marks the just-answered word skipped and advances.
+func (s *Service) Drop(ctx context.Context, userID int64) (View, error) {
+	u, err := s.load(ctx, userID)
+	if err != nil {
+		return View{}, err
+	}
+	if u.State.Session == nil {
+		return View{}, nil
+	}
+	s.setSkipped(u, u.State.Session.Base)
+	u.State.Screen = string(ScreenQuiz)
+	out := s.advance(u)
+	if err := s.save(ctx, u); err != nil {
+		return View{}, err
+	}
+	return out, nil
+}
