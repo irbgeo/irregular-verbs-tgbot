@@ -6,6 +6,22 @@ services:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  bot:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN:?set BOT_TOKEN in the environment or a .env file}
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB: irregular_verbs
 
 volumes:
   mongo-data:

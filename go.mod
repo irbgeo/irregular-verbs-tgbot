@@ -2,10 +2,8 @@ module github.com/irbgeo/irregular-verbs-tgbot
 
 go 1.26
 
-replace github.com/irbgeo/go-tgbot => ../go-tgbot
-
 require (
-	github.com/irbgeo/go-tgbot v0.0.0-00010101000000-000000000000
+	github.com/irbgeo/go-tgbot v0.0.0-20260627122610-878859d75a55
 	go.mongodb.org/mongo-driver v1.17.9
 )
 
