@@ -18,6 +18,9 @@
 4. **Мои слова** показывает слова со статусом `want`.
 5. **Список слов** показывает все 170 слов по уровням с метками `учу` /
    `пропустил`, постранично.
+6. Когда слова текущего пула (уровня) кончились, бот предлагает **перейти к
+   другому пулу** — выбрать любой другой уровень; материал переключается на
+   него.
 
 Сами режимы обучения (Режим-1/2) — это Этап 3. Кнопка «Начать обучение» и
 ответ на промпт «Начать обучение?» пока ведут к заглушке «Скоро будет».
@@ -79,10 +82,11 @@ Ports & adapters из Этапа 1. Вся новая логика — в `inter
 ```go
 type View struct {
     Screen   Screen
-    Material *MaterialView // экран material
-    List     *ListView     // экран word_list
-    MyWords  *MyWordsView  // экран my_words
-    Notice   string        // короткое всплывающее сообщение (answerCallbackQuery), напр. "Скоро будет"
+    Material *MaterialView   // экран material
+    List     *ListView       // экран word_list
+    MyWords  *MyWordsView    // экран my_words
+    Pools    *PoolChoiceView // экран choose_pool
+    Notice   string          // короткое всплывающее сообщение (answerCallbackQuery), напр. "Скоро будет"
 }
 ```
 
@@ -91,6 +95,9 @@ type View struct {
 - `ListView{ Level string; Index, Total int; Items []ListItem }`,
   `ListItem{ Base, Mark string }` (`Mark` ∈ `учу`/`пропустил`/``).
 - `MyWordsView{ Items []MyWordItem }`, `MyWordItem{ Base string; Translations []string }`.
+- `PoolChoiceView{ CurrentLevel string; AllDone bool; Options []PoolOption }`,
+  `PoolOption{ Level string; Exhausted bool }` — другие уровни (текущий
+  исключён); `Exhausted` = в уровне не осталось непросмотренных слов.
 
 Все use-cases и запросы возвращают `(View, error)`. `bot.render(View)`
 переключается по `View.Screen` и форматирует данные. `View.Notice`, если
@@ -104,13 +111,24 @@ type View struct {
 | Метод | Логика |
 |-------|--------|
 | `OpenMenu(userID)` | Экран `main_menu` (4 кнопки). |
-| `OpenMaterial(userID)` | Следующее непросмотренное слово уровня (нет в `words`), в порядке `order`. Если таких нет → экран `material_done`. |
-| `MarkWant(userID, base)` | Если `base` валиден (есть в уровне) и ещё не решён — статус `want`. Затем: если число `want` кратно 5 → экран `learn_prompt`; иначе следующее слово материала (или `material_done`). |
-| `MarkSkip(userID, base)` | Аналогично, статус `skipped`; всегда следующее слово (или `material_done`). |
+| `OpenMaterial(userID)` | Следующее непросмотренное слово текущего пула (нет в `words`), в порядке `order`. Если таких нет → экран `choose_pool`. |
+| `MarkWant(userID, base)` | Если `base` валиден (есть в текущем пуле) и ещё не решён — статус `want`. Затем: если число `want` кратно 5 → экран `learn_prompt`; иначе следующее слово материала (или `choose_pool`). |
+| `MarkSkip(userID, base)` | Аналогично, статус `skipped`; всегда следующее слово (или `choose_pool`). |
 | `ContinueMaterial(userID)` | Следующее слово материала (ответ «Продолжить» в промпте). |
-| `OpenMyWords(userID)` | Слова со статусом `want` (из каталога — формы и переводы). |
+| `SetPool(userID, level)` | Сменить текущий пул: валидирует `level`, пишет `settings.level = level`, возвращает `OpenMaterial` для нового пула (первое непросмотренное слово или снова `choose_pool`). |
+| `OpenMyWords(userID)` | Слова со статусом `want` со всех уровней (из каталога — формы и переводы). |
 | `OpenWordList(userID, index)` | Страница `index` (один уровень) с метками. `index` ограничивается `[0, len(Levels)-1]`. |
 | `StartLearning(userID)` | Заглушка: `View{ Notice: "Скоро будет 🙂" }` (экран не меняется). |
+
+**Текущий пул = `settings.level`.** Онбординг (Этап 1) задаёт начальный пул;
+`SetPool` меняет его. Материал всегда берётся из текущего пула; `Мои слова` и
+`Список слов` охватывают все уровни (пул на них не влияет).
+
+**Экран `choose_pool`** (пул исчерпан): предлагает другие уровни. Для каждого
+другого уровня — кнопка `pool:<level>`; уровни без непросмотренных слов
+помечаются «✓» (выбрать всё ещё можно — это снова приведёт к `choose_pool`).
+Если непросмотренных слов не осталось ни на одном уровне → `AllDone = true`
+(текст «Вы просмотрели все слова всех уровней», только кнопка «Меню»).
 
 **Порядок материала (`order`):**
 - `alpha` — слова уровня по `base`.
@@ -122,14 +140,14 @@ type View struct {
 
 ## 7. Экраны и callback-данные
 
-Экраны (`Screen`): `main_menu`, `material`, `material_done`, `learn_prompt`,
+Экраны (`Screen`): `main_menu`, `material`, `choose_pool`, `learn_prompt`,
 `my_words`, `word_list`.
 
 | Экран | Текст / кнопки |
 |-------|----------------|
 | `main_menu` | «Главное меню:» · `[📖 Учебный материал]=menu:material` · `[🎓 Начать обучение]=menu:learn` · `[📋 Мои слова]=menu:my_words` · `[📚 Список слов]=menu:list` |
 | `material` | `🔤 BASE (past, participle)` + `📝 переводы` · `[✅ Хочу учить]=want:<base>` `[❌ Не хочу]=skip:<base>` · `[⬅️ Меню]=nav:menu` |
-| `material_done` | «Вы просмотрели все слова уровня.» · `[⬅️ Меню]=nav:menu` |
+| `choose_pool` | «Вы просмотрели все слова уровня <Current>. Выберите другой пул:» · по кнопке на каждый другой уровень `[<Label> (✓ если исчерпан)]=pool:<level>` · `[⬅️ Меню]=nav:menu`. Если исчерпаны все уровни (`AllDone`) — «Вы просмотрели все слова всех уровней.» · только `[⬅️ Меню]=nav:menu` |
 | `learn_prompt` | «Вы добавили N слов. Начать обучение?» · `[▶️ Начать обучение]=learn:start` `[📚 Продолжить просмотр]=material:next` |
 | `my_words` | «📋 Мои слова (учу: N)» + список `• BASE — переводы` · `[⬅️ Меню]=nav:menu`. Если пусто — «Вы пока не выбрали слова.» |
 | `word_list` | «Уровень: <Level> (стр. i/6)» + `BASE — метка` · `[◀]=list:<i-1>` `[▶]=list:<i+1>` (крайние страницы — без неактивной стрелки) · `[⬅️ Меню]=nav:menu` |
@@ -139,15 +157,16 @@ type View struct {
 `menu:my_words→OpenMyWords`, `menu:list→OpenWordList(0)`,
 `want:<base>→MarkWant`, `skip:<base>→MarkSkip`,
 `material:next→ContinueMaterial`, `learn:start→StartLearning`,
-`list:<i>→OpenWordList(i)`, `nav:menu→OpenMenu`.
+`pool:<level>→SetPool`, `list:<i>→OpenWordList(i)`, `nav:menu→OpenMenu`.
 
 `base` в callback-данных короткий (≤ 64 байт Telegram), поэтому помещается.
 
 ## 8. Обработка ошибок
 
 - Невалидный `base` (нет в уровне/каталоге) или уже решённое слово в
-  `want`/`skip`, неизвестный `kind`, выход страницы за границы → тихо
-  подтвердить callback (как в Этапе 1), экран не ломается.
+  `want`/`skip`, невалидный `level` в `pool:<level>`, неизвестный `kind`,
+  выход страницы за границы → тихо подтвердить callback (как в Этапе 1), экран
+  не ломается.
 - Ошибки Mongo логируются; состояние FSM в БД сохраняется.
 
 ## 9. Тестирование (TDD — тесты до кода)
@@ -159,7 +178,11 @@ type View struct {
   - `MarkWant`/`MarkSkip` ставят статус и возвращают следующий экран;
     невалидный/повторный `base` не портит состояние;
   - каждое 5-е `want` → `learn_prompt`;
-  - `OpenMyWords` = только `want`, с переводами;
+  - пул исчерпан → `choose_pool` с другими уровнями (исключён текущий,
+    исчерпанные помечены); все уровни исчерпаны → `AllDone`;
+  - `SetPool` меняет `settings.level` и отдаёт материал нового пула;
+    невалидный уровень не меняет состояние;
+  - `OpenMyWords` = только `want` (со всех уровней), с переводами;
   - `OpenWordList` — корректные метки и границы пагинации (0 и последняя);
   - `StartLearning` → `Notice`, экран не меняется.
 - **`bot`** — `render(View)` для новых экранов (контент кнопок и текста,
@@ -170,8 +193,9 @@ type View struct {
 - Unit-тесты проходят; `go vet` чист.
 - Ручной тест в Telegram: меню (4 кнопки) → Учебный материал → выбор слов →
   после 5 «Хочу» появляется промпт → «Скоро будет» по «Начать обучение» →
-  «Мои слова» показывает выбранные → «Список слов» листается по уровням с
-  метками.
+  когда слова пула кончились, предлагается выбрать другой уровень и материал
+  переключается на него → «Мои слова» показывает выбранные → «Список слов»
+  листается по уровням с метками.
 
 ## 11. Вне Этапа 2 (следующие этапы)
 
