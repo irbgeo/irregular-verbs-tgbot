@@ -119,8 +119,10 @@ type ListState struct {
 
 // ListItem is one rendered word in a list.
 type ListItem struct {
-	Base   string
-	Status string // effective status (bot picks the icon)
+	Base       string
+	Status     string // effective status (bot picks the icon)
+	Past       string // forms of the chosen variant, joined by "/"
+	Participle string
 }
 
 // ListView is the data the bot renders for a list screen.

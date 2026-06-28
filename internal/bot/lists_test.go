@@ -115,6 +115,30 @@ func TestRouterWordListPickerFlow(t *testing.T) {
 	}
 }
 
+func TestWordButtonShowsThreeForms(t *testing.T) {
+	v := service.View{Screen: service.ScreenMyWords, List: &service.ListView{
+		Kind: service.KindMyWords, Section: service.StatusStudy, StudyCount: 1, Pages: 1,
+		Items: []service.ListItem{{Base: "be", Status: service.StatusStudy, Past: "was/were", Participle: "been"}},
+	}}
+	_, k := render(v)
+	label := k.InlineKeyboard[1][0].Text // row 0 is the section toggle
+	if label != "📘 be — was/were — been" {
+		t.Fatalf("word label = %q", label)
+	}
+}
+
+func TestBackEmojiIsReturnArrow(t *testing.T) {
+	v := service.View{Screen: service.ScreenMyWords, List: &service.ListView{
+		Kind: service.KindMyWords, Section: service.StatusStudy, Pages: 1,
+		Items: []service.ListItem{},
+	}}
+	_, k := render(v)
+	last := k.InlineKeyboard[len(k.InlineKeyboard)-1]
+	if last[0].Text != "↩️" || last[0].CallbackData != "list:back" {
+		t.Fatalf("back button = %+v", last[0])
+	}
+}
+
 func TestRouterMyWordsToggleCommit(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeUserRepo()
