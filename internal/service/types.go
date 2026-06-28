@@ -32,6 +32,7 @@ const (
 	StatusStudy   = "study"
 	StatusLearned = "learned"
 	StatusSkipped = "skipped"
+	StatusNew     = "new"
 	BoxMax        = 5
 )
 
@@ -53,8 +54,9 @@ type Session struct {
 
 // State holds the FSM position and optional quiz session.
 type State struct {
-	Screen  string   `bson:"screen"`
-	Session *Session `bson:"session,omitempty"`
+	Screen  string     `bson:"screen"`
+	Session *Session   `bson:"session,omitempty"`
+	List    *ListState `bson:"list,omitempty"`
 }
 
 // User is the user aggregate. Only the service writes it.
@@ -78,6 +80,8 @@ const (
 	ScreenQuiz              Screen = "quiz"
 	ScreenTestResult        Screen = "test_result"
 	ScreenTestDone          Screen = "test_done"
+	ScreenMyWords           Screen = "my_words"
+	ScreenWordList          Screen = "word_list"
 )
 
 // QuizView carries the data to render one quiz sub-question.
@@ -92,6 +96,40 @@ type View struct {
 	Screen   Screen
 	Quiz     *QuizView
 	Levels   []string
+	List     *ListView
 	Notice   string // popup via answerCallbackQuery; screen unchanged
 	Feedback string // prepended to the rendered message (quiz feedback)
+}
+
+// List edit kinds and the section values reuse the status strings.
+const (
+	KindMyWords  = "my_words"
+	KindWordList = "word_list"
+)
+
+// ListState is the staged list-editing state (draft).
+type ListState struct {
+	Kind    string            `bson:"kind"`    // KindMyWords | KindWordList
+	Section string            `bson:"section"` // my_words: StatusStudy | StatusSkipped
+	Page    int               `bson:"page"`
+	Draft   map[string]string `bson:"draft"` // base -> target status
+}
+
+// ListItem is one rendered word in a list.
+type ListItem struct {
+	Base   string
+	Status string // effective status (bot picks the icon)
+}
+
+// ListView is the data the bot renders for a list screen.
+type ListView struct {
+	Kind         string
+	Section      string // my_words active section
+	StudyCount   int    // my_words section-toggle counts
+	SkippedCount int
+	Level        string // word_list: level slug of the page's first item
+	Page, Pages  int
+	HasPrev      bool
+	HasNext      bool
+	Items        []ListItem
 }

@@ -13,10 +13,10 @@ func TestRenderVariant(t *testing.T) {
 	}
 }
 
-func TestRenderMenuHasThree(t *testing.T) {
+func TestRenderMenuHasFour(t *testing.T) {
 	_, k := render(service.View{Screen: service.ScreenMainMenu})
-	if len(k.InlineKeyboard) != 3 {
-		t.Fatalf("want 3 rows, got %d", len(k.InlineKeyboard))
+	if len(k.InlineKeyboard) != 4 {
+		t.Fatalf("want 4 rows, got %d", len(k.InlineKeyboard))
 	}
 	if k.InlineKeyboard[0][0].CallbackData != "menu:test" {
 		t.Fatalf("first = %q", k.InlineKeyboard[0][0].CallbackData)

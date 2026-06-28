@@ -3,6 +3,7 @@ package bot
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	tgbot "github.com/irbgeo/go-tgbot"
@@ -106,7 +107,9 @@ func (r *Router) dispatch(ctx context.Context, userID int64, kind, value string)
 		case "learn":
 			return service.View{Notice: "Скоро будет 🙂"}, nil
 		case "mywords":
-			return service.View{Notice: "Скоро будет 🙂"}, nil
+			return r.svc.OpenMyWords(ctx, userID)
+		case "list":
+			return r.svc.OpenWordList(ctx, userID)
 		default:
 			return service.View{}, fmt.Errorf("bot: unknown menu value %q", value)
 		}
@@ -129,6 +132,25 @@ func (r *Router) dispatch(ctx context.Context, userID int64, kind, value string)
 			return r.svc.Drop(ctx, userID)
 		default:
 			return service.View{}, fmt.Errorf("bot: unknown res value %q", value)
+		}
+	case "sec":
+		return r.svc.ListSection(ctx, userID, value)
+	case "lp":
+		page, err := strconv.Atoi(value)
+		if err != nil {
+			return service.View{}, fmt.Errorf("bot: bad page %q", value)
+		}
+		return r.svc.ListPage(ctx, userID, page)
+	case "tog":
+		return r.svc.ListToggle(ctx, userID, value)
+	case "list":
+		switch value {
+		case "ok":
+			return r.svc.CommitList(ctx, userID)
+		case "cancel":
+			return r.svc.CancelList(ctx, userID)
+		default:
+			return service.View{}, fmt.Errorf("bot: unknown list value %q", value)
 		}
 	default:
 		return service.View{}, fmt.Errorf("bot: unknown callback kind %q", kind)

@@ -8,11 +8,12 @@ import (
 
 // Service holds all business logic and depends only on repository ports.
 type Service struct {
-	users   UserRepository
-	byBase  map[string]Verb
-	byLevel map[string][]Verb
-	now     func() time.Time
-	rng     func(n int) int // returns [0,n)
+	users    UserRepository
+	byBase   map[string]Verb
+	byLevel  map[string][]Verb
+	allBases []string
+	now      func() time.Time
+	rng      func(n int) int // returns [0,n)
 }
 
 // New builds the in-memory verb catalog and returns a Service.
@@ -31,6 +32,12 @@ func New(users UserRepository, verbs []Verb) *Service {
 	for lvl := range s.byLevel {
 		ws := s.byLevel[lvl]
 		sort.Slice(ws, func(i, j int) bool { return ws[i].Base < ws[j].Base })
+	}
+	s.allBases = make([]string, 0, len(verbs))
+	for _, lvl := range Levels {
+		for _, v := range s.byLevel[lvl] {
+			s.allBases = append(s.allBases, v.Base)
+		}
 	}
 	return s
 }
