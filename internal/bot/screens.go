@@ -70,7 +70,7 @@ func render(v service.View) (string, *tgbot.InlineKeyboardMarkup) {
 			rows = append(rows, []tgbot.InlineKeyboardButton{btn(levelLabels[lvl], "wl:"+lvl)})
 		}
 		rows = append(rows, []tgbot.InlineKeyboardButton{btn("Все слова", "wl:all")})
-		rows = append(rows, []tgbot.InlineKeyboardButton{btn("🔙", "list:back")})
+		rows = append(rows, []tgbot.InlineKeyboardButton{btn("↩️", "list:back")})
 		return "📚 Список слов — выберите уровень:", kb(rows...)
 	default:
 		return "", nil
@@ -93,14 +93,15 @@ func statusIcon(status string) string {
 func wordRows(items []service.ListItem) [][]tgbot.InlineKeyboardButton {
 	var rows [][]tgbot.InlineKeyboardButton
 	for _, it := range items {
-		rows = append(rows, []tgbot.InlineKeyboardButton{btn(statusIcon(it.Status)+" "+it.Base, "tog:"+it.Base)})
+		label := statusIcon(it.Status) + " " + it.Base + " — " + it.Past + " — " + it.Participle
+		rows = append(rows, []tgbot.InlineKeyboardButton{btn(label, "tog:"+it.Base)})
 	}
 	return rows
 }
 
-// controlRow is the single emoji control row: 🔙 ⬅️ ❌ ✅ ➡️ (dynamic).
+// controlRow is the single emoji control row: ↩️ ⬅️ ❌ ✅ ➡️ (dynamic).
 func controlRow(l *service.ListView) []tgbot.InlineKeyboardButton {
-	row := []tgbot.InlineKeyboardButton{btn("🔙", "list:back")}
+	row := []tgbot.InlineKeyboardButton{btn("↩️", "list:back")}
 	if l.HasPrev {
 		row = append(row, btn("⬅️", "lp:"+strconv.Itoa(l.Page-1)))
 	}
