@@ -2,8 +2,11 @@ services:
   mongo:
     image: mongo:7
     restart: unless-stopped
-    ports:
-      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:?set MONGO_USERNAME in the environment or a .env file}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?set MONGO_PASSWORD in the environment or a .env file}
+    # Port intentionally not published: Mongo is reachable only on the compose
+    # network (the bot connects via the "mongo" hostname).
     volumes:
       - mongo-data:/data/db
     healthcheck:
@@ -20,7 +23,7 @@ services:
         condition: service_healthy
     environment:
       BOT_TOKEN: ${BOT_TOKEN:?set BOT_TOKEN in the environment or a .env file}
-      MONGO_URI: mongodb://mongo:27017
+      MONGO_URI: mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongo:27017/?authSource=admin
       MONGO_DB: irregular_verbs
 
 volumes:
