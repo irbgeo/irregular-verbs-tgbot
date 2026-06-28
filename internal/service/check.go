@@ -1,6 +1,9 @@
 package service
 
-import "strings"
+import (
+	"strings"
+	"unicode"
+)
 
 func norm(s string) string { return strings.ToLower(strings.TrimSpace(s)) }
 
@@ -20,15 +23,44 @@ func anyEqual(input string, options []string) bool {
 	return false
 }
 
+func isFormSep(r rune) bool { return r == '/' || r == ',' || unicode.IsSpace(r) }
+
+// allFormsMatch reports whether input lists exactly the set of options
+// (every form present, none extra), splitting on spaces, "/" and ",".
+func allFormsMatch(input string, options []string) bool {
+	if len(options) == 0 {
+		return false
+	}
+	got := map[string]bool{}
+	for _, tok := range strings.FieldsFunc(input, isFormSep) {
+		if n := norm(tok); n != "" {
+			got[n] = true
+		}
+	}
+	want := map[string]bool{}
+	for _, o := range options {
+		want[norm(o)] = true
+	}
+	if len(got) != len(want) {
+		return false
+	}
+	for w := range want {
+		if !got[w] {
+			return false
+		}
+	}
+	return true
+}
+
 // checkAnswer reports whether input is correct for the given sub-question.
 func (s *Service) checkAnswer(v Verb, step int, input, variant string) bool {
 	switch step {
 	case 0:
 		return normBase(input) == norm(v.Base)
 	case 1:
-		return anyEqual(input, v.Past[variant])
+		return allFormsMatch(input, v.Past[variant])
 	default:
-		return anyEqual(input, v.Participle[variant])
+		return allFormsMatch(input, v.Participle[variant])
 	}
 }
 
