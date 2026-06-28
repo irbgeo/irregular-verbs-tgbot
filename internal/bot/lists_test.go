@@ -71,14 +71,14 @@ func TestRenderMyWordsControlRow(t *testing.T) {
 func TestRenderWordListLevels(t *testing.T) {
 	v := service.View{Screen: service.ScreenWordListLevels, Levels: service.Levels}
 	text, k := render(v)
-	if text == "" || k.InlineKeyboard[0][0].CallbackData != "level:elementary" {
+	if text == "" || k.InlineKeyboard[0][0].CallbackData != "wl:elementary" {
 		t.Fatalf("levels = %+v", k.InlineKeyboard)
 	}
 	// has «Все слова» and back
 	var hasAll, hasBack bool
 	for _, row := range k.InlineKeyboard {
 		for _, b := range row {
-			if b.CallbackData == "level:all" {
+			if b.CallbackData == "wl:all" {
 				hasAll = true
 			}
 			if b.CallbackData == "list:back" {
@@ -103,7 +103,7 @@ func TestRouterWordListPickerFlow(t *testing.T) {
 	if u.State.Screen != string(service.ScreenWordListLevels) {
 		t.Fatalf("screen = %s", u.State.Screen)
 	}
-	_ = r.Handle(ctx, cbUpdate(7, "level:elementary")) // -> list
+	_ = r.Handle(ctx, cbUpdate(7, "wl:elementary")) // -> list
 	u, _ = repo.Get(ctx, 7)
 	if u.State.List == nil || u.State.List.Level != "elementary" {
 		t.Fatalf("list = %+v", u.State.List)

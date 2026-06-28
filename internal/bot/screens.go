@@ -67,9 +67,9 @@ func render(v service.View) (string, *tgbot.InlineKeyboardMarkup) {
 	case service.ScreenWordListLevels:
 		var rows [][]tgbot.InlineKeyboardButton
 		for _, lvl := range v.Levels {
-			rows = append(rows, []tgbot.InlineKeyboardButton{btn(levelLabels[lvl], "level:"+lvl)})
+			rows = append(rows, []tgbot.InlineKeyboardButton{btn(levelLabels[lvl], "wl:"+lvl)})
 		}
-		rows = append(rows, []tgbot.InlineKeyboardButton{btn("Все слова", "level:all")})
+		rows = append(rows, []tgbot.InlineKeyboardButton{btn("Все слова", "wl:all")})
 		rows = append(rows, []tgbot.InlineKeyboardButton{btn("🔙", "list:back")})
 		return "📚 Список слов — выберите уровень:", kb(rows...)
 	default:
