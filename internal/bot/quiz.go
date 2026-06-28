@@ -19,3 +19,22 @@ func quizPrompt(q *service.QuizView) string {
 		return "Глагол " + q.Base + " — past participle?"
 	}
 }
+
+var kindLabel = map[string]string{
+	"base":        "инфинитив",
+	"past":        "past",
+	"participle":  "past participle",
+	"translation": "перевод",
+}
+
+func learnPrompt(q *service.QuizView) string {
+	if q == nil {
+		return ""
+	}
+	verb := "Введите "
+	if q.Format == "choice" {
+		verb = "Выберите "
+	}
+	return "🎓 " + q.AnchorValue + " (" + kindLabel[q.AnchorKind] + ")\n\n" +
+		verb + kindLabel[q.TargetKind] + ":"
+}

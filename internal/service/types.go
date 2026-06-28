@@ -49,7 +49,13 @@ type Session struct {
 	Level string   `bson:"level"` // test: chosen level
 	Queue []string `bson:"queue"` // test: remaining word bases
 	Base  string   `bson:"base"`  // current word
-	Step  int      `bson:"step"`  // sub-question 0..3
+	Step  int      `bson:"step"`  // test: sub-question index
+
+	// learn:
+	AnchorKind string   `bson:"anchor_kind,omitempty"` // base/past/participle/translation
+	TargetKind string   `bson:"target_kind,omitempty"`
+	Options    []string `bson:"options,omitempty"` // mode 1 choice buttons (display order)
+	Recent     []string `bson:"recent,omitempty"`  // cooldown ring (last 5 bases)
 }
 
 // State holds the FSM position and optional quiz session.
@@ -83,6 +89,18 @@ const (
 	ScreenMyWords           Screen = "my_words"
 	ScreenWordList          Screen = "word_list"
 	ScreenWordListLevels    Screen = "word_list_levels"
+	ScreenLearnEmpty        Screen = "learn_empty"
+)
+
+// Learn sub-question kinds and answer formats.
+const (
+	KindBase        = "base"
+	KindPast        = "past"
+	KindParticiple  = "participle"
+	KindTranslation = "translation"
+
+	FormatInput  = "input"
+	FormatChoice = "choice"
 )
 
 // QuizView carries the data to render one quiz sub-question.
@@ -90,6 +108,14 @@ type QuizView struct {
 	Base         string
 	Step         int
 	Translations []string
+
+	// learn:
+	Mode        string   // "test" | "learn"
+	Format      string   // "input" | "choice"
+	AnchorKind  string   // shown form kind
+	AnchorValue string   // shown form value
+	TargetKind  string   // asked form kind
+	Options     []string // mode 1 choice buttons
 }
 
 // View is what a use-case returns; the bot renders it.

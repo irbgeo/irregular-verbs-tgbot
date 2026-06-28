@@ -48,9 +48,24 @@ func render(v service.View) (string, *tgbot.InlineKeyboardMarkup) {
 		rows = append(rows, []tgbot.InlineKeyboardButton{btn("⬅️ Меню", "nav:menu")})
 		return "Выберите уровень:", kb(rows...)
 	case service.ScreenQuiz:
+		if v.Quiz != nil && v.Quiz.Mode == "learn" {
+			var rows [][]tgbot.InlineKeyboardButton
+			if v.Quiz.Format == "choice" {
+				for i, opt := range v.Quiz.Options {
+					rows = append(rows, []tgbot.InlineKeyboardButton{btn(opt, "lc:"+strconv.Itoa(i))})
+				}
+			}
+			rows = append(rows, []tgbot.InlineKeyboardButton{btn("💡 Показать", "quiz:help")})
+			rows = append(rows, []tgbot.InlineKeyboardButton{btn("⬅️ Меню", "nav:menu")})
+			return v.Feedback + learnPrompt(v.Quiz), kb(rows...)
+		}
 		return v.Feedback + quizPrompt(v.Quiz), kb(
 			[]tgbot.InlineKeyboardButton{btn("💡 Помощь", "quiz:help"), btn("⏭️ Скип", "quiz:skip")},
 			[]tgbot.InlineKeyboardButton{btn("⬅️ Меню", "nav:menu")},
+		)
+	case service.ScreenLearnEmpty:
+		return "Пока нечего учить 🙂", kb(
+			[]tgbot.InlineKeyboardButton{btn("🧪 Тест", "menu:test"), btn("⬅️ Меню", "nav:menu")},
 		)
 	case service.ScreenTestResult:
 		return v.Feedback + "Верно! Добавить слово в изучение?", kb(

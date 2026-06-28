@@ -105,7 +105,7 @@ func (r *Router) dispatch(ctx context.Context, userID int64, kind, value string)
 		case "test":
 			return r.svc.OpenTest(ctx, userID)
 		case "learn":
-			return service.View{Notice: "Скоро будет 🙂"}, nil
+			return r.svc.StartLearn(ctx, userID)
 		case "mywords":
 			return r.svc.OpenMyWords(ctx, userID)
 		case "list":
@@ -137,6 +137,12 @@ func (r *Router) dispatch(ctx context.Context, userID int64, kind, value string)
 		}
 	case "sec":
 		return r.svc.ListSection(ctx, userID, value)
+	case "lc":
+		idx, err := strconv.Atoi(value)
+		if err != nil {
+			return service.View{}, fmt.Errorf("bot: bad choice %q", value)
+		}
+		return r.svc.LearnChoose(ctx, userID, idx)
 	case "lp":
 		page, err := strconv.Atoi(value)
 		if err != nil {

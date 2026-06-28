@@ -1,0 +1,110 @@
+package service
+
+import (
+	"testing"
+)
+
+// learnCatalog has 6 verbs with common_mistakes and distinct translations,
+// enough to fill 4-option form choices and 5-option translation choices.
+func learnCatalog() []Verb {
+	return []Verb{
+		{Base: "go", Level: "elementary", Past: map[string][]string{"gb": {"went"}, "us": {"went"}}, Participle: map[string][]string{"gb": {"gone"}, "us": {"gone"}}, Translations: []string{"идти"}, CommonMistakes: []string{"goed", "wented"}},
+		{Base: "be", Level: "elementary", Past: map[string][]string{"gb": {"was", "were"}, "us": {"was", "were"}}, Participle: map[string][]string{"gb": {"been"}, "us": {"been"}}, Translations: []string{"быть"}, CommonMistakes: []string{"beed", "are"}},
+		{Base: "do", Level: "elementary", Past: map[string][]string{"gb": {"did"}, "us": {"did"}}, Participle: map[string][]string{"gb": {"done"}, "us": {"done"}}, Translations: []string{"делать"}, CommonMistakes: []string{"doed", "done"}},
+		{Base: "make", Level: "elementary", Past: map[string][]string{"gb": {"made"}, "us": {"made"}}, Participle: map[string][]string{"gb": {"made"}, "us": {"made"}}, Translations: []string{"создавать"}, CommonMistakes: []string{"maked", "maded"}},
+		{Base: "see", Level: "elementary", Past: map[string][]string{"gb": {"saw"}, "us": {"saw"}}, Participle: map[string][]string{"gb": {"seen"}, "us": {"seen"}}, Translations: []string{"видеть"}, CommonMistakes: []string{"seed", "sawed"}},
+		{Base: "take", Level: "elementary", Past: map[string][]string{"gb": {"took"}, "us": {"took"}}, Participle: map[string][]string{"gb": {"taken"}, "us": {"taken"}}, Translations: []string{"брать"}, CommonMistakes: []string{"taked", "tooked"}},
+	}
+}
+
+func newLearnSvc() (*Service, *fakeUserRepo) {
+	repo := newFakeUserRepo()
+	return New(repo, learnCatalog()), repo
+}
+
+func learnUser(words map[string]WordProgress) *User {
+	return &User{ID: 7, Settings: Settings{Variant: "gb"}, Words: words}
+}
+
+func TestLearnPoolSplitsByStatus(t *testing.T) {
+	svc, _ := newLearnSvc()
+	u := learnUser(map[string]WordProgress{
+		"go":   {Status: StatusStudy, Mode: 1},
+		"be":   {Status: StatusLearned},
+		"do":   {Status: StatusSkipped},
+		"make": {Status: StatusStudy, Mode: 2, Box: 3},
+	})
+	study, learned := svc.learnPool(u)
+	if len(study) != 2 || len(learned) != 1 {
+		t.Fatalf("study=%v learned=%v", study, learned)
+	}
+}
+
+func TestPickEmptyPool(t *testing.T) {
+	svc, _ := newLearnSvc()
+	u := learnUser(map[string]WordProgress{"do": {Status: StatusSkipped}})
+	if _, ok := svc.pickLearnWord(u, nil); ok {
+		t.Fatal("empty pool must return ok=false")
+	}
+}
+
+func TestPickWeightChoosesStudyThenLearned(t *testing.T) {
+	svc, _ := newLearnSvc()
+	u := learnUser(map[string]WordProgress{
+		"go": {Status: StatusStudy, Mode: 1},
+		"be": {Status: StatusLearned},
+	})
+	// roll < 90 -> study group
+	svc.rng = func(n int) int { return 0 }
+	if got, ok := svc.pickLearnWord(u, nil); !ok || got != "go" {
+		t.Fatalf("study pick = %q ok=%v", got, ok)
+	}
+	// roll >= 90 -> learned group, index 0
+	svc.rng = func(n int) int {
+		if n == 100 {
+			return 95
+		}
+		return 0
+	}
+	if got, ok := svc.pickLearnWord(u, nil); !ok || got != "be" {
+		t.Fatalf("learned pick = %q ok=%v", got, ok)
+	}
+}
+
+func TestPickEmptyGroupFallsBack(t *testing.T) {
+	svc, _ := newLearnSvc()
+	u := learnUser(map[string]WordProgress{"go": {Status: StatusStudy, Mode: 1}})
+	// roll picks learned, but learned empty -> fall back to study
+	svc.rng = func(n int) int {
+		if n == 100 {
+			return 95
+		}
+		return 0
+	}
+	if got, ok := svc.pickLearnWord(u, nil); !ok || got != "go" {
+		t.Fatalf("fallback pick = %q ok=%v", got, ok)
+	}
+}
+
+func TestPickExcludesRecent(t *testing.T) {
+	svc, _ := newLearnSvc()
+	u := learnUser(map[string]WordProgress{
+		"go": {Status: StatusStudy, Mode: 1},
+		"do": {Status: StatusStudy, Mode: 1},
+	})
+	svc.rng = func(n int) int { return 0 } // study group, index 0 of candidates
+	// recent excludes "do" (study sorted: [do, go] by allBases order is level+alpha)
+	got, ok := svc.pickLearnWord(u, []string{"do"})
+	if !ok || got == "do" {
+		t.Fatalf("recent not excluded: got %q", got)
+	}
+}
+
+func TestPickIgnoresRecentWhenAllExcluded(t *testing.T) {
+	svc, _ := newLearnSvc()
+	u := learnUser(map[string]WordProgress{"go": {Status: StatusStudy, Mode: 1}})
+	svc.rng = func(n int) int { return 0 }
+	if got, ok := svc.pickLearnWord(u, []string{"go"}); !ok || got != "go" {
+		t.Fatalf("should ignore ring when all excluded: got %q ok=%v", got, ok)
+	}
+}
