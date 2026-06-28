@@ -13,7 +13,7 @@ func TestRenderLearnAnchorBaseHasTo(t *testing.T) {
 		AnchorKind: "base", AnchorValue: "go", TargetKind: "past",
 	}}
 	text, _ := render(v)
-	if !strings.Contains(text, "to go (инфинитив)") {
+	if !strings.Contains(text, "to go") || strings.Contains(text, "(инфинитив)") {
 		t.Fatalf("anchor text = %q", text)
 	}
 }

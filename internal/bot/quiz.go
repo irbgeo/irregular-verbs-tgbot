@@ -39,6 +39,6 @@ func learnPrompt(q *service.QuizView) string {
 	if q.AnchorKind == service.KindBase {
 		anchor = service.BaseLabel(anchor)
 	}
-	return "🎓 " + anchor + " (" + kindLabel[q.AnchorKind] + ")\n\n" +
+	return "🎓 " + anchor + "\n\n" +
 		verb + kindLabel[q.TargetKind] + ":"
 }

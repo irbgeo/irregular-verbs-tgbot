@@ -186,6 +186,18 @@ func (s *Service) translationOptions(v Verb) []string {
 	return s.shuffle(opts)
 }
 
+// startStudyWord initializes a study word's mode to 1 the first time «Учить»
+// trains it. Lists add words as study/mode0; Учить owns the mode and starts
+// them at mode 1 (choice). Words from Тест are already mode 1; mode 2 and
+// learned are left untouched.
+func (s *Service) startStudyWord(u *User, base string) {
+	w := u.Words[base]
+	if w.Status == StatusStudy && w.Mode == 0 {
+		w.Mode = 1
+		u.Words[base] = w
+	}
+}
+
 func (s *Service) wordFormat(u *User, base string) string {
 	w := u.Words[base]
 	if w.Status == StatusStudy && w.Mode == 1 {
@@ -291,6 +303,7 @@ func (s *Service) StartLearn(ctx context.Context, userID int64) (View, error) {
 		return View{Screen: ScreenLearnEmpty}, nil
 	}
 	sess := &Session{Mode: "learn", Base: base, Recent: []string{base}}
+	s.startStudyWord(u, base)
 	s.buildRound(u, sess)
 	u.State = State{Screen: string(ScreenQuiz), Session: sess}
 	if err := s.save(ctx, u); err != nil {
@@ -310,6 +323,7 @@ func (s *Service) advanceLearn(u *User) View {
 	}
 	sess.Base = base
 	sess.Recent = pushRecent(sess.Recent, base)
+	s.startStudyWord(u, base)
 	s.buildRound(u, sess)
 	return View{Screen: ScreenQuiz, Quiz: s.learnQuestion(u, sess)}
 }
