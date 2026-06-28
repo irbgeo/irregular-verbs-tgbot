@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// drive the current word to the test_result screen (all 4 correct).
+// drive the current word to the test_result screen (all 3 correct).
 func toResult(t *testing.T, svc *Service, repo *fakeUserRepo) string {
 	t.Helper()
 	ctx := context.Background()
@@ -13,8 +13,7 @@ func toResult(t *testing.T, svc *Service, repo *fakeUserRepo) string {
 	v, _ := svc.verb(cur)
 	_, _ = svc.Answer(ctx, 7, v.Base)
 	_, _ = svc.Answer(ctx, 7, v.Past["gb"][0])
-	_, _ = svc.Answer(ctx, 7, v.Participle["gb"][0])
-	if out, _ := svc.Answer(ctx, 7, v.Translations[0]); out.Screen != ScreenTestResult {
+	if out, _ := svc.Answer(ctx, 7, v.Participle["gb"][0]); out.Screen != ScreenTestResult {
 		t.Fatalf("expected result screen, got %s", out.Screen)
 	}
 	return cur

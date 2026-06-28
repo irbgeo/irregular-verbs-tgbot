@@ -21,10 +21,8 @@ func (s *Service) checkAnswer(v Verb, step int, input, variant string) bool {
 		return norm(input) == norm(v.Base)
 	case 1:
 		return anyEqual(input, v.Past[variant])
-	case 2:
-		return anyEqual(input, v.Participle[variant])
 	default:
-		return anyEqual(input, v.Translations)
+		return anyEqual(input, v.Participle[variant])
 	}
 }
 

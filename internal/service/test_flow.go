@@ -116,14 +116,14 @@ func (s *Service) Answer(ctx context.Context, userID int64, text string) (View, 
 		}
 		return out, nil
 	}
-	if sess.Step < 3 {
+	if sess.Step < 2 {
 		sess.Step++
 		if err := s.save(ctx, u); err != nil {
 			return View{}, err
 		}
 		return View{Screen: ScreenQuiz, Quiz: s.questionView(sess.Base, sess.Step)}, nil
 	}
-	// all 4 correct, no help -> ask keep/skip
+	// all 3 correct, no help -> ask keep/skip
 	u.State.Screen = string(ScreenTestResult)
 	if err := s.save(ctx, u); err != nil {
 		return View{}, err

@@ -74,10 +74,9 @@ func TestAnswerAllCorrectAsksResult(t *testing.T) {
 	v, _ := svc.verb(cur)
 	variant := "gb"
 
-	_, _ = svc.Answer(ctx, 7, v.Base)                   // step0 -> base
-	_, _ = svc.Answer(ctx, 7, v.Past[variant][0])       // step1 past
-	_, _ = svc.Answer(ctx, 7, v.Participle[variant][0]) // step2 participle
-	out, _ := svc.Answer(ctx, 7, v.Translations[0])     // step3 translation
+	_, _ = svc.Answer(ctx, 7, v.Base)                      // step0 -> base
+	_, _ = svc.Answer(ctx, 7, v.Past[variant][0])          // step1 past
+	out, _ := svc.Answer(ctx, 7, v.Participle[variant][0]) // step2 participle -> result
 	if out.Screen != ScreenTestResult {
 		t.Fatalf("view = %+v", out)
 	}

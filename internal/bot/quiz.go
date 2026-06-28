@@ -15,9 +15,7 @@ func quizPrompt(q *service.QuizView) string {
 		return "Переведите на английский (инфинитив):\n📝 " + strings.Join(q.Translations, ", ")
 	case 1:
 		return "Глагол " + q.Base + " — past?"
-	case 2:
-		return "Глагол " + q.Base + " — past participle?"
 	default:
-		return "Глагол " + q.Base + " — перевод?"
+		return "Глагол " + q.Base + " — past participle?"
 	}
 }
