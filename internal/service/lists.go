@@ -197,3 +197,110 @@ func (s *Service) ListPage(ctx context.Context, userID int64, page int) (View, e
 	}
 	return v, nil
 }
+
+// storedStatus is the persisted status ignoring the draft.
+func storedStatus(u *User, base string) string {
+	if w, ok := u.Words[base]; ok {
+		return w.Status
+	}
+	return StatusNew
+}
+
+// ListToggle flips a word's draft target per the current list kind.
+func (s *Service) ListToggle(ctx context.Context, userID int64, base string) (View, error) {
+	u, err := s.load(ctx, userID)
+	if err != nil {
+		return View{}, err
+	}
+	ls := u.State.List
+	if ls == nil {
+		return View{}, nil
+	}
+	if _, ok := s.verb(base); !ok {
+		return s.listView(u), nil // unknown base: re-render, no change
+	}
+
+	eff := effectiveStatus(u, base)
+	stored := storedStatus(u, base)
+
+	var target string
+	if ls.Kind == KindMyWords {
+		if eff == StatusSkipped {
+			target = StatusStudy
+		} else { // study or learned
+			target = StatusSkipped
+		}
+	} else { // word_list: toggle study membership
+		if eff == StatusStudy {
+			if stored == StatusSkipped {
+				target = StatusSkipped
+			} else {
+				target = StatusNew
+			}
+		} else {
+			target = StatusStudy
+		}
+	}
+
+	if target == stored {
+		delete(ls.Draft, base)
+	} else {
+		ls.Draft[base] = target
+	}
+	v := s.listView(u)
+	if err := s.save(ctx, u); err != nil {
+		return View{}, err
+	}
+	return v, nil
+}
+
+// CommitList applies the draft to words and returns to the menu.
+func (s *Service) CommitList(ctx context.Context, userID int64) (View, error) {
+	u, err := s.load(ctx, userID)
+	if err != nil {
+		return View{}, err
+	}
+	ls := u.State.List
+	if ls == nil {
+		return View{}, nil
+	}
+	for base, target := range ls.Draft {
+		switch target {
+		case StatusStudy:
+			if u.Words == nil {
+				u.Words = map[string]WordProgress{}
+			}
+			w := u.Words[base] // zero value if absent
+			w.Status = StatusStudy
+			u.Words[base] = w // preserves Mode/Box; new -> {study,0,0}
+		case StatusSkipped:
+			if u.Words == nil {
+				u.Words = map[string]WordProgress{}
+			}
+			u.Words[base] = WordProgress{Status: StatusSkipped}
+		case StatusNew:
+			delete(u.Words, base)
+		}
+	}
+	u.State = State{Screen: string(ScreenMainMenu)}
+	if err := s.save(ctx, u); err != nil {
+		return View{}, err
+	}
+	return View{Screen: ScreenMainMenu}, nil
+}
+
+// CancelList discards the draft and returns to the menu.
+func (s *Service) CancelList(ctx context.Context, userID int64) (View, error) {
+	u, err := s.load(ctx, userID)
+	if err != nil {
+		return View{}, err
+	}
+	if u.State.List == nil {
+		return View{}, nil
+	}
+	u.State = State{Screen: string(ScreenMainMenu)}
+	if err := s.save(ctx, u); err != nil {
+		return View{}, err
+	}
+	return View{Screen: ScreenMainMenu}, nil
+}
