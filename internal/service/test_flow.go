@@ -102,6 +102,9 @@ func (s *Service) Answer(ctx context.Context, userID int64, text string) (View, 
 	if err != nil {
 		return View{}, err
 	}
+	if s.inLearn(u) {
+		return s.learnText(ctx, u, text)
+	}
 	if !s.inQuiz(u) {
 		return View{}, nil // ignore stray text
 	}
@@ -137,6 +140,9 @@ func (s *Service) Help(ctx context.Context, userID int64) (View, error) {
 	if err != nil {
 		return View{}, err
 	}
+	if s.inLearn(u) {
+		return s.resolveLearn(ctx, u, false, true)
+	}
 	if !s.inQuiz(u) {
 		return View{}, nil
 	}
@@ -155,6 +161,9 @@ func (s *Service) Skip(ctx context.Context, userID int64) (View, error) {
 	u, err := s.load(ctx, userID)
 	if err != nil {
 		return View{}, err
+	}
+	if s.inLearn(u) {
+		return View{}, nil // no skip in learn
 	}
 	if !s.inQuiz(u) {
 		return View{}, nil

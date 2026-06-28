@@ -1,6 +1,9 @@
 package service
 
-import "strings"
+import (
+	"context"
+	"strings"
+)
 
 // learnPool returns study and learned bases in catalog order (deterministic).
 func (s *Service) learnPool(u *User) (study, learned []string) {
@@ -256,4 +259,99 @@ func (s *Service) learnLadder(u *User, base string, ok bool) {
 		}
 	}
 	u.Words[base] = w
+}
+
+func (s *Service) inLearn(u *User) bool {
+	return u != nil &&
+		u.State.Screen == string(ScreenQuiz) &&
+		u.State.Session != nil &&
+		u.State.Session.Mode == "learn"
+}
+
+// StartLearn opens the training session, or the empty screen if nothing is
+// eligible.
+func (s *Service) StartLearn(ctx context.Context, userID int64) (View, error) {
+	u, err := s.load(ctx, userID)
+	if err != nil {
+		return View{}, err
+	}
+	base, ok := s.pickLearnWord(u, nil)
+	if !ok {
+		u.State = State{Screen: string(ScreenLearnEmpty)}
+		if err := s.save(ctx, u); err != nil {
+			return View{}, err
+		}
+		return View{Screen: ScreenLearnEmpty}, nil
+	}
+	sess := &Session{Mode: "learn", Base: base, Recent: []string{base}}
+	s.buildRound(u, sess)
+	u.State = State{Screen: string(ScreenQuiz), Session: sess}
+	if err := s.save(ctx, u); err != nil {
+		return View{}, err
+	}
+	return View{Screen: ScreenQuiz, Quiz: s.learnQuestion(u, sess)}, nil
+}
+
+// advanceLearn moves to the next word (mutating u); pool never empties mid-
+// session, but the empty screen is returned defensively.
+func (s *Service) advanceLearn(u *User) View {
+	sess := u.State.Session
+	base, ok := s.pickLearnWord(u, sess.Recent)
+	if !ok {
+		u.State = State{Screen: string(ScreenLearnEmpty)}
+		return View{Screen: ScreenLearnEmpty}
+	}
+	sess.Base = base
+	sess.Recent = pushRecent(sess.Recent, base)
+	s.buildRound(u, sess)
+	return View{Screen: ScreenQuiz, Quiz: s.learnQuestion(u, sess)}
+}
+
+// resolveLearn applies the ladder, advances, and (on failure/reveal) attaches
+// the correct-forms feedback.
+func (s *Service) resolveLearn(ctx context.Context, u *User, ok, reveal bool) (View, error) {
+	sess := u.State.Session
+	v, _ := s.verb(sess.Base)
+	s.learnLadder(u, sess.Base, ok)
+	out := s.advanceLearn(u)
+	if !ok {
+		prefix := "❌ Неверно. Правильно: "
+		if reveal {
+			prefix = "💡 "
+		}
+		out.Feedback = prefix + s.correctText(v, u.Settings.Variant) + "\n\n"
+	}
+	if err := s.save(ctx, u); err != nil {
+		return View{}, err
+	}
+	return out, nil
+}
+
+// learnText handles a typed answer in learn mode (input format only).
+func (s *Service) learnText(ctx context.Context, u *User, text string) (View, error) {
+	sess := u.State.Session
+	if s.wordFormat(u, sess.Base) != FormatInput {
+		return View{}, nil // choice mode: ignore typed text
+	}
+	v, _ := s.verb(sess.Base)
+	ok := s.checkTarget(v, sess.TargetKind, text, u.Settings.Variant)
+	return s.resolveLearn(ctx, u, ok, false)
+}
+
+// LearnChoose handles a tapped option in learn mode (choice format only).
+func (s *Service) LearnChoose(ctx context.Context, userID int64, idx int) (View, error) {
+	u, err := s.load(ctx, userID)
+	if err != nil {
+		return View{}, err
+	}
+	if !s.inLearn(u) || s.wordFormat(u, u.State.Session.Base) != FormatChoice {
+		return View{}, nil
+	}
+	sess := u.State.Session
+	if idx < 0 || idx >= len(sess.Options) {
+		return View{}, nil
+	}
+	v, _ := s.verb(sess.Base)
+	ok := norm(sess.Options[idx]) == norm(correctOption(v, sess.TargetKind, u.Settings.Variant))
+	return s.resolveLearn(ctx, u, ok, false)
 }
