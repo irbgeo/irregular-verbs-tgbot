@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -37,4 +38,24 @@ func (r *UserRepo) Save(ctx context.Context, u *service.User) error {
 		return fmt.Errorf("store: save user %d: %w", u.ID, err)
 	}
 	return nil
+}
+
+// DueForReminder returns users whose created_at, last_solved_at and
+// last_reminded_at are all <= before, and who hold a non-empty words map.
+func (r *UserRepo) DueForReminder(ctx context.Context, before time.Time) ([]*service.User, error) {
+	filter := bson.M{
+		"created_at":       bson.M{"$lte": before},
+		"last_solved_at":   bson.M{"$lte": before},
+		"last_reminded_at": bson.M{"$lte": before},
+		"words":            bson.M{"$exists": true, "$ne": bson.M{}},
+	}
+	cur, err := r.coll.Find(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("store: due for reminder: %w", err)
+	}
+	var users []*service.User
+	if err := cur.All(ctx, &users); err != nil {
+		return nil, fmt.Errorf("store: decode reminder users: %w", err)
+	}
+	return users, nil
 }

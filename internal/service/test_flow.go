@@ -108,6 +108,7 @@ func (s *Service) Answer(ctx context.Context, userID int64, text string) (View, 
 	if !s.inQuiz(u) {
 		return View{}, nil // ignore stray text
 	}
+	s.markSolved(u)
 	sess := u.State.Session
 	v, _ := s.verb(sess.Base)
 	if !s.checkAnswer(v, sess.Step, text, u.Settings.Variant) {
@@ -146,6 +147,7 @@ func (s *Service) Help(ctx context.Context, userID int64) (View, error) {
 	if !s.inQuiz(u) {
 		return View{}, nil
 	}
+	s.markSolved(u)
 	v, _ := s.verb(u.State.Session.Base)
 	s.setStudy(u, u.State.Session.Base)
 	out := s.advance(u)

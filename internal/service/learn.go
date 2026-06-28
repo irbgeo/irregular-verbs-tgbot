@@ -295,22 +295,30 @@ func (s *Service) StartLearn(ctx context.Context, userID int64) (View, error) {
 	if err != nil {
 		return View{}, err
 	}
-	base, ok := s.pickLearnWord(u, nil)
+	v, ok := s.beginLearn(u)
 	if !ok {
 		u.State = State{Screen: string(ScreenLearnEmpty)}
-		if err := s.save(ctx, u); err != nil {
-			return View{}, err
-		}
-		return View{Screen: ScreenLearnEmpty}, nil
+		v = View{Screen: ScreenLearnEmpty}
+	}
+	if err := s.save(ctx, u); err != nil {
+		return View{}, err
+	}
+	return v, nil
+}
+
+// beginLearn sets up a learn session on u (mutating State) and returns the
+// quiz View. ok is false and u is left unchanged when there is nothing to
+// learn (caller decides what to show).
+func (s *Service) beginLearn(u *User) (View, bool) {
+	base, ok := s.pickLearnWord(u, nil)
+	if !ok {
+		return View{}, false
 	}
 	sess := &Session{Mode: "learn", Base: base, Recent: []string{base}}
 	s.startStudyWord(u, base)
 	s.buildRound(u, sess)
 	u.State = State{Screen: string(ScreenQuiz), Session: sess}
-	if err := s.save(ctx, u); err != nil {
-		return View{}, err
-	}
-	return View{Screen: ScreenQuiz, Quiz: s.learnQuestion(u, sess)}, nil
+	return View{Screen: ScreenQuiz, Quiz: s.learnQuestion(u, sess)}, true
 }
 
 // advanceLearn moves to the next word (mutating u); pool never empties mid-
@@ -334,6 +342,7 @@ func (s *Service) advanceLearn(u *User) View {
 func (s *Service) resolveLearn(ctx context.Context, u *User, ok, reveal bool) (View, error) {
 	sess := u.State.Session
 	v, _ := s.verb(sess.Base)
+	s.markSolved(u)
 	s.learnLadder(u, sess.Base, ok)
 	out := s.advanceLearn(u)
 	if !ok {

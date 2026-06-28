@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"testing"
+	"time"
 )
 
 type fakeUserRepo struct{ m map[int64]*User }
@@ -22,6 +23,23 @@ func (f *fakeUserRepo) Save(_ context.Context, u *User) error {
 	cp := *u
 	f.m[u.ID] = &cp
 	return nil
+}
+
+// DueForReminder mirrors the Mongo filter: created/solved/reminded <= before
+// and a non-empty words map.
+func (f *fakeUserRepo) DueForReminder(_ context.Context, before time.Time) ([]*User, error) {
+	var out []*User
+	for _, u := range f.m {
+		if len(u.Words) == 0 ||
+			u.CreatedAt.After(before) ||
+			u.LastSolvedAt.After(before) ||
+			u.LastRemindedAt.After(before) {
+			continue
+		}
+		cp := *u
+		out = append(out, &cp)
+	}
+	return out, nil
 }
 
 func newSvc() (*Service, *fakeUserRepo) {
