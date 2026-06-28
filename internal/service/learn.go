@@ -37,6 +37,8 @@ func (s *Service) pickLearnWord(u *User, recent []string) (string, bool) {
 		group = learned
 	}
 	if len(group) == 0 {
+		// The chosen group is empty; the other is non-empty (both-empty
+		// returned above), so fall back to study/learned — whichever has words.
 		if len(study) > 0 {
 			group = study
 		} else {
@@ -123,6 +125,9 @@ func (s *Service) checkTarget(v Verb, kind, input, variant string) bool {
 
 // formOptions returns 4 buttons for a form target: 1 correct + 3 distractors
 // (common_mistakes first, then same-kind forms of other verbs), shuffled.
+// Assumes the catalog has at least 4 distinct same-kind forms; a thinner
+// catalog yields fewer buttons. The production catalog (verbs.json) far
+// exceeds this, so the short-list branch is unreachable in practice.
 func (s *Service) formOptions(v Verb, kind, variant string) []string {
 	correct := correctOption(v, kind, variant)
 	opts := []string{correct}
@@ -155,7 +160,9 @@ func (s *Service) formOptions(v Verb, kind, variant string) []string {
 }
 
 // translationOptions returns 5 buttons for a translation target: 1 correct +
-// 4 translations of other verbs, shuffled.
+// 4 translations of other verbs, shuffled. Assumes the catalog has at least
+// 5 distinct translations; a thinner catalog yields fewer buttons. The
+// production catalog (verbs.json) far exceeds this.
 func (s *Service) translationOptions(v Verb) []string {
 	correct := first(v.Translations)
 	opts := []string{correct}
