@@ -116,6 +116,7 @@ type QuizView struct {
 	AnchorValue string   // shown form value
 	TargetKind  string   // asked form kind
 	Options     []string // mode 1 choice buttons
+	Repeat      bool     // learned word being repeated
 }
 
 // View is what a use-case returns; the bot renders it.

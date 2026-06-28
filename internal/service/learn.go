@@ -242,6 +242,7 @@ func (s *Service) learnQuestion(u *User, sess *Session) *QuizView {
 		AnchorValue: formValue(v, sess.AnchorKind, variant),
 		TargetKind:  sess.TargetKind,
 		Options:     sess.Options,
+		Repeat:      u.Words[sess.Base].Status == StatusLearned,
 	}
 }
 
