@@ -31,6 +31,7 @@ func TestToggleWordListStudy(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := navSvc(t)
 	_, _ = svc.OpenWordList(ctx, 7)
+	_, _ = svc.ChooseLevel(ctx, 7, "all")
 
 	// be is learned (effective != study) -> tap sets study
 	_, _ = svc.ListToggle(ctx, 7, "be")
@@ -62,6 +63,7 @@ func TestCommitAppliesDraft(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := navSvc(t)
 	_, _ = svc.OpenWordList(ctx, 7)
+	_, _ = svc.ChooseLevel(ctx, 7, "all")
 	_, _ = svc.ListToggle(ctx, 7, "build") // new -> study
 	_, _ = svc.ListToggle(ctx, 7, "go")    // study -> new
 
@@ -69,12 +71,12 @@ func TestCommitAppliesDraft(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if v.Screen != ScreenMainMenu {
-		t.Fatalf("screen = %s", v.Screen)
+	if v.Screen != ScreenWordList { // stays on the list, not main_menu
+		t.Fatalf("screen = %s, want word_list", v.Screen)
 	}
 	u, _ := repo.Get(ctx, 7)
-	if u.State.List != nil {
-		t.Fatal("list state must be cleared after commit")
+	if u.State.List == nil || len(u.State.List.Draft) != 0 {
+		t.Fatalf("after commit: list=%+v (draft must be cleared, list kept)", u.State.List)
 	}
 	if u.Words["build"].Status != StatusStudy {
 		t.Fatalf("words = %+v", u.Words)
@@ -82,7 +84,6 @@ func TestCommitAppliesDraft(t *testing.T) {
 	if _, ok := u.Words["go"]; ok {
 		t.Fatalf("go should be deleted, words = %+v", u.Words)
 	}
-	// study sets status only; box stays 0
 	if u.Words["build"].Box != 0 || u.Words["build"].Mode != 0 {
 		t.Fatalf("build progress = %+v", u.Words["build"])
 	}
@@ -92,6 +93,7 @@ func TestCommitNewDeletes(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := navSvc(t)
 	_, _ = svc.OpenWordList(ctx, 7)
+	_, _ = svc.ChooseLevel(ctx, 7, "all")
 	_, _ = svc.ListToggle(ctx, 7, "go") // study -> new (toggle off)
 	_, _ = svc.CommitList(ctx, 7)
 	u, _ := repo.Get(ctx, 7)
@@ -106,12 +108,15 @@ func TestCancelDiscards(t *testing.T) {
 	_, _ = svc.OpenMyWords(ctx, 7)
 	_, _ = svc.ListToggle(ctx, 7, "go")
 	v, _ := svc.CancelList(ctx, 7)
-	if v.Screen != ScreenMainMenu {
-		t.Fatalf("screen = %s", v.Screen)
+	if v.Screen != ScreenMyWords {
+		t.Fatalf("screen = %s, want my_words", v.Screen)
 	}
 	u, _ := repo.Get(ctx, 7)
-	if u.State.List != nil || u.Words["go"].Status != StatusStudy {
-		t.Fatalf("cancel should discard; state=%+v words=%+v", u.State.List, u.Words)
+	if u.State.List == nil || len(u.State.List.Draft) != 0 {
+		t.Fatalf("cancel should clear draft but keep list; got %+v", u.State.List)
+	}
+	if u.Words["go"].Status != StatusStudy {
+		t.Fatalf("cancel must not change words; go=%+v", u.Words["go"])
 	}
 }
 
@@ -129,6 +134,7 @@ func TestToggleWordListSkippedRoundTrip(t *testing.T) {
 
 	// open word list (catalog view)
 	_, _ = svc.OpenWordList(ctx, 7)
+	_, _ = svc.ChooseLevel(ctx, 7, "all")
 
 	// build is skipped -> tap -> study (draft)
 	_, _ = svc.ListToggle(ctx, 7, "build")
@@ -167,7 +173,7 @@ func TestCommitSkippedWritesSkipped(t *testing.T) {
 		t.Fatalf("draft = %+v", u.State.List.Draft)
 	}
 
-	// commit: apply skipped to words
+	// commit: apply skipped to words, stay on list
 	_, err := svc.CommitList(ctx, 7)
 	if err != nil {
 		t.Fatal(err)
@@ -176,7 +182,7 @@ func TestCommitSkippedWritesSkipped(t *testing.T) {
 	if u.Words["go"].Status != StatusSkipped {
 		t.Fatalf("words = %+v", u.Words)
 	}
-	if u.State.List != nil {
-		t.Fatalf("list state must be cleared after commit, got %+v", u.State.List)
+	if u.State.List == nil || len(u.State.List.Draft) != 0 {
+		t.Fatalf("after commit: list=%+v (draft must be cleared, list kept)", u.State.List)
 	}
 }

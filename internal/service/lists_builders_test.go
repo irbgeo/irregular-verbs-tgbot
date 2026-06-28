@@ -39,7 +39,8 @@ func TestBuildWordListView(t *testing.T) {
 	s := New(nil, testCatalog()) // be, go (elementary); build (pre-intermediate)
 	u := &User{Words: map[string]WordProgress{"go": {Status: StatusStudy}}}
 
-	v := s.buildWordListView(u, 0)
+	// "all" level: all 3 words in catalog order
+	v := s.buildWordListView(u, "all", 0)
 	if v.Pages != 1 {
 		t.Fatalf("pages = %d, want 1 (3 words)", v.Pages)
 	}
@@ -50,7 +51,13 @@ func TestBuildWordListView(t *testing.T) {
 	if v.Items[1].Base != "go" || v.Items[1].Status != StatusStudy {
 		t.Errorf("go item = %+v", v.Items[1])
 	}
-	if v.Level != "elementary" {
-		t.Errorf("level = %q", v.Level)
+
+	// elementary level: only be, go
+	el := s.buildWordListView(u, "elementary", 0)
+	if len(el.Items) != 2 || el.Items[0].Base != "be" || el.Items[1].Base != "go" {
+		t.Fatalf("elementary items = %+v", el.Items)
+	}
+	if el.Level != "elementary" {
+		t.Errorf("level = %q", el.Level)
 	}
 }
