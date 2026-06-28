@@ -114,3 +114,69 @@ func TestCancelDiscards(t *testing.T) {
 		t.Fatalf("cancel should discard; state=%+v words=%+v", u.State.List, u.Words)
 	}
 }
+
+func TestToggleWordListSkippedRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeUserRepo()
+	_ = repo.Save(ctx, &User{
+		ID:       7,
+		Settings: Settings{Variant: "gb"},
+		Words: map[string]WordProgress{
+			"build": {Status: StatusSkipped},
+		},
+	})
+	svc := New(repo, testCatalog())
+
+	// open word list (catalog view)
+	_, _ = svc.OpenWordList(ctx, 7)
+
+	// build is skipped -> tap -> study (draft)
+	_, _ = svc.ListToggle(ctx, 7, "build")
+	u, _ := repo.Get(ctx, 7)
+	if u.State.List.Draft["build"] != StatusStudy {
+		t.Fatalf("draft = %+v", u.State.List.Draft)
+	}
+
+	// tap again -> back to stored skipped, draft entry removed
+	_, _ = svc.ListToggle(ctx, 7, "build")
+	u, _ = repo.Get(ctx, 7)
+	if _, ok := u.State.List.Draft["build"]; ok {
+		t.Fatalf("build draft should be cleared, got %+v", u.State.List.Draft)
+	}
+}
+
+func TestCommitSkippedWritesSkipped(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeUserRepo()
+	_ = repo.Save(ctx, &User{
+		ID:       7,
+		Settings: Settings{Variant: "gb"},
+		Words: map[string]WordProgress{
+			"go": {Status: StatusStudy},
+		},
+	})
+	svc := New(repo, testCatalog())
+
+	// open "Мои слова" (study section)
+	_, _ = svc.OpenMyWords(ctx, 7)
+
+	// go is study -> tap -> skipped (draft)
+	_, _ = svc.ListToggle(ctx, 7, "go")
+	u, _ := repo.Get(ctx, 7)
+	if u.State.List.Draft["go"] != StatusSkipped {
+		t.Fatalf("draft = %+v", u.State.List.Draft)
+	}
+
+	// commit: apply skipped to words
+	_, err := svc.CommitList(ctx, 7)
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, _ = repo.Get(ctx, 7)
+	if u.Words["go"].Status != StatusSkipped {
+		t.Fatalf("words = %+v", u.Words)
+	}
+	if u.State.List != nil {
+		t.Fatalf("list state must be cleared after commit, got %+v", u.State.List)
+	}
+}
