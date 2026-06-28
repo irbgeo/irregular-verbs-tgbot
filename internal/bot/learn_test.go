@@ -36,7 +36,7 @@ func TestRenderLearnInputHasShowAndMenuOnly(t *testing.T) {
 		AnchorKind: "past", AnchorValue: "went", TargetKind: "base",
 	}}
 	text, k := render(v)
-	if !strings.Contains(text, "went (past)") || !strings.Contains(text, "Введите инфинитив") {
+	if !strings.Contains(text, "went") || strings.Contains(text, "(past)") || !strings.Contains(text, "Введите инфинитив") {
 		t.Fatalf("text = %q", text)
 	}
 	// no choice buttons; rows are [Показать] then [Меню]
