@@ -13,7 +13,7 @@ func TestRenderVariant(t *testing.T) {
 	}
 }
 
-func TestRenderMenuHasThree(t *testing.T) {
+func TestRenderMenuHasFour(t *testing.T) {
 	_, k := render(service.View{Screen: service.ScreenMainMenu})
 	if len(k.InlineKeyboard) != 4 {
 		t.Fatalf("want 4 rows, got %d", len(k.InlineKeyboard))

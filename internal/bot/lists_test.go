@@ -62,13 +62,19 @@ func TestRouterMyWordsToggleCommit(t *testing.T) {
 	})
 	r := New(svc, &fakeSender{})
 
-	_ = r.Handle(ctx, cbUpdate(7, "menu:mywords"))
-	_ = r.Handle(ctx, cbUpdate(7, "tog:go")) // study -> skipped (draft)
+	if err := r.Handle(ctx, cbUpdate(7, "menu:mywords")); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Handle(ctx, cbUpdate(7, "tog:go")); err != nil { // study -> skipped (draft)
+		t.Fatal(err)
+	}
 	u, _ := repo.Get(ctx, 7)
 	if u.Words["go"].Status != service.StatusStudy {
 		t.Fatal("must not change before commit")
 	}
-	_ = r.Handle(ctx, cbUpdate(7, "list:ok"))
+	if err := r.Handle(ctx, cbUpdate(7, "list:ok")); err != nil {
+		t.Fatal(err)
+	}
 	u, _ = repo.Get(ctx, 7)
 	if u.Words["go"].Status != service.StatusSkipped {
 		t.Fatalf("after commit go = %+v", u.Words["go"])
