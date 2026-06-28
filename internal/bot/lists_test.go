@@ -26,8 +26,8 @@ func TestRenderMyWordsButtons(t *testing.T) {
 		t.Fatalf("first word = %+v", k.InlineKeyboard[1][0])
 	}
 	last := k.InlineKeyboard[len(k.InlineKeyboard)-1]
-	if last[0].CallbackData != "list:ok" || last[1].CallbackData != "list:cancel" {
-		t.Fatalf("actions = %+v", last)
+	if last[0].CallbackData != "list:back" {
+		t.Fatalf("control row first = %+v", last)
 	}
 }
 
@@ -44,10 +44,74 @@ func TestRenderWordListHeaderAndNav(t *testing.T) {
 	if k.InlineKeyboard[0][0].CallbackData != "tog:be" {
 		t.Fatalf("word row = %+v", k.InlineKeyboard[0])
 	}
-	// nav row has ▶ -> lp:1
-	navRow := k.InlineKeyboard[len(k.InlineKeyboard)-2]
-	if navRow[0].CallbackData != "lp:1" {
-		t.Fatalf("nav = %+v", navRow)
+	// control row: 🔙 ➡️ (no dirty, has next)
+	last := k.InlineKeyboard[len(k.InlineKeyboard)-1]
+	if last[0].CallbackData != "list:back" {
+		t.Fatalf("control row first = %+v", last)
+	}
+	if last[len(last)-1].CallbackData != "lp:1" {
+		t.Fatalf("control row last = %+v", last)
+	}
+}
+
+func TestRenderMyWordsControlRow(t *testing.T) {
+	v := service.View{Screen: service.ScreenMyWords, List: &service.ListView{
+		Kind: service.KindMyWords, Section: service.StatusStudy, StudyCount: 1,
+		Items: []service.ListItem{{Base: "go", Status: service.StatusStudy}},
+		Pages: 1, Dirty: true,
+	}}
+	_, k := render(v)
+	last := k.InlineKeyboard[len(k.InlineKeyboard)-1]
+	// dirty, single page: 🔙 ❌ ✅
+	if len(last) != 3 || last[0].CallbackData != "list:back" || last[1].CallbackData != "list:cancel" || last[2].CallbackData != "list:ok" {
+		t.Fatalf("control row = %+v", last)
+	}
+}
+
+func TestRenderWordListLevels(t *testing.T) {
+	v := service.View{Screen: service.ScreenWordListLevels, Levels: service.Levels}
+	text, k := render(v)
+	if text == "" || k.InlineKeyboard[0][0].CallbackData != "level:elementary" {
+		t.Fatalf("levels = %+v", k.InlineKeyboard)
+	}
+	// has «Все слова» and back
+	var hasAll, hasBack bool
+	for _, row := range k.InlineKeyboard {
+		for _, b := range row {
+			if b.CallbackData == "level:all" {
+				hasAll = true
+			}
+			if b.CallbackData == "list:back" {
+				hasBack = true
+			}
+		}
+	}
+	if !hasAll || !hasBack {
+		t.Fatalf("missing all/back: %+v", k.InlineKeyboard)
+	}
+}
+
+func TestRouterWordListPickerFlow(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeUserRepo()
+	svc := service.New(repo, catalog())
+	_ = repo.Save(ctx, &service.User{ID: 7, Settings: service.Settings{Variant: "gb"}, State: service.State{Screen: string(service.ScreenMainMenu)}})
+	r := New(svc, &fakeSender{})
+
+	_ = r.Handle(ctx, cbUpdate(7, "menu:list"))       // -> picker
+	u, _ := repo.Get(ctx, 7)
+	if u.State.Screen != string(service.ScreenWordListLevels) {
+		t.Fatalf("screen = %s", u.State.Screen)
+	}
+	_ = r.Handle(ctx, cbUpdate(7, "level:elementary")) // -> list
+	u, _ = repo.Get(ctx, 7)
+	if u.State.List == nil || u.State.List.Level != "elementary" {
+		t.Fatalf("list = %+v", u.State.List)
+	}
+	_ = r.Handle(ctx, cbUpdate(7, "list:back")) // -> picker
+	u, _ = repo.Get(ctx, 7)
+	if u.State.Screen != string(service.ScreenWordListLevels) || u.State.List != nil {
+		t.Fatalf("after back: %+v", u.State)
 	}
 }
 
@@ -72,15 +136,12 @@ func TestRouterMyWordsToggleCommit(t *testing.T) {
 	if u.Words["go"].Status != service.StatusStudy {
 		t.Fatal("must not change before commit")
 	}
-	if err := r.Handle(ctx, cbUpdate(7, "list:ok")); err != nil {
-		t.Fatal(err)
-	}
+	_ = r.Handle(ctx, cbUpdate(7, "list:ok"))
 	u, _ = repo.Get(ctx, 7)
 	if u.Words["go"].Status != service.StatusSkipped {
 		t.Fatalf("after commit go = %+v", u.Words["go"])
 	}
-	if u.State.List != nil || u.State.Screen != string(service.ScreenMainMenu) {
-		t.Fatalf("state after commit = %+v", u.State)
+	if u.State.Screen != string(service.ScreenMyWords) || u.State.List == nil {
+		t.Fatalf("commit should stay on my_words; state=%+v", u.State)
 	}
 }
-

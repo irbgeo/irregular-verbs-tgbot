@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"math/rand"
 	"sort"
 	"time"
@@ -45,3 +46,12 @@ func New(users UserRepository, verbs []Verb) *Service {
 func (s *Service) verb(base string) (Verb, bool) { v, ok := s.byBase[base]; return v, ok }
 
 func (s *Service) levelWords(level string) []Verb { return s.byLevel[level] }
+
+// UserScreen returns the current screen name for a user (empty string if not found).
+func (s *Service) UserScreen(ctx context.Context, userID int64) (Screen, error) {
+	u, err := s.load(ctx, userID)
+	if err != nil {
+		return ScreenNone, err
+	}
+	return Screen(u.State.Screen), nil
+}

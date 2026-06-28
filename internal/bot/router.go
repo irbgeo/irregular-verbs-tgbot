@@ -114,6 +114,13 @@ func (r *Router) dispatch(ctx context.Context, userID int64, kind, value string)
 			return service.View{}, fmt.Errorf("bot: unknown menu value %q", value)
 		}
 	case "level":
+		screen, err := r.svc.UserScreen(ctx, userID)
+		if err != nil {
+			return service.View{}, err
+		}
+		if screen == service.ScreenWordListLevels {
+			return r.svc.ChooseLevel(ctx, userID, value)
+		}
 		return r.svc.StartTest(ctx, userID, value)
 	case "quiz":
 		switch value {
@@ -149,6 +156,8 @@ func (r *Router) dispatch(ctx context.Context, userID int64, kind, value string)
 			return r.svc.CommitList(ctx, userID)
 		case "cancel":
 			return r.svc.CancelList(ctx, userID)
+		case "back":
+			return r.svc.ListBack(ctx, userID)
 		default:
 			return service.View{}, fmt.Errorf("bot: unknown list value %q", value)
 		}
