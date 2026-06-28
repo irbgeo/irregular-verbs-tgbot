@@ -175,3 +175,50 @@ func (s *Service) translationOptions(v Verb) []string {
 	}
 	return s.shuffle(opts)
 }
+
+func (s *Service) wordFormat(u *User, base string) string {
+	w := u.Words[base]
+	if w.Status == StatusStudy && w.Mode == 1 {
+		return FormatChoice
+	}
+	return FormatInput
+}
+
+// buildRound picks the anchor and target kinds for sess.Base and, for choice
+// format, fills sess.Options.
+func (s *Service) buildRound(u *User, sess *Session) {
+	v, _ := s.verb(sess.Base)
+	variant := u.Settings.Variant
+
+	kinds := []string{KindBase, KindPast, KindParticiple, KindTranslation}
+	sess.AnchorKind = kinds[s.rng(len(kinds))]
+
+	pool := []string{KindBase, KindPast, KindParticiple}
+	if sess.AnchorKind != KindTranslation {
+		pool = append(pool, KindTranslation)
+	}
+	sess.TargetKind = pool[s.rng(len(pool))]
+
+	sess.Options = nil
+	if s.wordFormat(u, sess.Base) == FormatChoice {
+		if sess.TargetKind == KindTranslation {
+			sess.Options = s.translationOptions(v)
+		} else {
+			sess.Options = s.formOptions(v, sess.TargetKind, variant)
+		}
+	}
+}
+
+func (s *Service) learnQuestion(u *User, sess *Session) *QuizView {
+	v, _ := s.verb(sess.Base)
+	variant := u.Settings.Variant
+	return &QuizView{
+		Base:        sess.Base,
+		Mode:        "learn",
+		Format:      s.wordFormat(u, sess.Base),
+		AnchorKind:  sess.AnchorKind,
+		AnchorValue: formValue(v, sess.AnchorKind, variant),
+		TargetKind:  sess.TargetKind,
+		Options:     sess.Options,
+	}
+}
