@@ -1,35 +1,20 @@
 package config
 
-import (
-	"fmt"
-	"os"
-)
+import "github.com/kelseyhightower/envconfig"
 
 // Config holds runtime configuration from the environment.
 type Config struct {
-	BotToken  string
-	MongoURI  string
-	MongoDB   string
-	VerbsPath string
+	BotToken  string `envconfig:"BOT_TOKEN" required:"true"`
+	MongoURI  string `envconfig:"MONGO_URI" default:"mongodb://localhost:27017"`
+	MongoDB   string `envconfig:"MONGO_DB" default:"irregular_verbs"`
+	VerbsPath string `envconfig:"VERBS_PATH" default:"data/verbs.json"`
 }
 
 // Load reads configuration from environment variables.
 func Load() (Config, error) {
-	c := Config{
-		BotToken:  os.Getenv("BOT_TOKEN"),
-		MongoURI:  getenv("MONGO_URI", "mongodb://localhost:27017"),
-		MongoDB:   getenv("MONGO_DB", "irregular_verbs"),
-		VerbsPath: getenv("VERBS_PATH", "data/verbs.json"),
-	}
-	if c.BotToken == "" {
-		return Config{}, fmt.Errorf("BOT_TOKEN is required")
+	var c Config
+	if err := envconfig.Process("", &c); err != nil {
+		return Config{}, err
 	}
 	return c, nil
-}
-
-func getenv(key, def string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return def
 }
