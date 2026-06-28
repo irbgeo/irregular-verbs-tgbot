@@ -1,5 +1,7 @@
 package service
 
+import "strings"
+
 // learnPool returns study and learned bases in catalog order (deterministic).
 func (s *Service) learnPool(u *User) (study, learned []string) {
 	for _, b := range s.allBases {
@@ -68,4 +70,108 @@ func pushRecent(recent []string, base string) []string {
 		recent = recent[len(recent)-5:]
 	}
 	return recent
+}
+
+func formValue(v Verb, kind, variant string) string {
+	switch kind {
+	case KindBase:
+		return v.Base
+	case KindPast:
+		return strings.Join(v.Past[variant], "/")
+	case KindParticiple:
+		return strings.Join(v.Participle[variant], "/")
+	default: // KindTranslation
+		return strings.Join(v.Translations, ", ")
+	}
+}
+
+func correctOption(v Verb, kind, variant string) string {
+	switch kind {
+	case KindBase:
+		return v.Base
+	case KindPast:
+		return first(v.Past[variant])
+	case KindParticiple:
+		return first(v.Participle[variant])
+	default: // KindTranslation
+		return first(v.Translations)
+	}
+}
+
+func first(xs []string) string {
+	if len(xs) == 0 {
+		return ""
+	}
+	return xs[0]
+}
+
+func (s *Service) checkTarget(v Verb, kind, input, variant string) bool {
+	switch kind {
+	case KindBase:
+		return norm(input) == norm(v.Base)
+	case KindPast:
+		return anyEqual(input, v.Past[variant])
+	case KindParticiple:
+		return anyEqual(input, v.Participle[variant])
+	default: // KindTranslation
+		return anyEqual(input, v.Translations)
+	}
+}
+
+// formOptions returns 4 buttons for a form target: 1 correct + 3 distractors
+// (common_mistakes first, then same-kind forms of other verbs), shuffled.
+func (s *Service) formOptions(v Verb, kind, variant string) []string {
+	correct := correctOption(v, kind, variant)
+	opts := []string{correct}
+	seen := map[string]bool{norm(correct): true}
+	add := func(val string) {
+		n := norm(val)
+		if val == "" || seen[n] {
+			return
+		}
+		seen[n] = true
+		opts = append(opts, val)
+	}
+	for _, m := range v.CommonMistakes {
+		if len(opts) >= 4 {
+			break
+		}
+		add(m)
+	}
+	for _, b := range s.shuffle(s.allBases) {
+		if len(opts) >= 4 {
+			break
+		}
+		if b == v.Base {
+			continue
+		}
+		ov, _ := s.verb(b)
+		add(correctOption(ov, kind, variant))
+	}
+	return s.shuffle(opts)
+}
+
+// translationOptions returns 5 buttons for a translation target: 1 correct +
+// 4 translations of other verbs, shuffled.
+func (s *Service) translationOptions(v Verb) []string {
+	correct := first(v.Translations)
+	opts := []string{correct}
+	seen := map[string]bool{norm(correct): true}
+	for _, b := range s.shuffle(s.allBases) {
+		if len(opts) >= 5 {
+			break
+		}
+		if b == v.Base {
+			continue
+		}
+		ov, _ := s.verb(b)
+		t := first(ov.Translations)
+		n := norm(t)
+		if t == "" || seen[n] {
+			continue
+		}
+		seen[n] = true
+		opts = append(opts, t)
+	}
+	return s.shuffle(opts)
 }
