@@ -52,7 +52,11 @@ func render(v service.View) (string, *tgbot.InlineKeyboardMarkup) {
 			var rows [][]tgbot.InlineKeyboardButton
 			if v.Quiz.Format == "choice" {
 				for i, opt := range v.Quiz.Options {
-					rows = append(rows, []tgbot.InlineKeyboardButton{btn(opt, "lc:"+strconv.Itoa(i))})
+					label := opt
+					if v.Quiz.TargetKind == service.KindBase {
+						label = service.BaseLabel(opt)
+					}
+					rows = append(rows, []tgbot.InlineKeyboardButton{btn(label, "lc:"+strconv.Itoa(i))})
 				}
 			}
 			rows = append(rows, []tgbot.InlineKeyboardButton{btn("💡 Показать", "quiz:help")})
@@ -108,7 +112,7 @@ func statusIcon(status string) string {
 func wordRows(items []service.ListItem) [][]tgbot.InlineKeyboardButton {
 	var rows [][]tgbot.InlineKeyboardButton
 	for _, it := range items {
-		label := statusIcon(it.Status) + " " + it.Base + " — " + it.Past + " — " + it.Participle
+		label := statusIcon(it.Status) + " " + service.BaseLabel(it.Base) + " — " + it.Past + " — " + it.Participle
 		rows = append(rows, []tgbot.InlineKeyboardButton{btn(label, "tog:"+it.Base)})
 	}
 	return rows

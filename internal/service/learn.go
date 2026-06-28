@@ -113,7 +113,7 @@ func first(xs []string) string {
 func (s *Service) checkTarget(v Verb, kind, input, variant string) bool {
 	switch kind {
 	case KindBase:
-		return norm(input) == norm(v.Base)
+		return normBase(input) == norm(v.Base)
 	case KindPast:
 		return anyEqual(input, v.Past[variant])
 	case KindParticiple:
