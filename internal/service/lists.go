@@ -1,6 +1,9 @@
 package service
 
-import "sort"
+import (
+	"context"
+	"sort"
+)
 
 const pageSize = 10
 
@@ -108,4 +111,89 @@ func (s *Service) buildWordListView(u *User, page int) ListView {
 		HasNext: clamped < pages-1,
 		Items:   items,
 	}
+}
+
+// listView builds the current list View from State.List and syncs the clamped page.
+func (s *Service) listView(u *User) View {
+	ls := u.State.List
+	if ls.Kind == KindWordList {
+		lv := s.buildWordListView(u, ls.Page)
+		ls.Page = lv.Page
+		return View{Screen: ScreenWordList, List: &lv}
+	}
+	lv := s.buildMyWordsView(u, ls.Section, ls.Page)
+	ls.Page = lv.Page
+	return View{Screen: ScreenMyWords, List: &lv}
+}
+
+// OpenMyWords opens the «Мои слова» editor (Изучаю section).
+func (s *Service) OpenMyWords(ctx context.Context, userID int64) (View, error) {
+	u, err := s.load(ctx, userID)
+	if err != nil {
+		return View{}, err
+	}
+	u.State = State{
+		Screen: string(ScreenMyWords),
+		List:   &ListState{Kind: KindMyWords, Section: StatusStudy, Page: 0, Draft: map[string]string{}},
+	}
+	v := s.listView(u)
+	if err := s.save(ctx, u); err != nil {
+		return View{}, err
+	}
+	return v, nil
+}
+
+// OpenWordList opens the «Список слов» editor.
+func (s *Service) OpenWordList(ctx context.Context, userID int64) (View, error) {
+	u, err := s.load(ctx, userID)
+	if err != nil {
+		return View{}, err
+	}
+	u.State = State{
+		Screen: string(ScreenWordList),
+		List:   &ListState{Kind: KindWordList, Page: 0, Draft: map[string]string{}},
+	}
+	v := s.listView(u)
+	if err := s.save(ctx, u); err != nil {
+		return View{}, err
+	}
+	return v, nil
+}
+
+// ListSection switches the active «Мои слова» section.
+func (s *Service) ListSection(ctx context.Context, userID int64, section string) (View, error) {
+	u, err := s.load(ctx, userID)
+	if err != nil {
+		return View{}, err
+	}
+	if u.State.List == nil || u.State.List.Kind != KindMyWords {
+		return View{}, nil
+	}
+	if section != StatusStudy && section != StatusSkipped {
+		return View{}, nil
+	}
+	u.State.List.Section = section
+	u.State.List.Page = 0
+	v := s.listView(u)
+	if err := s.save(ctx, u); err != nil {
+		return View{}, err
+	}
+	return v, nil
+}
+
+// ListPage changes the page of the current list.
+func (s *Service) ListPage(ctx context.Context, userID int64, page int) (View, error) {
+	u, err := s.load(ctx, userID)
+	if err != nil {
+		return View{}, err
+	}
+	if u.State.List == nil {
+		return View{}, nil
+	}
+	u.State.List.Page = page
+	v := s.listView(u) // clamps and syncs ls.Page
+	if err := s.save(ctx, u); err != nil {
+		return View{}, err
+	}
+	return v, nil
 }
