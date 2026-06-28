@@ -222,3 +222,38 @@ func (s *Service) learnQuestion(u *User, sess *Session) *QuizView {
 		Options:     sess.Options,
 	}
 }
+
+// learnLadder applies the Leitner transition for base after a round result.
+func (s *Service) learnLadder(u *User, base string, ok bool) {
+	w := u.Words[base]
+	switch {
+	case w.Status == StatusStudy && w.Mode == 1:
+		if ok {
+			w.Box++
+			if w.Box == BoxMax {
+				w.Mode = 2
+				w.Box = 0
+			}
+		} else {
+			w.Box = 0
+		}
+	case w.Status == StatusStudy && w.Mode == 2:
+		if ok {
+			w.Box++
+			if w.Box == BoxMax {
+				w.Status = StatusLearned
+				w.Mode = 0
+				w.Box = 0
+			}
+		} else {
+			w.Box = 0
+		}
+	case w.Status == StatusLearned:
+		if !ok {
+			w.Status = StatusStudy
+			w.Mode = 2
+			w.Box = 0
+		}
+	}
+	u.Words[base] = w
+}
