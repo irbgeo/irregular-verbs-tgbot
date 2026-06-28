@@ -3,6 +3,7 @@ package bot
 import (
 	"context"
 	"testing"
+	"time"
 
 	tgbot "github.com/irbgeo/go-tgbot"
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/service"
@@ -25,6 +26,10 @@ func (f *fakeUserRepo) Save(_ context.Context, u *service.User) error {
 	cp := *u
 	f.m[u.ID] = &cp
 	return nil
+}
+
+func (f *fakeUserRepo) DueForReminder(_ context.Context, _ time.Time) ([]*service.User, error) {
+	return nil, nil // bot tests don't exercise reminders
 }
 
 type sentMsg struct {

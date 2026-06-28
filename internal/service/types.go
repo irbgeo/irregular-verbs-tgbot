@@ -73,6 +73,10 @@ type User struct {
 	Words        map[string]WordProgress `bson:"words,omitempty"`
 	CreatedAt    time.Time               `bson:"created_at"`
 	LastActiveAt time.Time               `bson:"last_active_at"`
+	// LastSolvedAt is the last time the user answered a quiz task; reminders
+	// fire after 24h of no solving. LastRemindedAt throttles reminders.
+	LastSolvedAt   time.Time `bson:"last_solved_at"`
+	LastRemindedAt time.Time `bson:"last_reminded_at"`
 }
 
 // Screen identifies an FSM screen. The bot maps it to text + keyboard.

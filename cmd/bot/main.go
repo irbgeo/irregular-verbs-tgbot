@@ -56,7 +56,42 @@ func run() error {
 	router := bot.New(svc, bot.TelegramSender{Client: client})
 
 	log.Println("bot started (long polling)")
+	go remindLoop(ctx, svc, router)
 	return poll(ctx, client, router)
+}
+
+// reminderTick is how often the scheduler scans for users due a reminder.
+const reminderTick = time.Hour
+
+// remindLoop periodically sends a learn task to users idle for over 24h.
+func remindLoop(ctx context.Context, svc *service.Service, router *bot.Router) {
+	t := time.NewTicker(reminderTick)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			ids, err := svc.DueReminders(ctx)
+			if err != nil {
+				log.Printf("reminders: due query: %v", err)
+				continue
+			}
+			for _, id := range ids {
+				v, ok, err := svc.Remind(ctx, id)
+				if err != nil {
+					log.Printf("reminders: build %d: %v", id, err)
+					continue
+				}
+				if !ok {
+					continue
+				}
+				if err := router.Deliver(ctx, id, v); err != nil {
+					log.Printf("reminders: deliver %d: %v", id, err)
+				}
+			}
+		}
+	}
 }
 
 func poll(ctx context.Context, client *tgbot.Client, router *bot.Router) error {

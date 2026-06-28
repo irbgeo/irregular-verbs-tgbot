@@ -35,6 +35,16 @@ func (r *Router) Handle(ctx context.Context, upd tgbot.Update) error {
 	}
 }
 
+// Deliver renders a View and sends it as a new message to chatID. Used for
+// proactive reminders (chatID is the user's private chat == userID).
+func (r *Router) Deliver(ctx context.Context, chatID int64, v service.View) error {
+	text, kb := render(v)
+	if text == "" {
+		return nil
+	}
+	return r.sender.Send(ctx, chatID, text, kb)
+}
+
 func (r *Router) handleStart(ctx context.Context, m *tgbot.Message) error {
 	if m.From == nil {
 		return nil
