@@ -112,13 +112,9 @@ func (s *Service) buildWordListView(u *User, level string, page int) ListView {
 	for _, b := range bases[start:end] {
 		items = append(items, ListItem{Base: b, Status: effectiveStatus(u, b)})
 	}
-	lvl := level
-	if len(items) > 0 && level != "all" {
-		lvl = s.byBase[items[0].Base].Level
-	}
 	return ListView{
 		Kind:    KindWordList,
-		Level:   lvl,
+		Level:   level,
 		Page:    clamped,
 		Pages:   pages,
 		HasPrev: clamped > 0,

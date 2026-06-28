@@ -129,7 +129,7 @@ type ListView struct {
 	Section      string // my_words active section
 	StudyCount   int    // my_words section-toggle counts
 	SkippedCount int
-	Level        string // word_list: level slug of the page's first item
+	Level        string // word_list pool: a level slug or "all"
 	Page, Pages  int
 	HasPrev      bool
 	HasNext      bool
