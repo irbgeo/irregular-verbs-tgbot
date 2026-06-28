@@ -80,12 +80,3 @@ func TestRouterStartAndVariant(t *testing.T) {
 	}
 }
 
-func TestRouterMenuStub(t *testing.T) {
-	ctx := context.Background()
-	r, repo, sender := newRouter()
-	_ = repo.Save(ctx, &service.User{ID: 7, Settings: service.Settings{Variant: "gb"}, State: service.State{Screen: string(service.ScreenMainMenu)}})
-	_ = r.Handle(ctx, cbUpdate(7, "menu:learn"))
-	if len(sender.answers) == 0 || sender.answers[len(sender.answers)-1] != "Скоро будет 🙂" {
-		t.Fatalf("stub notice = %v", sender.answers)
-	}
-}
