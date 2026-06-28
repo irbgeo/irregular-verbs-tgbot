@@ -115,9 +115,9 @@ func (s *Service) checkTarget(v Verb, kind, input, variant string) bool {
 	case KindBase:
 		return normBase(input) == norm(v.Base)
 	case KindPast:
-		return anyEqual(input, v.Past[variant])
+		return allFormsMatch(input, v.Past[variant])
 	case KindParticiple:
-		return anyEqual(input, v.Participle[variant])
+		return allFormsMatch(input, v.Participle[variant])
 	default: // KindTranslation
 		return anyEqual(input, v.Translations)
 	}

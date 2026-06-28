@@ -20,12 +20,13 @@ func TestCheckAnswer(t *testing.T) {
 		variant string
 		want    bool
 	}{
-		{0, " Be ", "gb", true}, // base, normalized
-		{0, "do", "gb", false},  // wrong base
-		{1, "was", "gb", true},  // past, one valid form
-		{1, "were", "gb", true}, // past, other valid form
-		{1, "wos", "gb", false}, // typo not accepted
-		{2, "been", "us", true}, // participle
+		{0, " Be ", "gb", true},     // base, normalized
+		{0, "do", "gb", false},      // wrong base
+		{1, "was were", "gb", true}, // past, all forms required
+		{1, "were was", "gb", true}, // order independent
+		{1, "was", "gb", false},     // one form is not enough
+		{1, "wos", "gb", false},     // typo not accepted
+		{2, "been", "us", true},     // participle (single form)
 	}
 	for _, c := range cases {
 		if got := s.checkAnswer(v, c.step, c.input, c.variant); got != c.want {

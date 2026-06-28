@@ -25,10 +25,10 @@ func TestCheckTarget(t *testing.T) {
 	}{
 		{KindBase, " Be ", "gb", true},
 		{KindBase, "go", "gb", false},
-		{KindPast, "was", "gb", true},
-		{KindPast, "were", "gb", true},
+		{KindPast, "was were", "gb", true}, // all forms required
+		{KindPast, "was", "gb", false},     // one form not enough
 		{KindPast, "wos", "gb", false},
-		{KindParticiple, "been", "us", true},
+		{KindParticiple, "been", "us", true}, // single form
 		{KindTranslation, "быть", "gb", true},
 		{KindTranslation, "идти", "gb", false},
 	}
