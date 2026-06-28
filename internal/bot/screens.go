@@ -64,6 +64,14 @@ func render(v service.View) (string, *tgbot.InlineKeyboardMarkup) {
 		return renderMyWords(v.List)
 	case service.ScreenWordList:
 		return renderWordList(v.List)
+	case service.ScreenWordListLevels:
+		var rows [][]tgbot.InlineKeyboardButton
+		for _, lvl := range v.Levels {
+			rows = append(rows, []tgbot.InlineKeyboardButton{btn(levelLabels[lvl], "wl:"+lvl)})
+		}
+		rows = append(rows, []tgbot.InlineKeyboardButton{btn("Все слова", "wl:all")})
+		rows = append(rows, []tgbot.InlineKeyboardButton{btn("🔙", "list:back")})
+		return "📚 Список слов — выберите уровень:", kb(rows...)
 	default:
 		return "", nil
 	}
@@ -90,20 +98,19 @@ func wordRows(items []service.ListItem) [][]tgbot.InlineKeyboardButton {
 	return rows
 }
 
-func navAndActions(l *service.ListView) [][]tgbot.InlineKeyboardButton {
-	var rows [][]tgbot.InlineKeyboardButton
-	var nav []tgbot.InlineKeyboardButton
+// controlRow is the single emoji control row: 🔙 ⬅️ ❌ ✅ ➡️ (dynamic).
+func controlRow(l *service.ListView) []tgbot.InlineKeyboardButton {
+	row := []tgbot.InlineKeyboardButton{btn("🔙", "list:back")}
 	if l.HasPrev {
-		nav = append(nav, btn("◀", "lp:"+strconv.Itoa(l.Page-1)))
+		row = append(row, btn("⬅️", "lp:"+strconv.Itoa(l.Page-1)))
+	}
+	if l.Dirty {
+		row = append(row, btn("❌", "list:cancel"), btn("✅", "list:ok"))
 	}
 	if l.HasNext {
-		nav = append(nav, btn("▶", "lp:"+strconv.Itoa(l.Page+1)))
+		row = append(row, btn("➡️", "lp:"+strconv.Itoa(l.Page+1)))
 	}
-	if len(nav) > 0 {
-		rows = append(rows, nav)
-	}
-	rows = append(rows, []tgbot.InlineKeyboardButton{btn("✅ Подтвердить", "list:ok"), btn("❌ Отмена", "list:cancel")})
-	return rows
+	return row
 }
 
 func renderMyWords(l *service.ListView) (string, *tgbot.InlineKeyboardMarkup) {
@@ -121,7 +128,7 @@ func renderMyWords(l *service.ListView) (string, *tgbot.InlineKeyboardMarkup) {
 		{btn(studyLabel, "sec:study"), btn(skipLabel, "sec:skipped")},
 	}
 	rows = append(rows, wordRows(l.Items)...)
-	rows = append(rows, navAndActions(l)...)
+	rows = append(rows, controlRow(l))
 	text := "📋 Мои слова"
 	if len(l.Items) == 0 {
 		text += "\n\nПусто."
@@ -133,8 +140,12 @@ func renderWordList(l *service.ListView) (string, *tgbot.InlineKeyboardMarkup) {
 	if l == nil {
 		return "", nil
 	}
-	text := fmt.Sprintf("📚 Список слов — %s (стр. %d/%d)", levelLabels[l.Level], l.Page+1, l.Pages)
+	pool := levelLabels[l.Level]
+	if l.Level == "all" {
+		pool = "Все слова"
+	}
+	text := fmt.Sprintf("📚 Список слов — %s (стр. %d/%d)", pool, l.Page+1, l.Pages)
 	rows := wordRows(l.Items)
-	rows = append(rows, navAndActions(l)...)
+	rows = append(rows, controlRow(l))
 	return text, kb(rows...)
 }

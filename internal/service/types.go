@@ -82,6 +82,7 @@ const (
 	ScreenTestDone          Screen = "test_done"
 	ScreenMyWords           Screen = "my_words"
 	ScreenWordList          Screen = "word_list"
+	ScreenWordListLevels    Screen = "word_list_levels"
 )
 
 // QuizView carries the data to render one quiz sub-question.
@@ -109,10 +110,11 @@ const (
 
 // ListState is the staged list-editing state (draft).
 type ListState struct {
-	Kind    string            `bson:"kind"`    // KindMyWords | KindWordList
-	Section string            `bson:"section"` // my_words: StatusStudy | StatusSkipped
+	Kind    string            `bson:"kind"`              // KindMyWords | KindWordList
+	Section string            `bson:"section"`           // my_words: StatusStudy | StatusSkipped
+	Level   string            `bson:"level,omitempty"`   // word_list pool: a level slug or "all"
 	Page    int               `bson:"page"`
-	Draft   map[string]string `bson:"draft"` // base -> target status
+	Draft   map[string]string `bson:"draft"`             // base -> target status
 }
 
 // ListItem is one rendered word in a list.
@@ -127,9 +129,10 @@ type ListView struct {
 	Section      string // my_words active section
 	StudyCount   int    // my_words section-toggle counts
 	SkippedCount int
-	Level        string // word_list: level slug of the page's first item
+	Level        string // word_list pool: a level slug or "all"
 	Page, Pages  int
 	HasPrev      bool
 	HasNext      bool
 	Items        []ListItem
+	Dirty        bool // draft non-empty (bot shows ✅/❌)
 }

@@ -88,19 +88,29 @@ func (s *Service) buildMyWordsView(u *User, section string, page int) ListView {
 		HasPrev:      clamped > 0,
 		HasNext:      clamped < pages-1,
 		Items:        items,
+		Dirty:        draftDirty(u),
 	}
 }
 
-// buildWordListView builds the «Список слов» screen page.
-func (s *Service) buildWordListView(u *User, page int) ListView {
-	start, end, pages, clamped := pageBounds(len(s.allBases), page)
-	items := make([]ListItem, 0, end-start)
-	for _, b := range s.allBases[start:end] {
-		items = append(items, ListItem{Base: b, Status: effectiveStatus(u, b)})
+// draftDirty reports whether the user has any pending draft changes.
+func draftDirty(u *User) bool {
+	return u.State.List != nil && len(u.State.List.Draft) > 0
+}
+
+// buildWordListView builds the «Список слов» screen page for the given level scope.
+func (s *Service) buildWordListView(u *User, level string, page int) ListView {
+	var bases []string
+	if level == "all" {
+		bases = s.allBases
+	} else {
+		for _, v := range s.byLevel[level] {
+			bases = append(bases, v.Base)
+		}
 	}
-	level := ""
-	if len(items) > 0 {
-		level = s.byBase[items[0].Base].Level
+	start, end, pages, clamped := pageBounds(len(bases), page)
+	items := make([]ListItem, 0, end-start)
+	for _, b := range bases[start:end] {
+		items = append(items, ListItem{Base: b, Status: effectiveStatus(u, b)})
 	}
 	return ListView{
 		Kind:    KindWordList,
@@ -110,6 +120,7 @@ func (s *Service) buildWordListView(u *User, page int) ListView {
 		HasPrev: clamped > 0,
 		HasNext: clamped < pages-1,
 		Items:   items,
+		Dirty:   draftDirty(u),
 	}
 }
 
@@ -117,7 +128,7 @@ func (s *Service) buildWordListView(u *User, page int) ListView {
 func (s *Service) listView(u *User) View {
 	ls := u.State.List
 	if ls.Kind == KindWordList {
-		lv := s.buildWordListView(u, ls.Page)
+		lv := s.buildWordListView(u, ls.Level, ls.Page)
 		ls.Page = lv.Page
 		return View{Screen: ScreenWordList, List: &lv}
 	}
@@ -143,15 +154,31 @@ func (s *Service) OpenMyWords(ctx context.Context, userID int64) (View, error) {
 	return v, nil
 }
 
-// OpenWordList opens the «Список слов» editor.
+// OpenWordList opens the level picker for «Список слов».
 func (s *Service) OpenWordList(ctx context.Context, userID int64) (View, error) {
+	u, err := s.load(ctx, userID)
+	if err != nil {
+		return View{}, err
+	}
+	u.State = State{Screen: string(ScreenWordListLevels)}
+	if err := s.save(ctx, u); err != nil {
+		return View{}, err
+	}
+	return View{Screen: ScreenWordListLevels, Levels: Levels}, nil
+}
+
+// ChooseLevel opens the word list for a level pool ("all" = every word).
+func (s *Service) ChooseLevel(ctx context.Context, userID int64, level string) (View, error) {
+	if level != "all" && !validLevel(level) {
+		return View{}, nil
+	}
 	u, err := s.load(ctx, userID)
 	if err != nil {
 		return View{}, err
 	}
 	u.State = State{
 		Screen: string(ScreenWordList),
-		List:   &ListState{Kind: KindWordList, Page: 0, Draft: map[string]string{}},
+		List:   &ListState{Kind: KindWordList, Level: level, Page: 0, Draft: map[string]string{}},
 	}
 	v := s.listView(u)
 	if err := s.save(ctx, u); err != nil {
@@ -254,7 +281,7 @@ func (s *Service) ListToggle(ctx context.Context, userID int64, base string) (Vi
 	return v, nil
 }
 
-// CommitList applies the draft to words and returns to the menu.
+// CommitList applies the draft to words and stays on the list.
 func (s *Service) CommitList(ctx context.Context, userID int64) (View, error) {
 	u, err := s.load(ctx, userID)
 	if err != nil {
@@ -270,9 +297,9 @@ func (s *Service) CommitList(ctx context.Context, userID int64) (View, error) {
 			if u.Words == nil {
 				u.Words = map[string]WordProgress{}
 			}
-			w := u.Words[base] // zero value if absent
+			w := u.Words[base]
 			w.Status = StatusStudy
-			u.Words[base] = w // preserves Mode/Box; new -> {study,0,0}
+			u.Words[base] = w
 		case StatusSkipped:
 			if u.Words == nil {
 				u.Words = map[string]WordProgress{}
@@ -282,14 +309,15 @@ func (s *Service) CommitList(ctx context.Context, userID int64) (View, error) {
 			delete(u.Words, base)
 		}
 	}
-	u.State = State{Screen: string(ScreenMainMenu)}
+	ls.Draft = map[string]string{}
+	v := s.listView(u)
 	if err := s.save(ctx, u); err != nil {
 		return View{}, err
 	}
-	return View{Screen: ScreenMainMenu}, nil
+	return v, nil
 }
 
-// CancelList discards the draft and returns to the menu.
+// CancelList discards the draft and stays on the list.
 func (s *Service) CancelList(ctx context.Context, userID int64) (View, error) {
 	u, err := s.load(ctx, userID)
 	if err != nil {
@@ -297,6 +325,28 @@ func (s *Service) CancelList(ctx context.Context, userID int64) (View, error) {
 	}
 	if u.State.List == nil {
 		return View{}, nil
+	}
+	u.State.List.Draft = map[string]string{}
+	v := s.listView(u)
+	if err := s.save(ctx, u); err != nil {
+		return View{}, err
+	}
+	return v, nil
+}
+
+// ListBack discards the draft and steps back one screen.
+func (s *Service) ListBack(ctx context.Context, userID int64) (View, error) {
+	u, err := s.load(ctx, userID)
+	if err != nil {
+		return View{}, err
+	}
+	// word_list -> level picker; everything else (picker, my_words) -> menu.
+	if u.State.List != nil && u.State.List.Kind == KindWordList {
+		u.State = State{Screen: string(ScreenWordListLevels)}
+		if err := s.save(ctx, u); err != nil {
+			return View{}, err
+		}
+		return View{Screen: ScreenWordListLevels, Levels: Levels}, nil
 	}
 	u.State = State{Screen: string(ScreenMainMenu)}
 	if err := s.save(ctx, u); err != nil {
