@@ -26,6 +26,10 @@ func (r *Router) Handle(ctx context.Context, upd tgbot.Update) error {
 	switch {
 	case upd.Message != nil && upd.Message.Text == "/start":
 		return r.handleStart(ctx, upd.Message)
+	case upd.Message != nil && upd.Message.Text == "/menu":
+		return r.handleMenu(ctx, upd.Message)
+	case upd.Message != nil && upd.Message.Text == "/help":
+		return r.handleHelp(ctx, upd.Message)
 	case upd.Message != nil && upd.Message.Text != "":
 		return r.handleText(ctx, upd.Message)
 	case upd.CallbackQuery != nil:
@@ -43,6 +47,28 @@ func (r *Router) Deliver(ctx context.Context, chatID int64, v service.View) erro
 		return nil
 	}
 	return r.sender.Send(ctx, chatID, text, kb)
+}
+
+// guideLink points to the user guide on GitHub; helpMessage is sent for /help.
+const guideLink = "https://github.com/irbgeo/go-irregular-verbs-tgbot/blob/main/docs/USER_GUIDE.md"
+const helpMessage = "📖 Как пользоваться ботом:\n" + guideLink
+
+// handleMenu opens the main menu (clears any quiz/list session).
+func (r *Router) handleMenu(ctx context.Context, m *tgbot.Message) error {
+	if m.From == nil {
+		return nil
+	}
+	view, err := r.svc.OpenMenu(ctx, m.From.ID)
+	if err != nil {
+		return err
+	}
+	text, kb := render(view)
+	return r.sender.Send(ctx, m.Chat.ID, text, kb)
+}
+
+// handleHelp replies with a link to the user guide.
+func (r *Router) handleHelp(ctx context.Context, m *tgbot.Message) error {
+	return r.sender.Send(ctx, m.Chat.ID, helpMessage, nil)
 }
 
 func (r *Router) handleStart(ctx context.Context, m *tgbot.Message) error {
