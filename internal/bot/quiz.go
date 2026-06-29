@@ -4,17 +4,13 @@ import (
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/service"
 )
 
-// quizPrompt renders a Test sub-question: the anchor form is shown, one of the
-// other forms is asked.
+// quizPrompt renders a Test word: the infinitive is shown and the user enters
+// all three forms in order in one message.
 func quizPrompt(q *service.QuizView) string {
 	if q == nil {
 		return ""
 	}
-	anchor := q.AnchorValue
-	if q.AnchorKind == service.KindBase {
-		anchor = service.BaseLabel(anchor)
-	}
-	return anchor + "\n\nВведите " + kindLabel[q.TargetKind] + ":"
+	return service.BaseLabel(q.Base) + "\n\nВведите 3 формы по порядку (инфинитив, past, participle):"
 }
 
 var kindLabel = map[string]string{

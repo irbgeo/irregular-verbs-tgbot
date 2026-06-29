@@ -303,12 +303,14 @@ func (s *Service) resolveLearn(ctx context.Context, u *User, ok, reveal bool) (V
 	s.markSolved(u)
 	s.learnLadder(u, sess.Base, ok)
 	out := s.advanceLearn(u)
-	if !ok {
-		prefix := "❌ Неверно. Правильно: "
-		if reveal {
-			prefix = "💡 "
-		}
-		out.Feedback = prefix + s.correctText(v, u.Settings.Variant) + "\n\n"
+	info := s.correctText(v, u.Settings.Variant)
+	switch {
+	case ok:
+		out.Feedback = "✅ Верно!\n" + info + "\n\n"
+	case reveal:
+		out.Feedback = "💡 " + info + "\n\n"
+	default:
+		out.Feedback = "❌ Неверно. Правильно: " + info + "\n\n"
 	}
 	if err := s.save(ctx, u); err != nil {
 		return View{}, err

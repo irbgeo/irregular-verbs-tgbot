@@ -8,14 +8,17 @@ import (
 
 const pageSize = 10
 
-// itemForms returns the past and participle forms for the word in the user's variant.
-func (s *Service) itemForms(u *User, base string) (past, participle string) {
+// itemForms returns the past, participle forms (user's variant) and the
+// translations for the word.
+func (s *Service) itemForms(u *User, base string) (past, participle, translation string) {
 	v, ok := s.verb(base)
 	if !ok {
-		return "", ""
+		return "", "", ""
 	}
 	variant := u.Settings.Variant
-	return strings.Join(v.Past[variant], "/"), strings.Join(v.Participle[variant], "/")
+	return strings.Join(v.Past[variant], "/"),
+		strings.Join(v.Participle[variant], "/"),
+		strings.Join(v.Translations, ", ")
 }
 
 // effectiveStatus is the word's status with the pending draft applied.
@@ -87,8 +90,8 @@ func (s *Service) buildMyWordsView(u *User, section string, page int) ListView {
 	start, end, pages, clamped := pageBounds(len(bases), page)
 	items := make([]ListItem, 0, end-start)
 	for _, b := range bases[start:end] {
-		past, part := s.itemForms(u, b)
-		items = append(items, ListItem{Base: b, Status: seen[b], Past: past, Participle: part})
+		past, part, tr := s.itemForms(u, b)
+		items = append(items, ListItem{Base: b, Status: seen[b], Past: past, Participle: part, Translation: tr})
 	}
 	return ListView{
 		Kind:         KindMyWords,
@@ -122,8 +125,8 @@ func (s *Service) buildWordListView(u *User, level string, page int) ListView {
 	start, end, pages, clamped := pageBounds(len(bases), page)
 	items := make([]ListItem, 0, end-start)
 	for _, b := range bases[start:end] {
-		past, part := s.itemForms(u, b)
-		items = append(items, ListItem{Base: b, Status: effectiveStatus(u, b), Past: past, Participle: part})
+		past, part, tr := s.itemForms(u, b)
+		items = append(items, ListItem{Base: b, Status: effectiveStatus(u, b), Past: past, Participle: part, Translation: tr})
 	}
 	return ListView{
 		Kind:    KindWordList,

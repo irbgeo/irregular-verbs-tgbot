@@ -118,11 +118,11 @@ func TestRouterWordListPickerFlow(t *testing.T) {
 func TestWordButtonShowsThreeForms(t *testing.T) {
 	v := service.View{Screen: service.ScreenMyWords, List: &service.ListView{
 		Kind: service.KindMyWords, Section: service.StatusStudy, StudyCount: 1, Pages: 1,
-		Items: []service.ListItem{{Base: "be", Status: service.StatusStudy, Past: "was/were", Participle: "been"}},
+		Items: []service.ListItem{{Base: "be", Status: service.StatusStudy, Past: "was/were", Participle: "been", Translation: "быть, являться"}},
 	}}
 	_, k := render(v)
 	label := k.InlineKeyboard[1][0].Text // row 0 is the section toggle
-	if label != "📘 to be — was/were — been" {
+	if label != "📘 to be - was/were - been - быть, являться" {
 		t.Fatalf("word label = %q", label)
 	}
 }

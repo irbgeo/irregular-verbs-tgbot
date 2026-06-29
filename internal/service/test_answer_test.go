@@ -2,8 +2,17 @@ package service
 
 import (
 	"context"
+	"strings"
 	"testing"
 )
+
+// allFormsAnswer builds the ordered "base past participle" answer for a verb.
+func allFormsAnswer(v Verb, variant string) string {
+	parts := []string{v.Base}
+	parts = append(parts, v.Past[variant]...)
+	parts = append(parts, v.Participle[variant]...)
+	return strings.Join(parts, " ")
+}
 
 func startedTest(t *testing.T) (*Service, *fakeUserRepo) {
 	t.Helper()
@@ -49,25 +58,23 @@ func TestAnswerWrongAddsToStudyAndAdvances(t *testing.T) {
 	}
 }
 
-func TestAnswerCorrectAdvancesStep(t *testing.T) {
+func TestAnswerWrongOrderAddsToStudy(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := startedTest(t)
-	s0 := sess(t, repo)
-	cur := s0.Base
-	if s0.AnchorKind != KindBase { // rng=0 -> base anchor, targets [past, participle]
-		t.Fatalf("expected base anchor, got %q", s0.AnchorKind)
-	}
+	cur := sess(t, repo).Base
 	v, _ := svc.verb(cur)
 
-	out, err := svc.Answer(ctx, 7, v.Past["gb"][0]) // first target = past
+	// all three forms but in the wrong order -> incorrect
+	wrong := v.Participle["gb"][0] + " " + v.Past["gb"][0] + " " + v.Base
+	out, err := svc.Answer(ctx, 7, wrong)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if out.Screen != ScreenQuiz || out.Quiz.TargetKind != KindParticiple {
-		t.Fatalf("view = %+v", out)
+	if out.Feedback == "" {
+		t.Fatal("wrong order must be incorrect (feedback shown)")
 	}
-	if s := sess(t, repo); s.Base != cur || s.Step != 1 {
-		t.Fatalf("session = %+v", s)
+	if u, _ := repo.Get(ctx, 7); u.Words[cur].Status != StatusStudy {
+		t.Fatalf("wrong answer should add %s to study", cur)
 	}
 }
 
@@ -77,11 +84,12 @@ func TestAnswerAllCorrectAsksResult(t *testing.T) {
 	cur := sess(t, repo).Base
 	v, _ := svc.verb(cur)
 
-	// rng=0 -> base anchor; targets are past then participle.
-	_, _ = svc.Answer(ctx, 7, v.Past["gb"][0])          // target 0: past
-	out, _ := svc.Answer(ctx, 7, v.Participle["gb"][0]) // target 1: participle -> result
+	out, _ := svc.Answer(ctx, 7, allFormsAnswer(v, "gb")) // all 3 forms in order
 	if out.Screen != ScreenTestResult {
 		t.Fatalf("view = %+v", out)
+	}
+	if !strings.Contains(out.Feedback, "✅ Верно!") || !strings.Contains(out.Feedback, "to go - went - gone") {
+		t.Fatalf("result feedback = %q", out.Feedback)
 	}
 	// not yet written to study (decided by Keep/Drop)
 	u, _ := repo.Get(ctx, 7)
