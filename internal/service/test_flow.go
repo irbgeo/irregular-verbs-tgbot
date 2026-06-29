@@ -23,9 +23,33 @@ func (s *Service) shuffle(in []string) []string {
 	return out
 }
 
-func (s *Service) questionView(base string, step int) *QuizView {
-	v, _ := s.verb(base)
-	return &QuizView{Base: base, Step: step, Translations: v.Translations}
+var testKinds = []string{KindBase, KindPast, KindParticiple}
+
+// testTargets returns the two non-anchor kinds in canonical order.
+func testTargets(anchor string) []string {
+	out := make([]string, 0, 2)
+	for _, k := range testKinds {
+		if k != anchor {
+			out = append(out, k)
+		}
+	}
+	return out
+}
+
+// testQuestion builds the QuizView for the current test sub-question: the
+// anchor form is shown and the Step-th of the two remaining forms is asked.
+func (s *Service) testQuestion(u *User, sess *Session) *QuizView {
+	v, _ := s.verb(sess.Base)
+	variant := u.Settings.Variant
+	targets := testTargets(sess.AnchorKind)
+	return &QuizView{
+		Base:        sess.Base,
+		Mode:        "test",
+		Format:      FormatInput,
+		AnchorKind:  sess.AnchorKind,
+		AnchorValue: formValue(v, sess.AnchorKind, variant),
+		TargetKind:  targets[sess.Step],
+	}
 }
 
 // OpenTest shows the level-choice screen.
@@ -58,14 +82,13 @@ func (s *Service) StartTest(ctx context.Context, userID int64, level string) (Vi
 	if len(bases) == 0 {
 		return View{}, fmt.Errorf("service: level %q has no words", level)
 	}
-	u.State = State{
-		Screen:  string(ScreenQuiz),
-		Session: &Session{Mode: "test", Level: level, Base: bases[0], Queue: bases[1:], Step: 0},
-	}
+	sess := &Session{Mode: "test", Level: level, Base: bases[0], Queue: bases[1:], Step: 0}
+	sess.AnchorKind = testKinds[s.rng(len(testKinds))]
+	u.State = State{Screen: string(ScreenQuiz), Session: sess}
 	if err := s.save(ctx, u); err != nil {
 		return View{}, err
 	}
-	return View{Screen: ScreenQuiz, Quiz: s.questionView(bases[0], 0)}, nil
+	return View{Screen: ScreenQuiz, Quiz: s.testQuestion(u, sess)}, nil
 }
 
 func (s *Service) setStudy(u *User, base string) {
@@ -85,7 +108,8 @@ func (s *Service) advance(u *User) View {
 	sess.Base = sess.Queue[0]
 	sess.Queue = sess.Queue[1:]
 	sess.Step = 0
-	return View{Screen: ScreenQuiz, Quiz: s.questionView(sess.Base, 0)}
+	sess.AnchorKind = testKinds[s.rng(len(testKinds))]
+	return View{Screen: ScreenQuiz, Quiz: s.testQuestion(u, sess)}
 }
 
 func (s *Service) inQuiz(u *User) bool {
@@ -111,7 +135,8 @@ func (s *Service) Answer(ctx context.Context, userID int64, text string) (View, 
 	s.markSolved(u)
 	sess := u.State.Session
 	v, _ := s.verb(sess.Base)
-	if !s.checkAnswer(v, sess.Step, text, u.Settings.Variant) {
+	targets := testTargets(sess.AnchorKind)
+	if !s.checkTarget(v, targets[sess.Step], text, u.Settings.Variant) {
 		s.setStudy(u, sess.Base)
 		out := s.advance(u)
 		out.Feedback = "❌ Неверно. Правильно: " + s.correctText(v, u.Settings.Variant) + "\n\n"
@@ -120,14 +145,14 @@ func (s *Service) Answer(ctx context.Context, userID int64, text string) (View, 
 		}
 		return out, nil
 	}
-	if sess.Step < 2 {
+	if sess.Step < len(targets)-1 {
 		sess.Step++
 		if err := s.save(ctx, u); err != nil {
 			return View{}, err
 		}
-		return View{Screen: ScreenQuiz, Quiz: s.questionView(sess.Base, sess.Step)}, nil
+		return View{Screen: ScreenQuiz, Quiz: s.testQuestion(u, sess)}, nil
 	}
-	// all 3 correct, no help -> ask keep/skip
+	// both forms correct, no help -> ask keep/skip
 	u.State.Screen = string(ScreenTestResult)
 	if err := s.save(ctx, u); err != nil {
 		return View{}, err
