@@ -88,7 +88,7 @@ func TestAnswerAllCorrectAsksResult(t *testing.T) {
 	if out.Screen != ScreenTestResult {
 		t.Fatalf("view = %+v", out)
 	}
-	if !strings.Contains(out.Feedback, "✅ Верно!") || !strings.Contains(out.Feedback, "to go - went - gone") {
+	if !strings.Contains(out.Feedback, "✅ Верно!") || !strings.Contains(out.Feedback, "go - went - gone") {
 		t.Fatalf("result feedback = %q", out.Feedback)
 	}
 	// not yet written to study (decided by Keep/Drop)

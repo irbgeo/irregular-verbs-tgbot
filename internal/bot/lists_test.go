@@ -122,7 +122,7 @@ func TestWordButtonShowsThreeForms(t *testing.T) {
 	}}
 	_, k := render(v)
 	label := k.InlineKeyboard[1][0].Text // row 0 is the section toggle
-	if label != "📘 to be - was/were - been - быть, являться" {
+	if label != "📘 be - was/were - been - быть, являться" {
 		t.Fatalf("word label = %q", label)
 	}
 }

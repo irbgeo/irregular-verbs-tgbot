@@ -2,12 +2,6 @@ package service
 
 import "testing"
 
-func TestBaseLabel(t *testing.T) {
-	if got := BaseLabel("go"); got != "to go" {
-		t.Fatalf("BaseLabel = %q", got)
-	}
-}
-
 func TestCheckAnswerBaseAcceptsToPrefix(t *testing.T) {
 	s := New(nil, nil)
 	v := beVerb() // base "be"
@@ -47,10 +41,10 @@ func TestCheckTargetBaseAcceptsToPrefix(t *testing.T) {
 	}
 }
 
-func TestCorrectTextHasToBase(t *testing.T) {
+func TestCorrectTextNoToMarker(t *testing.T) {
 	svc, _ := newLearnSvc()
 	v, _ := svc.verb("go")
-	if got := svc.correctText(v, "gb"); got != "to go - went - gone - идти" {
+	if got := svc.correctText(v, "gb"); got != "go - went - gone - идти" {
 		t.Fatalf("correctText = %q", got)
 	}
 }

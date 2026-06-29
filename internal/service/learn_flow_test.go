@@ -18,7 +18,7 @@ func TestLearnCorrectShowsInfo(t *testing.T) {
 	v, _ := svc.verb("go")
 	ans := correctOption(v, u.State.Session.TargetKind, "gb")
 	out, _ := svc.Answer(ctx, 7, ans)
-	if !strings.Contains(out.Feedback, "✅ Верно!") || !strings.Contains(out.Feedback, "to go - went - gone - идти") {
+	if !strings.Contains(out.Feedback, "✅ Верно!") || !strings.Contains(out.Feedback, "go - went - gone - идти") {
 		t.Fatalf("feedback = %q", out.Feedback)
 	}
 }
