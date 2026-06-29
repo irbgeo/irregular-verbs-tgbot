@@ -61,9 +61,9 @@ func render(v service.View) (string, *tgbot.InlineKeyboardMarkup) {
 			}
 			rows = append(rows, []tgbot.InlineKeyboardButton{btn("💡 Показать", "quiz:help")})
 			rows = append(rows, []tgbot.InlineKeyboardButton{btn("⬅️ Меню", "nav:menu")})
-			return v.Feedback + learnPrompt(v.Quiz), kb(rows...)
+			return withNewWord(v.Feedback, learnPrompt(v.Quiz)), kb(rows...)
 		}
-		return v.Feedback + quizPrompt(v.Quiz), kb(
+		return withNewWord(v.Feedback, quizPrompt(v.Quiz)), kb(
 			[]tgbot.InlineKeyboardButton{btn("💡 Помощь", "quiz:help"), btn("⏭️ Скип", "quiz:skip")},
 			[]tgbot.InlineKeyboardButton{btn("⬅️ Меню", "nav:menu")},
 		)
@@ -94,6 +94,15 @@ func render(v service.View) (string, *tgbot.InlineKeyboardMarkup) {
 	default:
 		return "", nil
 	}
+}
+
+// withNewWord separates post-answer feedback from the next word's prompt with
+// a divider and a label. With no feedback the prompt is returned unchanged.
+func withNewWord(feedback, prompt string) string {
+	if feedback == "" {
+		return prompt
+	}
+	return feedback + "➖➖➖➖➖➖➖➖\n🆕 Новое слово\n" + prompt
 }
 
 func statusIcon(status string) string {
