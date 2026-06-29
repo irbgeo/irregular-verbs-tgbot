@@ -10,7 +10,7 @@ func quizPrompt(q *service.QuizView) string {
 	if q == nil {
 		return ""
 	}
-	return service.BaseLabel(q.Base) + "\n\nВведите 3 формы по порядку (инфинитив, past, participle):"
+	return q.Base + "\n\nВведите 3 формы по порядку (инфинитив, past, participle):"
 }
 
 var kindLabel = map[string]string{
@@ -28,9 +28,6 @@ func learnPrompt(q *service.QuizView) string {
 		verb = "Выберите "
 	}
 	anchor := q.AnchorValue
-	if q.AnchorKind == service.KindBase {
-		anchor = service.BaseLabel(anchor)
-	}
 	icon := "🎓 "
 	if q.Repeat {
 		icon = "🔁 "
