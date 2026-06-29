@@ -72,7 +72,7 @@ func render(v service.View) (string, *tgbot.InlineKeyboardMarkup) {
 			[]tgbot.InlineKeyboardButton{btn("🧪 Тест", "menu:test"), btn("⬅️ Меню", "nav:menu")},
 		)
 	case service.ScreenTestResult:
-		return v.Feedback + "Верно! Добавить слово в изучение?", kb(
+		return v.Feedback + "Добавить слово в изучение?", kb(
 			[]tgbot.InlineKeyboardButton{btn("✅ В изучение", "res:keep"), btn("⏭️ Скип", "res:drop")},
 		)
 	case service.ScreenTestDone:
@@ -112,7 +112,7 @@ func statusIcon(status string) string {
 func wordRows(items []service.ListItem) [][]tgbot.InlineKeyboardButton {
 	var rows [][]tgbot.InlineKeyboardButton
 	for _, it := range items {
-		label := statusIcon(it.Status) + " " + service.BaseLabel(it.Base) + " — " + it.Past + " — " + it.Participle
+		label := statusIcon(it.Status) + " " + service.BaseLabel(it.Base) + " - " + it.Past + " - " + it.Participle + " - " + it.Translation
 		rows = append(rows, []tgbot.InlineKeyboardButton{btn(label, "tog:"+it.Base)})
 	}
 	return rows

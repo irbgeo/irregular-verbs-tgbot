@@ -11,9 +11,8 @@ func toResult(t *testing.T, svc *Service, repo *fakeUserRepo) string {
 	ctx := context.Background()
 	cur := sess(t, repo).Base
 	v, _ := svc.verb(cur)
-	// rng=0 -> base anchor; answer the two targets: past, then participle.
-	_, _ = svc.Answer(ctx, 7, v.Past["gb"][0])
-	if out, _ := svc.Answer(ctx, 7, v.Participle["gb"][0]); out.Screen != ScreenTestResult {
+	// one message with all three forms in order -> result
+	if out, _ := svc.Answer(ctx, 7, allFormsAnswer(v, "gb")); out.Screen != ScreenTestResult {
 		t.Fatalf("expected result screen, got %s", out.Screen)
 	}
 	return cur

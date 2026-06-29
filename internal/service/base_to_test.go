@@ -1,9 +1,6 @@
 package service
 
-import (
-	"strings"
-	"testing"
-)
+import "testing"
 
 func TestBaseLabel(t *testing.T) {
 	if got := BaseLabel("go"); got != "to go" {
@@ -53,7 +50,7 @@ func TestCheckTargetBaseAcceptsToPrefix(t *testing.T) {
 func TestCorrectTextHasToBase(t *testing.T) {
 	svc, _ := newLearnSvc()
 	v, _ := svc.verb("go")
-	if got := svc.correctText(v, "gb"); !strings.HasPrefix(got, "to go — ") {
+	if got := svc.correctText(v, "gb"); got != "to go - went - gone - идти" {
 		t.Fatalf("correctText = %q", got)
 	}
 }

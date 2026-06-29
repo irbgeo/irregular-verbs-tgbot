@@ -2,8 +2,26 @@ package service
 
 import (
 	"context"
+	"strings"
 	"testing"
 )
+
+func TestLearnCorrectShowsInfo(t *testing.T) {
+	ctx := context.Background()
+	svc, repo := newLearnSvc()
+	svc.rng = func(n int) int { return 0 } // word "go", target base
+	_ = repo.Save(ctx, learnUser(map[string]WordProgress{"go": {Status: StatusStudy, Mode: 2}}))
+	if _, err := svc.StartLearn(ctx, 7); err != nil {
+		t.Fatal(err)
+	}
+	u, _ := repo.Get(ctx, 7)
+	v, _ := svc.verb("go")
+	ans := correctOption(v, u.State.Session.TargetKind, "gb")
+	out, _ := svc.Answer(ctx, 7, ans)
+	if !strings.Contains(out.Feedback, "✅ Верно!") || !strings.Contains(out.Feedback, "to go - went - gone - идти") {
+		t.Fatalf("feedback = %q", out.Feedback)
+	}
+}
 
 func TestStartLearnEmpty(t *testing.T) {
 	ctx := context.Background()
