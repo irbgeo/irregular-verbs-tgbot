@@ -15,6 +15,37 @@ func normBase(s string) string { return strings.TrimPrefix(norm(s), "to ") }
 
 func isFormSep(r rune) bool { return r == '/' || r == ',' || unicode.IsSpace(r) }
 
+func anyEqual(input string, options []string) bool {
+	in := norm(input)
+	for _, o := range options {
+		if in == norm(o) {
+			return true
+		}
+	}
+	return false
+}
+
+// requiresAllVariants reports whether all variants of a form must be entered.
+// Only the verb "be" past (was/were) qualifies — they are grammatically
+// distinct; other multi-variant forms are spelling alternatives where any one
+// is accepted.
+func requiresAllVariants(forms []string) bool {
+	if len(forms) != 2 {
+		return false
+	}
+	a, b := norm(forms[0]), norm(forms[1])
+	return (a == "was" && b == "were") || (a == "were" && b == "was")
+}
+
+// matchForm reports whether input correctly answers a form: was/were needs all
+// variants, any other form accepts a single valid variant.
+func matchForm(input string, forms []string) bool {
+	if requiresAllVariants(forms) {
+		return allFormsMatch(input, forms)
+	}
+	return anyEqual(input, forms)
+}
+
 // allFormsMatch reports whether input lists exactly the set of options
 // (every form present, none extra), splitting on spaces, "/" and ",".
 func allFormsMatch(input string, options []string) bool {
@@ -84,13 +115,21 @@ func (s *Service) checkAllFormsOrdered(v Verb, input, variant string) bool {
 	}
 	groups := [][]string{{v.Base}, v.Past[variant], v.Participle[variant]}
 	for _, g := range groups {
-		if len(g) == 0 || i+len(g) > len(toks) {
+		if len(g) == 0 {
 			return false
 		}
-		if !sameFormSet(toks[i:i+len(g)], g) {
-			return false
+		// was/were consumes both tokens; any other form consumes one.
+		if requiresAllVariants(g) {
+			if i+len(g) > len(toks) || !sameFormSet(toks[i:i+len(g)], g) {
+				return false
+			}
+			i += len(g)
+		} else {
+			if i >= len(toks) || !anyEqual(toks[i], g) {
+				return false
+			}
+			i++
 		}
-		i += len(g)
 	}
 	return i == len(toks)
 }
