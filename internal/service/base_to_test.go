@@ -25,8 +25,8 @@ func TestCheckAnswerBaseAcceptsToPrefix(t *testing.T) {
 		{"to go", false},
 	}
 	for _, c := range cases {
-		if got := s.checkAnswer(v, 0, c.in, "gb"); got != c.want {
-			t.Errorf("checkAnswer(0,%q) = %v, want %v", c.in, got, c.want)
+		if got := s.checkTarget(v, KindBase, c.in, "gb"); got != c.want {
+			t.Errorf("checkTarget(base,%q) = %v, want %v", c.in, got, c.want)
 		}
 	}
 }

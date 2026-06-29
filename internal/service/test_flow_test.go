@@ -26,7 +26,7 @@ func TestStartTestBuildsSession(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if v.Screen != ScreenQuiz || v.Quiz == nil || v.Quiz.Step != 0 {
+	if v.Screen != ScreenQuiz || v.Quiz == nil || v.Quiz.Mode != "test" {
 		t.Fatalf("view = %+v", v)
 	}
 	u, _ := repo.Get(ctx, 7)

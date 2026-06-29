@@ -8,9 +8,6 @@ func TestFormValueAndCorrectOption(t *testing.T) {
 	if got := formValue(v, KindPast, "gb"); got != "was/were" {
 		t.Fatalf("formValue past = %q", got)
 	}
-	if got := formValue(v, KindTranslation, "gb"); got != "быть" {
-		t.Fatalf("formValue translation = %q", got)
-	}
 	if got := correctOption(v, KindPast, "gb"); got != "was" {
 		t.Fatalf("correctOption past = %q", got)
 	}
@@ -29,8 +26,6 @@ func TestCheckTarget(t *testing.T) {
 		{KindPast, "was", "gb", false},     // one form not enough
 		{KindPast, "wos", "gb", false},
 		{KindParticiple, "been", "us", true}, // single form
-		{KindTranslation, "быть", "gb", true},
-		{KindTranslation, "идти", "gb", false},
 	}
 	for _, c := range cases {
 		if got := svc.checkTarget(v, c.kind, c.input, c.variant); got != c.want {
@@ -49,22 +44,6 @@ func TestFormOptions(t *testing.T) {
 	}
 	if !contains(opts, "was") {
 		t.Fatalf("correct option missing: %v", opts)
-	}
-	if !allDistinct(opts) {
-		t.Fatalf("options not distinct: %v", opts)
-	}
-}
-
-func TestTranslationOptions(t *testing.T) {
-	svc, _ := newLearnSvc()
-	svc.rng = func(n int) int { return 0 }
-	v, _ := svc.verb("be")
-	opts := svc.translationOptions(v)
-	if len(opts) != 5 {
-		t.Fatalf("want 5 options, got %d: %v", len(opts), opts)
-	}
-	if !contains(opts, "быть") {
-		t.Fatalf("correct translation missing: %v", opts)
 	}
 	if !allDistinct(opts) {
 		t.Fatalf("options not distinct: %v", opts)

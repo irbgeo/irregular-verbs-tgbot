@@ -52,14 +52,18 @@ func TestAnswerWrongAddsToStudyAndAdvances(t *testing.T) {
 func TestAnswerCorrectAdvancesStep(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := startedTest(t)
-	cur := sess(t, repo).Base
+	s0 := sess(t, repo)
+	cur := s0.Base
+	if s0.AnchorKind != KindBase { // rng=0 -> base anchor, targets [past, participle]
+		t.Fatalf("expected base anchor, got %q", s0.AnchorKind)
+	}
 	v, _ := svc.verb(cur)
 
-	out, err := svc.Answer(ctx, 7, v.Base) // step 0 expects base
+	out, err := svc.Answer(ctx, 7, v.Past["gb"][0]) // first target = past
 	if err != nil {
 		t.Fatal(err)
 	}
-	if out.Screen != ScreenQuiz || out.Quiz.Step != 1 {
+	if out.Screen != ScreenQuiz || out.Quiz.TargetKind != KindParticiple {
 		t.Fatalf("view = %+v", out)
 	}
 	if s := sess(t, repo); s.Base != cur || s.Step != 1 {
@@ -72,11 +76,10 @@ func TestAnswerAllCorrectAsksResult(t *testing.T) {
 	svc, repo := startedTest(t)
 	cur := sess(t, repo).Base
 	v, _ := svc.verb(cur)
-	variant := "gb"
 
-	_, _ = svc.Answer(ctx, 7, v.Base)                      // step0 -> base
-	_, _ = svc.Answer(ctx, 7, v.Past[variant][0])          // step1 past
-	out, _ := svc.Answer(ctx, 7, v.Participle[variant][0]) // step2 participle -> result
+	// rng=0 -> base anchor; targets are past then participle.
+	_, _ = svc.Answer(ctx, 7, v.Past["gb"][0])          // target 0: past
+	out, _ := svc.Answer(ctx, 7, v.Participle["gb"][0]) // target 1: participle -> result
 	if out.Screen != ScreenTestResult {
 		t.Fatalf("view = %+v", out)
 	}

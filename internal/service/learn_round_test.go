@@ -20,33 +20,21 @@ func TestWordFormat(t *testing.T) {
 	}
 }
 
-func TestBuildRoundAnchorFormGivesFourTargets(t *testing.T) {
+func TestBuildRoundPicksFormsOnly(t *testing.T) {
 	svc, _ := newLearnSvc()
 	u := learnUser(map[string]WordProgress{"go": {Status: StatusStudy, Mode: 2}}) // input
-	// anchor index 0 (base, a form) -> target pool = 4; pick index 3 -> translation
-	svc.rng = seqRng(0, 3)
+	svc.rng = seqRng(0, 1) // anchor index 0 (base), target index 1 (past)
 	sess := &Session{Mode: "learn", Base: "go"}
 	svc.buildRound(u, sess)
-	if sess.AnchorKind != KindBase || sess.TargetKind != KindTranslation {
+	if sess.AnchorKind != KindBase || sess.TargetKind != KindPast {
 		t.Fatalf("anchor=%q target=%q", sess.AnchorKind, sess.TargetKind)
+	}
+	forms := map[string]bool{KindBase: true, KindPast: true, KindParticiple: true}
+	if !forms[sess.AnchorKind] || !forms[sess.TargetKind] {
+		t.Fatalf("anchor/target must be among the 3 forms: %q/%q", sess.AnchorKind, sess.TargetKind)
 	}
 	if sess.Options != nil {
 		t.Fatalf("input format must have no options: %v", sess.Options)
-	}
-}
-
-func TestBuildRoundAnchorTranslationExcludesTranslationTarget(t *testing.T) {
-	svc, _ := newLearnSvc()
-	u := learnUser(map[string]WordProgress{"go": {Status: StatusStudy, Mode: 2}})
-	// anchor index 3 (translation); target pool = 3 forms; pick index 0 -> base
-	svc.rng = seqRng(3, 0)
-	sess := &Session{Mode: "learn", Base: "go"}
-	svc.buildRound(u, sess)
-	if sess.AnchorKind != KindTranslation {
-		t.Fatalf("anchor = %q", sess.AnchorKind)
-	}
-	if sess.TargetKind == KindTranslation {
-		t.Fatal("translation must be excluded from target when it is the anchor")
 	}
 }
 

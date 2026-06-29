@@ -37,17 +37,6 @@ func TestAllFormsMatch(t *testing.T) {
 	}
 }
 
-func TestCheckAnswerPastRequiresAllForms(t *testing.T) {
-	s := New(nil, nil)
-	v := beVerb() // past gb = [was, were]
-	if !s.checkAnswer(v, 1, "was were", "gb") {
-		t.Error("'was were' should be correct for past")
-	}
-	if s.checkAnswer(v, 1, "was", "gb") {
-		t.Error("'was' alone should be incorrect for multi-form past")
-	}
-}
-
 func TestCheckTargetPastRequiresAllForms(t *testing.T) {
 	svc, _ := newLearnSvc()
 	v, _ := svc.verb("be") // past gb = [was, were]

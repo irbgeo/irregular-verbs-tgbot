@@ -98,10 +98,9 @@ const (
 
 // Learn sub-question kinds and answer formats.
 const (
-	KindBase        = "base"
-	KindPast        = "past"
-	KindParticiple  = "participle"
-	KindTranslation = "translation"
+	KindBase       = "base"
+	KindPast       = "past"
+	KindParticiple = "participle"
 
 	FormatInput  = "input"
 	FormatChoice = "choice"
@@ -109,9 +108,7 @@ const (
 
 // QuizView carries the data to render one quiz sub-question.
 type QuizView struct {
-	Base         string
-	Step         int
-	Translations []string
+	Base string
 
 	// learn:
 	Mode        string   // "test" | "learn"

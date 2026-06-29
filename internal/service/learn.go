@@ -83,10 +83,8 @@ func formValue(v Verb, kind, variant string) string {
 		return v.Base
 	case KindPast:
 		return strings.Join(v.Past[variant], "/")
-	case KindParticiple:
+	default: // KindParticiple
 		return strings.Join(v.Participle[variant], "/")
-	default: // KindTranslation
-		return strings.Join(v.Translations, ", ")
 	}
 }
 
@@ -96,10 +94,8 @@ func correctOption(v Verb, kind, variant string) string {
 		return v.Base
 	case KindPast:
 		return first(v.Past[variant])
-	case KindParticiple:
+	default: // KindParticiple
 		return first(v.Participle[variant])
-	default: // KindTranslation
-		return first(v.Translations)
 	}
 }
 
@@ -116,10 +112,8 @@ func (s *Service) checkTarget(v Verb, kind, input, variant string) bool {
 		return normBase(input) == norm(v.Base)
 	case KindPast:
 		return allFormsMatch(input, v.Past[variant])
-	case KindParticiple:
+	default: // KindParticiple
 		return allFormsMatch(input, v.Participle[variant])
-	default: // KindTranslation
-		return anyEqual(input, v.Translations)
 	}
 }
 
@@ -159,33 +153,6 @@ func (s *Service) formOptions(v Verb, kind, variant string) []string {
 	return s.shuffle(opts)
 }
 
-// translationOptions returns 5 buttons for a translation target: 1 correct +
-// 4 translations of other verbs, shuffled. Assumes the catalog has at least
-// 5 distinct translations; a thinner catalog yields fewer buttons. The
-// production catalog (verbs.json) far exceeds this.
-func (s *Service) translationOptions(v Verb) []string {
-	correct := first(v.Translations)
-	opts := []string{correct}
-	seen := map[string]bool{norm(correct): true}
-	for _, b := range s.shuffle(s.allBases) {
-		if len(opts) >= 5 {
-			break
-		}
-		if b == v.Base {
-			continue
-		}
-		ov, _ := s.verb(b)
-		t := first(ov.Translations)
-		n := norm(t)
-		if t == "" || seen[n] {
-			continue
-		}
-		seen[n] = true
-		opts = append(opts, t)
-	}
-	return s.shuffle(opts)
-}
-
 // startStudyWord initializes a study word's mode to 1 the first time «Учить»
 // trains it. Lists add words as study/mode0; Учить owns the mode and starts
 // them at mode 1 (choice). Words from Тест are already mode 1; mode 2 and
@@ -212,22 +179,13 @@ func (s *Service) buildRound(u *User, sess *Session) {
 	v, _ := s.verb(sess.Base)
 	variant := u.Settings.Variant
 
-	kinds := []string{KindBase, KindPast, KindParticiple, KindTranslation}
+	kinds := []string{KindBase, KindPast, KindParticiple}
 	sess.AnchorKind = kinds[s.rng(len(kinds))]
-
-	pool := []string{KindBase, KindPast, KindParticiple}
-	if sess.AnchorKind != KindTranslation {
-		pool = append(pool, KindTranslation)
-	}
-	sess.TargetKind = pool[s.rng(len(pool))]
+	sess.TargetKind = kinds[s.rng(len(kinds))]
 
 	sess.Options = nil
 	if s.wordFormat(u, sess.Base) == FormatChoice {
-		if sess.TargetKind == KindTranslation {
-			sess.Options = s.translationOptions(v)
-		} else {
-			sess.Options = s.formOptions(v, sess.TargetKind, variant)
-		}
+		sess.Options = s.formOptions(v, sess.TargetKind, variant)
 	}
 }
 
