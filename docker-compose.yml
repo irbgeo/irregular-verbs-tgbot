@@ -5,8 +5,11 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:?set MONGO_USERNAME in the environment or a .env file}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?set MONGO_PASSWORD in the environment or a .env file}
-    # Port intentionally not published: Mongo is reachable only on the compose
-    # network (the bot connects via the "mongo" hostname).
+    # WARNING: Mongo is published to the public internet (0.0.0.0). Only the
+    # root password protects it. Acceptable only because auth is enabled; close
+    # this port or switch to an SSH tunnel if exposure is no longer needed.
+    ports:
+      - "27017:27017"
     volumes:
       - mongo-data:/data/db
     healthcheck:
