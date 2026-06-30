@@ -241,6 +241,19 @@ func (s *Service) ListPage(ctx context.Context, userID int64, page int) (View, e
 	return v, nil
 }
 
+// nextMyWordsStatus is the next status in the «Мои слова» tap cycle:
+// study → learned → skipped → study.
+func nextMyWordsStatus(eff string) string {
+	switch eff {
+	case StatusStudy:
+		return StatusLearned
+	case StatusLearned:
+		return StatusSkipped
+	default: // skipped (or anything else) wraps back to study
+		return StatusStudy
+	}
+}
+
 // storedStatus is the persisted status ignoring the draft.
 func storedStatus(u *User, base string) string {
 	if w, ok := u.Words[base]; ok {
@@ -268,11 +281,7 @@ func (s *Service) ListToggle(ctx context.Context, userID int64, base string) (Vi
 
 	var target string
 	if ls.Kind == KindMyWords {
-		if eff == StatusSkipped {
-			target = StatusStudy
-		} else { // study or learned
-			target = StatusSkipped
-		}
+		target = nextMyWordsStatus(eff)
 	} else { // word_list: toggle study membership
 		if eff == StatusStudy {
 			if stored == StatusSkipped {
@@ -325,6 +334,11 @@ func (s *Service) CommitList(ctx context.Context, userID int64) (View, error) {
 				u.Words = map[string]WordProgress{}
 			}
 			u.Words[base] = WordProgress{Status: StatusSkipped}
+		case StatusLearned:
+			if u.Words == nil {
+				u.Words = map[string]WordProgress{}
+			}
+			u.Words[base] = WordProgress{Status: StatusLearned, Mode: 2, Box: BoxMax}
 		case StatusNew:
 			delete(u.Words, base)
 		}

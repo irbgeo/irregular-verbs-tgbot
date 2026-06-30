@@ -178,7 +178,10 @@ func TestRouterMyWordsToggleCommit(t *testing.T) {
 	if err := r.Handle(ctx, cbUpdate(7, "menu:mywords")); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.Handle(ctx, cbUpdate(7, "tog:go")); err != nil { // study -> skipped (draft)
+	if err := r.Handle(ctx, cbUpdate(7, "tog:go")); err != nil { // study -> learned (draft)
+		t.Fatal(err)
+	}
+	if err := r.Handle(ctx, cbUpdate(7, "tog:go")); err != nil { // learned -> skipped (draft)
 		t.Fatal(err)
 	}
 	u, _ := repo.Get(ctx, 7)
