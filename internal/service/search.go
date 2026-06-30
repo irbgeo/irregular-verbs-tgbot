@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"sort"
 	"strings"
 )
@@ -54,4 +55,67 @@ func formSet(v Verb) map[string]bool {
 		}
 	}
 	return set
+}
+
+// buildSearchView builds the «Поиск» results list for the query and page.
+func (s *Service) buildSearchView(u *User, query string, page int) ListView {
+	bases := s.searchVerbs(query)
+	start, end, pages, clamped := pageBounds(len(bases), page)
+	items := make([]ListItem, 0, end-start)
+	for _, b := range bases[start:end] {
+		past, part, tr := s.itemForms(u, b)
+		items = append(items, ListItem{Base: b, Status: effectiveStatus(u, b), Past: past, Participle: part, Translation: tr})
+	}
+	return ListView{
+		Kind:    KindSearch,
+		Page:    clamped,
+		Pages:   pages,
+		HasPrev: clamped > 0,
+		HasNext: clamped < pages-1,
+		Items:   items,
+		Dirty:   draftDirty(u),
+	}
+}
+
+// OpenSearch shows the search prompt (no results yet).
+func (s *Service) OpenSearch(ctx context.Context, userID int64) (View, error) {
+	u, err := s.load(ctx, userID)
+	if err != nil {
+		return View{}, err
+	}
+	u.State = State{Screen: string(ScreenSearch)}
+	if err := s.save(ctx, u); err != nil {
+		return View{}, err
+	}
+	return View{Screen: ScreenSearch}, nil
+}
+
+// Search runs the query and shows the results list (draft/commit reused).
+func (s *Service) Search(ctx context.Context, userID int64, query string) (View, error) {
+	u, err := s.load(ctx, userID)
+	if err != nil {
+		return View{}, err
+	}
+	u.State = State{
+		Screen: string(ScreenSearch),
+		List:   &ListState{Kind: KindSearch, Query: query, Page: 0, Draft: map[string]string{}},
+	}
+	v := s.listView(u)
+	if err := s.save(ctx, u); err != nil {
+		return View{}, err
+	}
+	return v, nil
+}
+
+// OnText is the single text-input entry point: on the search screen the text is
+// a search query; otherwise it is a quiz answer.
+func (s *Service) OnText(ctx context.Context, userID int64, text string) (View, error) {
+	u, err := s.load(ctx, userID)
+	if err != nil {
+		return View{}, err
+	}
+	if u.State.Screen == string(ScreenSearch) {
+		return s.Search(ctx, userID, text)
+	}
+	return s.Answer(ctx, userID, text)
 }

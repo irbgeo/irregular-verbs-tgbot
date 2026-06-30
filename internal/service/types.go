@@ -92,6 +92,7 @@ const (
 	ScreenWordList          Screen = "word_list"
 	ScreenWordListLevels    Screen = "word_list_levels"
 	ScreenLearnEmpty        Screen = "learn_empty"
+	ScreenSearch            Screen = "search"
 )
 
 // Learn sub-question kinds and answer formats.
@@ -132,14 +133,16 @@ type View struct {
 const (
 	KindMyWords  = "my_words"
 	KindWordList = "word_list"
+	KindSearch   = "search"
 )
 
 // ListState is the staged list-editing state (draft).
 type ListState struct {
-	Kind  string            `bson:"kind"`            // KindMyWords | KindWordList
+	Kind  string            `bson:"kind"`            // KindMyWords | KindWordList | KindSearch
 	Level string            `bson:"level,omitempty"` // word_list pool: a level slug or "all"
 	Page  int               `bson:"page"`
-	Draft map[string]string `bson:"draft"` // base -> target status
+	Draft map[string]string `bson:"draft"`           // base -> target status
+	Query string            `bson:"query,omitempty"` // search: the raw query (matches are recomputed)
 }
 
 // ListItem is one rendered word in a list.
