@@ -67,3 +67,58 @@ func TestVerbsDatasetInvariants(t *testing.T) {
 		}
 	}
 }
+
+// TestCommonMistakesAreCleanDistractors guards that every verb's
+// common_mistakes are usable choice distractors: at least 2 distinct,
+// single latin words, none duplicated and none equal to a real form of the
+// verb (a "mistake" that is actually a correct form is not a distractor).
+func TestCommonMistakesAreCleanDistractors(t *testing.T) {
+	vs, err := LoadVerbs("../../data/verbs.json")
+	if err != nil {
+		t.Fatalf("LoadVerbs: %v", err)
+	}
+	isWord := func(s string) bool {
+		if s == "" {
+			return false
+		}
+		for _, r := range s {
+			if r < 'a' || r > 'z' {
+				return false
+			}
+		}
+		return true
+	}
+	for _, v := range vs {
+		forms := map[string]bool{norm(v.Base): true}
+		for _, variant := range []string{"gb", "us"} {
+			for _, f := range v.Past[variant] {
+				forms[norm(f)] = true
+			}
+			for _, f := range v.Participle[variant] {
+				forms[norm(f)] = true
+			}
+		}
+		seen := map[string]bool{}
+		for _, m := range v.CommonMistakes {
+			n := norm(m)
+			switch {
+			case !isWord(n):
+				t.Errorf("%s: mistake %q must be a single latin word", v.Base, m)
+			case forms[n]:
+				t.Errorf("%s: mistake %q equals a real form", v.Base, m)
+			case seen[n]:
+				t.Errorf("%s: duplicate mistake %q", v.Base, m)
+			}
+			seen[n] = true
+		}
+		clean := 0
+		for n := range seen {
+			if isWord(n) && !forms[n] {
+				clean++
+			}
+		}
+		if clean < 2 {
+			t.Errorf("%s: want >=2 clean distinct mistakes, got %d in %v", v.Base, clean, v.CommonMistakes)
+		}
+	}
+}
