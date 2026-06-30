@@ -276,24 +276,18 @@ func (s *Service) CommitList(ctx context.Context, userID int64) (View, error) {
 	if ls == nil {
 		return View{}, nil
 	}
+	if u.Words == nil {
+		u.Words = map[string]WordProgress{}
+	}
 	for base, target := range ls.Draft {
 		switch target {
 		case StatusStudy:
-			if u.Words == nil {
-				u.Words = map[string]WordProgress{}
-			}
 			w := u.Words[base]
 			w.Status = StatusStudy
 			u.Words[base] = w
 		case StatusSkipped:
-			if u.Words == nil {
-				u.Words = map[string]WordProgress{}
-			}
 			u.Words[base] = WordProgress{Status: StatusSkipped}
 		case StatusLearned:
-			if u.Words == nil {
-				u.Words = map[string]WordProgress{}
-			}
 			u.Words[base] = WordProgress{Status: StatusLearned, Mode: 2, Box: BoxMax}
 		case StatusNew:
 			delete(u.Words, base)

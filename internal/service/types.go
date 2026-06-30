@@ -128,7 +128,7 @@ type View struct {
 	Feedback string // prepended to the rendered message (quiz feedback)
 }
 
-// List edit kinds and the section values reuse the status strings.
+// List edit kinds.
 const (
 	KindMyWords  = "my_words"
 	KindWordList = "word_list"
