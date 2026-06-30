@@ -37,6 +37,7 @@ func render(v service.View) (string, *tgbot.InlineKeyboardMarkup) {
 			[]tgbot.InlineKeyboardButton{btn("🎓 Учить", "menu:learn")},
 			[]tgbot.InlineKeyboardButton{btn("📋 Мои слова", "menu:mywords")},
 			[]tgbot.InlineKeyboardButton{btn("📚 Список слов", "menu:list")},
+			[]tgbot.InlineKeyboardButton{btn("🔎 Поиск", "menu:search")},
 		)
 	case service.ScreenTestLevel:
 		var rows [][]tgbot.InlineKeyboardButton
@@ -77,6 +78,8 @@ func render(v service.View) (string, *tgbot.InlineKeyboardMarkup) {
 		return renderMyWords(v.List)
 	case service.ScreenWordList:
 		return renderWordList(v.List)
+	case service.ScreenSearch:
+		return renderSearch(v.List)
 	case service.ScreenWordListLevels:
 		var rows [][]tgbot.InlineKeyboardButton
 		for _, lvl := range v.Levels {
@@ -155,6 +158,20 @@ func renderMyWords(l *service.ListView) (string, *tgbot.InlineKeyboardMarkup) {
 	if len(l.Items) == 0 {
 		text += "\n\nПусто."
 	}
+	return text, kb(rows...)
+}
+
+func renderSearch(l *service.ListView) (string, *tgbot.InlineKeyboardMarkup) {
+	backRow := []tgbot.InlineKeyboardButton{btn("↩️", "list:back")}
+	if l == nil {
+		return "🔎 Введите слово или перевод для поиска:", kb(backRow)
+	}
+	if len(l.Items) == 0 {
+		return "🔎 Поиск: ничего не найдено" + infoBlock(l.Selected), kb(backRow)
+	}
+	text := fmt.Sprintf("🔎 Поиск (стр. %d/%d)", l.Page+1, l.Pages) + infoBlock(l.Selected)
+	rows := wordRows(l.Items)
+	rows = append(rows, controlRow(l))
 	return text, kb(rows...)
 }
 

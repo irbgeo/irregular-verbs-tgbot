@@ -87,7 +87,7 @@ func (r *Router) handleText(ctx context.Context, m *tgbot.Message) error {
 	if m.From == nil {
 		return nil
 	}
-	view, err := r.svc.Answer(ctx, m.From.ID, m.Text)
+	view, err := r.svc.OnText(ctx, m.From.ID, m.Text)
 	if err != nil {
 		return err
 	}
@@ -146,6 +146,8 @@ func (r *Router) dispatch(ctx context.Context, userID int64, kind, value string)
 			return r.svc.OpenMyWords(ctx, userID)
 		case "list":
 			return r.svc.OpenWordList(ctx, userID)
+		case "search":
+			return r.svc.OpenSearch(ctx, userID)
 		default:
 			return service.View{}, fmt.Errorf("bot: unknown menu value %q", value)
 		}
