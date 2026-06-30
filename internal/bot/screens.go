@@ -154,7 +154,7 @@ func renderMyWords(l *service.ListView) (string, *tgbot.InlineKeyboardMarkup) {
 	}
 	rows := wordRows(l.Items)
 	rows = append(rows, controlRow(l))
-	text := "📋 Мои слова" + infoBlock(l.Selected)
+	text := fmt.Sprintf("📋 Мои слова (стр. %d/%d)", l.Page+1, l.Pages) + infoBlock(l.Selected)
 	if len(l.Items) == 0 {
 		text += "\n\nПусто."
 	}

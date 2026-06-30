@@ -134,7 +134,7 @@ func TestListSelectedShowsInfoBlock(t *testing.T) {
 		Selected: sel,
 	}}
 	text, _ := render(v)
-	want := "📋 Мои слова\n\nbe - was/were - been\nбыть, являться"
+	want := "📋 Мои слова (стр. 1/1)\n\nbe - was/were - been\nбыть, являться"
 	if text != want {
 		t.Fatalf("text = %q, want %q", text, want)
 	}
