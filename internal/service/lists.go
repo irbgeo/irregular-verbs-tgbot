@@ -120,6 +120,11 @@ func (s *Service) buildWordListView(u *User, level string, page int) ListView {
 // listView builds the current list View from State.List and syncs the clamped page.
 func (s *Service) listView(u *User) View {
 	ls := u.State.List
+	if ls.Kind == KindSearch {
+		lv := s.buildSearchView(u, ls.Query, ls.Page)
+		ls.Page = lv.Page
+		return View{Screen: ScreenSearch, List: &lv}
+	}
 	if ls.Kind == KindWordList {
 		lv := s.buildWordListView(u, ls.Level, ls.Page)
 		ls.Page = lv.Page
