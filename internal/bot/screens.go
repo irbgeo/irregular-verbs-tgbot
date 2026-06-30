@@ -21,8 +21,6 @@ var levelLabels = map[string]string{
 	"pre-intermediate":   "Pre-Intermediate",
 	"intermediate":       "Intermediate",
 	"upper-intermediate": "Upper-Intermediate",
-	"advanced":           "Advanced",
-	"proficiency":        "Proficiency",
 }
 
 // render maps a View to Telegram text and keyboard. Returns ("", nil) for
@@ -117,10 +115,19 @@ func statusIcon(status string) string {
 func wordRows(items []service.ListItem) [][]tgbot.InlineKeyboardButton {
 	var rows [][]tgbot.InlineKeyboardButton
 	for _, it := range items {
-		label := statusIcon(it.Status) + " " + it.Base + " - " + it.Past + " - " + it.Participle + " - " + it.Translation
+		label := statusIcon(it.Status) + " " + it.Base + " - " + it.Past + " - " + it.Participle
 		rows = append(rows, []tgbot.InlineKeyboardButton{btn(label, "tog:"+it.Base)})
 	}
 	return rows
+}
+
+// infoBlock renders the tapped word's full info (3 forms + translation) shown
+// in the message text below the header. Empty when no word is selected.
+func infoBlock(sel *service.ListItem) string {
+	if sel == nil {
+		return ""
+	}
+	return "\n\n" + sel.Base + " - " + sel.Past + " - " + sel.Participle + "\n" + sel.Translation
 }
 
 // controlRow is the single emoji control row: ↩️ ⬅️ ❌ ✅ ➡️ (dynamic).
@@ -154,7 +161,7 @@ func renderMyWords(l *service.ListView) (string, *tgbot.InlineKeyboardMarkup) {
 	}
 	rows = append(rows, wordRows(l.Items)...)
 	rows = append(rows, controlRow(l))
-	text := "📋 Мои слова"
+	text := "📋 Мои слова" + infoBlock(l.Selected)
 	if len(l.Items) == 0 {
 		text += "\n\nПусто."
 	}
@@ -169,7 +176,7 @@ func renderWordList(l *service.ListView) (string, *tgbot.InlineKeyboardMarkup) {
 	if l.Level == "all" {
 		pool = "Все слова"
 	}
-	text := fmt.Sprintf("📚 Список слов — %s (стр. %d/%d)", pool, l.Page+1, l.Pages)
+	text := fmt.Sprintf("📚 Список слов — %s (стр. %d/%d)", pool, l.Page+1, l.Pages) + infoBlock(l.Selected)
 	rows := wordRows(l.Items)
 	rows = append(rows, controlRow(l))
 	return text, kb(rows...)

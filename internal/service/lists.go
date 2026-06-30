@@ -291,6 +291,10 @@ func (s *Service) ListToggle(ctx context.Context, userID int64, base string) (Vi
 		ls.Draft[base] = target
 	}
 	v := s.listView(u)
+	// show the tapped word's full info (3 forms + translation) in the message
+	// text; transient (not persisted), so any later navigation clears it.
+	past, part, tr := s.itemForms(u, base)
+	v.List.Selected = &ListItem{Base: base, Past: past, Participle: part, Translation: tr}
 	if err := s.save(ctx, u); err != nil {
 		return View{}, err
 	}

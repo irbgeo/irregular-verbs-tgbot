@@ -59,6 +59,46 @@ func TestToggleWordListStudy(t *testing.T) {
 	}
 }
 
+func TestToggleSetsSelectedInfoAndNavClears(t *testing.T) {
+	ctx := context.Background()
+	svc, _ := navSvc(t)
+	_, _ = svc.OpenMyWords(ctx, 7)
+
+	v, err := svc.ListToggle(ctx, 7, "go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v.List == nil || v.List.Selected == nil {
+		t.Fatalf("toggle must set Selected, got %+v", v.List)
+	}
+	s := v.List.Selected
+	if s.Base != "go" || s.Past != "went" || s.Participle != "gone" || s.Translation != "идти" {
+		t.Fatalf("selected = %+v", s)
+	}
+
+	// navigation must clear the info block
+	v2, err := svc.ListPage(ctx, 7, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v2.List.Selected != nil {
+		t.Fatalf("page nav must clear Selected, got %+v", v2.List.Selected)
+	}
+}
+
+func TestToggleUnknownBaseNoSelected(t *testing.T) {
+	ctx := context.Background()
+	svc, _ := navSvc(t)
+	_, _ = svc.OpenMyWords(ctx, 7)
+	v, err := svc.ListToggle(ctx, 7, "nope")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v.List != nil && v.List.Selected != nil {
+		t.Fatalf("unknown base must not set Selected, got %+v", v.List.Selected)
+	}
+}
+
 func TestCommitAppliesDraft(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := navSvc(t)

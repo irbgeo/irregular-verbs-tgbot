@@ -18,8 +18,6 @@ var Levels = []string{
 	"pre-intermediate",
 	"intermediate",
 	"upper-intermediate",
-	"advanced",
-	"proficiency",
 }
 
 // Settings holds the user's profile choices (v2: variant only).
@@ -165,5 +163,6 @@ type ListView struct {
 	HasPrev      bool
 	HasNext      bool
 	Items        []ListItem
-	Dirty        bool // draft non-empty (bot shows ✅/❌)
+	Dirty        bool      // draft non-empty (bot shows ✅/❌)
+	Selected     *ListItem // word just tapped: forms+translation shown in text (nil = no info block)
 }

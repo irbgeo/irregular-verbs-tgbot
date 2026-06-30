@@ -122,8 +122,33 @@ func TestWordButtonShowsThreeForms(t *testing.T) {
 	}}
 	_, k := render(v)
 	label := k.InlineKeyboard[1][0].Text // row 0 is the section toggle
-	if label != "📘 be - was/were - been - быть, являться" {
+	if label != "📘 be - was/were - been" {
 		t.Fatalf("word label = %q", label)
+	}
+}
+
+func TestListSelectedShowsInfoBlock(t *testing.T) {
+	sel := &service.ListItem{Base: "be", Past: "was/were", Participle: "been", Translation: "быть, являться"}
+	v := service.View{Screen: service.ScreenMyWords, List: &service.ListView{
+		Kind: service.KindMyWords, Section: service.StatusStudy, StudyCount: 1, Pages: 1,
+		Items:    []service.ListItem{{Base: "be", Status: service.StatusStudy, Past: "was/were", Participle: "been", Translation: "быть, являться"}},
+		Selected: sel,
+	}}
+	text, _ := render(v)
+	want := "📋 Мои слова\n\nbe - was/were - been\nбыть, являться"
+	if text != want {
+		t.Fatalf("text = %q, want %q", text, want)
+	}
+}
+
+func TestListNoSelectionNoInfoBlock(t *testing.T) {
+	v := service.View{Screen: service.ScreenWordList, List: &service.ListView{
+		Kind: service.KindWordList, Level: "elementary", Pages: 1,
+		Items: []service.ListItem{{Base: "be", Status: service.StatusNew, Past: "was/were", Participle: "been", Translation: "быть"}},
+	}}
+	text, _ := render(v)
+	if want := "📚 Список слов — Elementary (стр. 1/1)"; text != want {
+		t.Fatalf("text = %q, want %q", text, want)
 	}
 }
 
