@@ -5,25 +5,31 @@ import (
 	"testing"
 )
 
-func TestToggleMyWordsMovesSections(t *testing.T) {
+func TestToggleMyWordsCycles(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := navSvc(t)
 	_, _ = svc.OpenMyWords(ctx, 7)
 
-	// go is study -> tap moves to skipped (draft only)
+	// go is study. tap -> learned (draft only, words unchanged)
 	_, _ = svc.ListToggle(ctx, 7, "go")
 	u, _ := repo.Get(ctx, 7)
-	if u.State.List.Draft["go"] != StatusSkipped {
-		t.Fatalf("draft = %+v", u.State.List.Draft)
+	if u.State.List.Draft["go"] != StatusLearned {
+		t.Fatalf("after 1 tap draft = %+v, want learned", u.State.List.Draft)
 	}
 	if u.Words["go"].Status != StatusStudy {
 		t.Fatal("words must not change before commit")
 	}
-	// tap go again -> back to original study -> draft entry removed
+	// tap -> skipped
+	_, _ = svc.ListToggle(ctx, 7, "go")
+	u, _ = repo.Get(ctx, 7)
+	if u.State.List.Draft["go"] != StatusSkipped {
+		t.Fatalf("after 2 taps draft = %+v, want skipped", u.State.List.Draft)
+	}
+	// tap -> back to stored study -> draft entry removed
 	_, _ = svc.ListToggle(ctx, 7, "go")
 	u, _ = repo.Get(ctx, 7)
 	if _, ok := u.State.List.Draft["go"]; ok {
-		t.Fatalf("draft should be cleared, got %+v", u.State.List.Draft)
+		t.Fatalf("after 3 taps draft should be cleared, got %+v", u.State.List.Draft)
 	}
 }
 
@@ -206,7 +212,8 @@ func TestCommitSkippedWritesSkipped(t *testing.T) {
 	// open "Мои слова" (study section)
 	_, _ = svc.OpenMyWords(ctx, 7)
 
-	// go is study -> tap -> skipped (draft)
+	// go is study -> tap (learned) -> tap (skipped) in the draft
+	_, _ = svc.ListToggle(ctx, 7, "go")
 	_, _ = svc.ListToggle(ctx, 7, "go")
 	u, _ := repo.Get(ctx, 7)
 	if u.State.List.Draft["go"] != StatusSkipped {
@@ -224,5 +231,57 @@ func TestCommitSkippedWritesSkipped(t *testing.T) {
 	}
 	if u.State.List == nil || len(u.State.List.Draft) != 0 {
 		t.Fatalf("after commit: list=%+v (draft must be cleared, list kept)", u.State.List)
+	}
+}
+
+func TestCommitLearnedWritesLearned(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeUserRepo()
+	_ = repo.Save(ctx, &User{
+		ID:       7,
+		Settings: Settings{Variant: "gb"},
+		Words:    map[string]WordProgress{"go": {Status: StatusStudy}},
+	})
+	svc := New(repo, testCatalog())
+
+	_, _ = svc.OpenMyWords(ctx, 7)
+	_, _ = svc.ListToggle(ctx, 7, "go") // study -> learned (draft)
+	u, _ := repo.Get(ctx, 7)
+	if u.State.List.Draft["go"] != StatusLearned {
+		t.Fatalf("draft = %+v", u.State.List.Draft)
+	}
+
+	if _, err := svc.CommitList(ctx, 7); err != nil {
+		t.Fatal(err)
+	}
+	u, _ = repo.Get(ctx, 7)
+	got := u.Words["go"]
+	if got.Status != StatusLearned || got.Mode != 2 || got.Box != BoxMax {
+		t.Fatalf("go = %+v, want {learned, mode 2, box 5}", got)
+	}
+}
+
+func TestMyWordsSkipDraftStaysVisibleUntilCommit(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeUserRepo()
+	_ = repo.Save(ctx, &User{
+		ID:       7,
+		Settings: Settings{Variant: "gb"},
+		Words:    map[string]WordProgress{"go": {Status: StatusStudy}},
+	})
+	svc := New(repo, testCatalog())
+
+	_, _ = svc.OpenMyWords(ctx, 7)
+	// study -> learned -> skipped (draft)
+	_, _ = svc.ListToggle(ctx, 7, "go")
+	v, _ := svc.ListToggle(ctx, 7, "go")
+	// still visible with the skipped icon, because membership uses stored status
+	if len(v.List.Items) != 1 || v.List.Items[0].Base != "go" || v.List.Items[0].Status != StatusSkipped {
+		t.Fatalf("drafted-skip word must stay visible as skipped: %+v", v.List.Items)
+	}
+	// after commit it leaves the list
+	v, _ = svc.CommitList(ctx, 7)
+	if len(v.List.Items) != 0 {
+		t.Fatalf("after commit skipped word must be gone: %+v", v.List.Items)
 	}
 }

@@ -171,8 +171,6 @@ func (r *Router) dispatch(ctx context.Context, userID int64, kind, value string)
 		default:
 			return service.View{}, fmt.Errorf("bot: unknown res value %q", value)
 		}
-	case "sec":
-		return r.svc.ListSection(ctx, userID, value)
 	case "lc":
 		idx, err := strconv.Atoi(value)
 		if err != nil {

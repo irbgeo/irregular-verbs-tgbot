@@ -128,7 +128,7 @@ type View struct {
 	Feedback string // prepended to the rendered message (quiz feedback)
 }
 
-// List edit kinds and the section values reuse the status strings.
+// List edit kinds.
 const (
 	KindMyWords  = "my_words"
 	KindWordList = "word_list"
@@ -136,11 +136,10 @@ const (
 
 // ListState is the staged list-editing state (draft).
 type ListState struct {
-	Kind    string            `bson:"kind"`              // KindMyWords | KindWordList
-	Section string            `bson:"section"`           // my_words: StatusStudy | StatusSkipped
-	Level   string            `bson:"level,omitempty"`   // word_list pool: a level slug or "all"
-	Page    int               `bson:"page"`
-	Draft   map[string]string `bson:"draft"`             // base -> target status
+	Kind  string            `bson:"kind"`            // KindMyWords | KindWordList
+	Level string            `bson:"level,omitempty"` // word_list pool: a level slug or "all"
+	Page  int               `bson:"page"`
+	Draft map[string]string `bson:"draft"` // base -> target status
 }
 
 // ListItem is one rendered word in a list.
@@ -154,15 +153,12 @@ type ListItem struct {
 
 // ListView is the data the bot renders for a list screen.
 type ListView struct {
-	Kind         string
-	Section      string // my_words active section
-	StudyCount   int    // my_words section-toggle counts
-	SkippedCount int
-	Level        string // word_list pool: a level slug or "all"
-	Page, Pages  int
-	HasPrev      bool
-	HasNext      bool
-	Items        []ListItem
-	Dirty        bool      // draft non-empty (bot shows ✅/❌)
-	Selected     *ListItem // word just tapped: forms+translation shown in text (nil = no info block)
+	Kind        string
+	Level       string // word_list pool: a level slug or "all"
+	Page, Pages int
+	HasPrev     bool
+	HasNext     bool
+	Items       []ListItem
+	Dirty       bool      // draft non-empty (bot shows ✅/❌)
+	Selected    *ListItem // word just tapped: forms+translation shown in text (nil = no info block)
 }

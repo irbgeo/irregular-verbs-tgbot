@@ -10,20 +10,19 @@ import (
 
 func TestRenderMyWordsButtons(t *testing.T) {
 	v := service.View{Screen: service.ScreenMyWords, List: &service.ListView{
-		Kind: service.KindMyWords, Section: service.StatusStudy,
-		StudyCount: 2, SkippedCount: 1,
-		Items: []service.ListItem{{Base: "be", Status: service.StatusLearned}, {Base: "go", Status: service.StatusStudy}},
+		Kind: service.KindMyWords,
+		Items: []service.ListItem{
+			{Base: "be", Status: service.StatusLearned, Past: "was/were", Participle: "been"},
+			{Base: "go", Status: service.StatusStudy, Past: "went", Participle: "gone"},
+		},
 		Pages: 1,
 	}}
 	text, k := render(v)
 	if !strings.HasPrefix(text, "📋 Мои слова") {
 		t.Fatalf("text = %q", text)
 	}
-	if k.InlineKeyboard[0][0].CallbackData != "sec:study" || k.InlineKeyboard[0][1].CallbackData != "sec:skipped" {
-		t.Fatalf("section row = %+v", k.InlineKeyboard[0])
-	}
-	if k.InlineKeyboard[1][0].CallbackData != "tog:be" {
-		t.Fatalf("first word = %+v", k.InlineKeyboard[1][0])
+	if k.InlineKeyboard[0][0].CallbackData != "tog:be" {
+		t.Fatalf("first word = %+v", k.InlineKeyboard[0][0])
 	}
 	last := k.InlineKeyboard[len(k.InlineKeyboard)-1]
 	if last[0].CallbackData != "list:back" {
@@ -56,7 +55,7 @@ func TestRenderWordListHeaderAndNav(t *testing.T) {
 
 func TestRenderMyWordsControlRow(t *testing.T) {
 	v := service.View{Screen: service.ScreenMyWords, List: &service.ListView{
-		Kind: service.KindMyWords, Section: service.StatusStudy, StudyCount: 1,
+		Kind: service.KindMyWords,
 		Items: []service.ListItem{{Base: "go", Status: service.StatusStudy}},
 		Pages: 1, Dirty: true,
 	}}
@@ -117,11 +116,11 @@ func TestRouterWordListPickerFlow(t *testing.T) {
 
 func TestWordButtonShowsThreeForms(t *testing.T) {
 	v := service.View{Screen: service.ScreenMyWords, List: &service.ListView{
-		Kind: service.KindMyWords, Section: service.StatusStudy, StudyCount: 1, Pages: 1,
+		Kind: service.KindMyWords, Pages: 1,
 		Items: []service.ListItem{{Base: "be", Status: service.StatusStudy, Past: "was/were", Participle: "been", Translation: "быть, являться"}},
 	}}
 	_, k := render(v)
-	label := k.InlineKeyboard[1][0].Text // row 0 is the section toggle
+	label := k.InlineKeyboard[0][0].Text
 	if label != "📘 be - was/were - been" {
 		t.Fatalf("word label = %q", label)
 	}
@@ -130,7 +129,7 @@ func TestWordButtonShowsThreeForms(t *testing.T) {
 func TestListSelectedShowsInfoBlock(t *testing.T) {
 	sel := &service.ListItem{Base: "be", Past: "was/were", Participle: "been", Translation: "быть, являться"}
 	v := service.View{Screen: service.ScreenMyWords, List: &service.ListView{
-		Kind: service.KindMyWords, Section: service.StatusStudy, StudyCount: 1, Pages: 1,
+		Kind: service.KindMyWords, Pages: 1,
 		Items:    []service.ListItem{{Base: "be", Status: service.StatusStudy, Past: "was/were", Participle: "been", Translation: "быть, являться"}},
 		Selected: sel,
 	}}
@@ -154,7 +153,7 @@ func TestListNoSelectionNoInfoBlock(t *testing.T) {
 
 func TestBackEmojiIsReturnArrow(t *testing.T) {
 	v := service.View{Screen: service.ScreenMyWords, List: &service.ListView{
-		Kind: service.KindMyWords, Section: service.StatusStudy, Pages: 1,
+		Kind: service.KindMyWords, Pages: 1,
 		Items: []service.ListItem{},
 	}}
 	_, k := render(v)
@@ -178,7 +177,10 @@ func TestRouterMyWordsToggleCommit(t *testing.T) {
 	if err := r.Handle(ctx, cbUpdate(7, "menu:mywords")); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.Handle(ctx, cbUpdate(7, "tog:go")); err != nil { // study -> skipped (draft)
+	if err := r.Handle(ctx, cbUpdate(7, "tog:go")); err != nil { // study -> learned (draft)
+		t.Fatal(err)
+	}
+	if err := r.Handle(ctx, cbUpdate(7, "tog:go")); err != nil { // learned -> skipped (draft)
 		t.Fatal(err)
 	}
 	u, _ := repo.Get(ctx, 7)

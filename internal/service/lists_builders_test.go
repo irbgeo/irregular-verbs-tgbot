@@ -9,7 +9,7 @@ func listUser() *User {
 			"be": {Status: StatusLearned},
 			"do": {Status: StatusSkipped},
 		},
-		State: State{List: &ListState{Kind: KindMyWords, Section: StatusStudy, Draft: map[string]string{}}},
+		State: State{List: &ListState{Kind: KindMyWords, Draft: map[string]string{}}},
 	}
 }
 
@@ -17,21 +17,13 @@ func TestBuildMyWordsView(t *testing.T) {
 	s := New(nil, testCatalog())
 	u := listUser()
 
-	study := s.buildMyWordsView(u, StatusStudy, 0)
-	if study.StudyCount != 2 || study.SkippedCount != 1 {
-		t.Fatalf("counts: study=%d skipped=%d", study.StudyCount, study.SkippedCount)
+	v := s.buildMyWordsView(u, 0)
+	// stored study + learned only, alpha: be (learned), go (study); "do" (skipped) hidden
+	if len(v.Items) != 2 || v.Items[0].Base != "be" || v.Items[1].Base != "go" {
+		t.Fatalf("items = %+v", v.Items)
 	}
-	// study section = go (study) + be (learned), sorted alpha
-	if len(study.Items) != 2 || study.Items[0].Base != "be" || study.Items[1].Base != "go" {
-		t.Fatalf("study items = %+v", study.Items)
-	}
-	if study.Items[0].Status != StatusLearned {
-		t.Errorf("be status = %q", study.Items[0].Status)
-	}
-
-	skip := s.buildMyWordsView(u, StatusSkipped, 0)
-	if len(skip.Items) != 1 || skip.Items[0].Base != "do" {
-		t.Fatalf("skip items = %+v", skip.Items)
+	if v.Items[0].Status != StatusLearned || v.Items[1].Status != StatusStudy {
+		t.Fatalf("statuses = %+v", v.Items)
 	}
 }
 
