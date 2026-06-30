@@ -44,8 +44,9 @@ func TestBuildRoundChoiceFillsOptions(t *testing.T) {
 	svc.rng = func(n int) int { return 0 } // anchor base, target base, deterministic shuffle
 	sess := &Session{Mode: "learn", Base: "go"}
 	svc.buildRound(u, sess)
-	if len(sess.Options) != 4 {
-		t.Fatalf("choice form target wants 4 options, got %v", sess.Options)
+	// go (base, correct) + remaining forms (went, gone) + 2 mistakes (goed, wented)
+	if len(sess.Options) != 5 {
+		t.Fatalf("choice form target wants 5 options, got %v", sess.Options)
 	}
 }
 

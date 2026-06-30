@@ -39,11 +39,34 @@ func TestFormOptions(t *testing.T) {
 	svc.rng = func(n int) int { return 0 } // deterministic shuffle
 	v, _ := svc.verb("be")
 	opts := svc.formOptions(v, KindPast, "gb")
-	if len(opts) != 4 {
-		t.Fatalf("want 4 options, got %d: %v", len(opts), opts)
+	// correct (was) + remaining forms (be, been) + 2 common mistakes (beed, are)
+	if len(opts) != 5 {
+		t.Fatalf("want 5 options, got %d: %v", len(opts), opts)
 	}
-	if !contains(opts, "was") {
-		t.Fatalf("correct option missing: %v", opts)
+	for _, want := range []string{"was", "be", "been", "beed", "are"} {
+		if !contains(opts, want) {
+			t.Fatalf("missing %q in %v", want, opts)
+		}
+	}
+	if !allDistinct(opts) {
+		t.Fatalf("options not distinct: %v", opts)
+	}
+}
+
+func TestFormOptionsDedupsFormsAndMistakes(t *testing.T) {
+	svc, _ := newLearnSvc()
+	svc.rng = func(n int) int { return 0 }
+	// "do": past=did, base=do, participle=done; mistakes=[doed, done].
+	// "done" repeats the participle form, so it is dropped → 4 options.
+	v, _ := svc.verb("do")
+	opts := svc.formOptions(v, KindPast, "gb")
+	if len(opts) != 4 {
+		t.Fatalf("want 4 options (done deduped), got %d: %v", len(opts), opts)
+	}
+	for _, want := range []string{"did", "do", "done", "doed"} {
+		if !contains(opts, want) {
+			t.Fatalf("missing %q in %v", want, opts)
+		}
 	}
 	if !allDistinct(opts) {
 		t.Fatalf("options not distinct: %v", opts)

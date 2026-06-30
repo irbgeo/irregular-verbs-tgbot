@@ -117,11 +117,10 @@ func (s *Service) checkTarget(v Verb, kind, input, variant string) bool {
 	}
 }
 
-// formOptions returns 4 buttons for a form target: 1 correct + 3 distractors
-// (common_mistakes first, then same-kind forms of other verbs), shuffled.
-// Assumes the catalog has at least 4 distinct same-kind forms; a thinner
-// catalog yields fewer buttons. The production catalog (verbs.json) far
-// exceeds this, so the short-list branch is unreachable in practice.
+// formOptions returns the choice buttons for a form target, shuffled: the
+// correct form, the word's two other forms, and up to 2 of the word's own
+// common mistakes. Duplicates (case-insensitive) are dropped, so a verb whose
+// forms coincide — or whose mistakes repeat a form — yields fewer buttons.
 func (s *Service) formOptions(v Verb, kind, variant string) []string {
 	correct := correctOption(v, kind, variant)
 	opts := []string{correct}
@@ -134,21 +133,24 @@ func (s *Service) formOptions(v Verb, kind, variant string) []string {
 		seen[n] = true
 		opts = append(opts, val)
 	}
-	for _, m := range v.CommonMistakes {
-		if len(opts) >= 4 {
-			break
+	// the word's remaining forms (the two kinds other than the asked one)
+	for _, k := range []string{KindBase, KindPast, KindParticiple} {
+		if k != kind {
+			add(correctOption(v, k, variant))
 		}
-		add(m)
 	}
-	for _, b := range s.shuffle(s.allBases) {
-		if len(opts) >= 4 {
+	// up to 2 of the word's own common mistakes (skipping any that duplicate
+	// a form already present)
+	added := 0
+	for _, m := range v.CommonMistakes {
+		if added >= 2 {
 			break
 		}
-		if b == v.Base {
-			continue
+		before := len(opts)
+		add(m)
+		if len(opts) > before {
+			added++
 		}
-		ov, _ := s.verb(b)
-		add(correctOption(ov, kind, variant))
 	}
 	return s.shuffle(opts)
 }
