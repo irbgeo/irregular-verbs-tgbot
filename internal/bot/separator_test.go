@@ -11,11 +11,11 @@ func TestQuizSeparatorWithFeedback(t *testing.T) {
 	v := service.View{Screen: service.ScreenQuiz, Feedback: "✅ Верно!\ngo - went - gone\nидти\n\n",
 		Quiz: &service.QuizView{Mode: "test", Base: "forbid"}}
 	text, _ := render(v)
-	if !strings.Contains(text, "🆕 Новое слово") || !strings.Contains(text, "➖") {
+	if !strings.Contains(text, "🆕 Новое задание") || !strings.Contains(text, "➖") {
 		t.Fatalf("expected separator + label, got %q", text)
 	}
 	// feedback must come before the separator, the new word after it
-	sep := strings.Index(text, "🆕 Новое слово")
+	sep := strings.Index(text, "🆕 Новое задание")
 	if strings.Index(text, "Верно!") > sep || strings.Index(text, "forbid") < sep {
 		t.Fatalf("ordering wrong: %q", text)
 	}
@@ -25,7 +25,7 @@ func TestQuizNoSeparatorWithoutFeedback(t *testing.T) {
 	v := service.View{Screen: service.ScreenQuiz,
 		Quiz: &service.QuizView{Mode: "test", Base: "forbid"}}
 	text, _ := render(v)
-	if strings.Contains(text, "🆕 Новое слово") || strings.Contains(text, "➖") {
+	if strings.Contains(text, "🆕 Новое задание") || strings.Contains(text, "➖") {
 		t.Fatalf("no separator expected without feedback, got %q", text)
 	}
 }

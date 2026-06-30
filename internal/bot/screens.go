@@ -99,7 +99,7 @@ func withNewWord(feedback, prompt string) string {
 	if feedback == "" {
 		return prompt
 	}
-	return feedback + "➖➖➖➖➖➖➖➖\n🆕 Новое слово\n" + prompt
+	return feedback + "➖➖➖➖➖➖➖➖\n🆕 Новое задание\n" + prompt
 }
 
 func statusIcon(status string) string {
