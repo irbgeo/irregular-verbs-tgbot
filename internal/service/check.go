@@ -131,11 +131,11 @@ func (s *Service) checkAllFormsOrdered(v Verb, input, variant string) bool {
 	return i == len(toks)
 }
 
-// correctText is the human "correct answer" line for feedback: all three
-// forms and the translation, separated by " - ".
+// correctText is the human "correct answer" block for feedback: the three
+// forms on the first line (separated by " - "), the translation on the next.
 func (s *Service) correctText(v Verb, variant string) string {
 	return v.Base + " - " +
 		strings.Join(v.Past[variant], "/") + " - " +
-		strings.Join(v.Participle[variant], "/") + " - " +
+		strings.Join(v.Participle[variant], "/") + "\n" +
 		strings.Join(v.Translations, ", ")
 }

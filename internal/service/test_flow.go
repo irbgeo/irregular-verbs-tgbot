@@ -112,7 +112,7 @@ func (s *Service) Answer(ctx context.Context, userID int64, text string) (View, 
 	if !s.checkAllFormsOrdered(v, text, u.Settings.Variant) {
 		s.setStudy(u, sess.Base)
 		out := s.advance(u)
-		out.Feedback = "❌ Неверно. Правильно: " + s.correctText(v, u.Settings.Variant) + "\n\n"
+		out.Feedback = "❌ Неверно.\n" + s.correctText(v, u.Settings.Variant) + "\n\n"
 		if err := s.save(ctx, u); err != nil {
 			return View{}, err
 		}

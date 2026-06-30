@@ -73,6 +73,12 @@ func TestAnswerWrongOrderAddsToStudy(t *testing.T) {
 	if out.Feedback == "" {
 		t.Fatal("wrong order must be incorrect (feedback shown)")
 	}
+	if !strings.HasPrefix(out.Feedback, "❌ Неверно.\n") {
+		t.Fatalf("wrong feedback must start with newline after Неверно.: %q", out.Feedback)
+	}
+	if strings.Contains(out.Feedback, "Правильно:") {
+		t.Fatalf("wrong feedback must not contain Правильно: %q", out.Feedback)
+	}
 	if u, _ := repo.Get(ctx, 7); u.Words[cur].Status != StatusStudy {
 		t.Fatalf("wrong answer should add %s to study", cur)
 	}

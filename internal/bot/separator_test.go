@@ -8,7 +8,7 @@ import (
 )
 
 func TestQuizSeparatorWithFeedback(t *testing.T) {
-	v := service.View{Screen: service.ScreenQuiz, Feedback: "✅ Верно!\ngo - went - gone - идти\n\n",
+	v := service.View{Screen: service.ScreenQuiz, Feedback: "✅ Верно!\ngo - went - gone\nидти\n\n",
 		Quiz: &service.QuizView{Mode: "test", Base: "forbid"}}
 	text, _ := render(v)
 	if !strings.Contains(text, "🆕 Новое слово") || !strings.Contains(text, "➖") {

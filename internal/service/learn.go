@@ -310,7 +310,7 @@ func (s *Service) resolveLearn(ctx context.Context, u *User, ok, reveal bool) (V
 	case reveal:
 		out.Feedback = "💡 " + info + "\n\n"
 	default:
-		out.Feedback = "❌ Неверно. Правильно: " + info + "\n\n"
+		out.Feedback = "❌ Неверно.\n" + info + "\n\n"
 	}
 	if err := s.save(ctx, u); err != nil {
 		return View{}, err
