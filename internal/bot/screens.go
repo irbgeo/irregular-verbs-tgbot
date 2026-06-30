@@ -149,17 +149,7 @@ func renderMyWords(l *service.ListView) (string, *tgbot.InlineKeyboardMarkup) {
 	if l == nil {
 		return "", nil
 	}
-	studyLabel := fmt.Sprintf("Изучаю (%d)", l.StudyCount)
-	skipLabel := fmt.Sprintf("Скипнутые (%d)", l.SkippedCount)
-	if l.Section == service.StatusSkipped {
-		skipLabel = "• " + skipLabel
-	} else {
-		studyLabel = "• " + studyLabel
-	}
-	rows := [][]tgbot.InlineKeyboardButton{
-		{btn(studyLabel, "sec:study"), btn(skipLabel, "sec:skipped")},
-	}
-	rows = append(rows, wordRows(l.Items)...)
+	rows := wordRows(l.Items)
 	rows = append(rows, controlRow(l))
 	text := "📋 Мои слова" + infoBlock(l.Selected)
 	if len(l.Items) == 0 {

@@ -55,55 +55,32 @@ func pageBounds(n, page int) (start, end, pages, clamped int) {
 	return start, end, pages, page
 }
 
-// buildMyWordsView builds the «Мои слова» screen for the active section.
-func (s *Service) buildMyWordsView(u *User, section string, page int) ListView {
-	seen := map[string]string{}  // base -> effectiveStatus
-	var study, skipped []string
-	add := func(base string) {
-		if _, exists := seen[base]; exists {
-			return
-		}
-		status := effectiveStatus(u, base)
-		seen[base] = status
-		switch status {
-		case StatusStudy, StatusLearned:
-			study = append(study, base)
-		case StatusSkipped:
-			skipped = append(skipped, base)
+// buildMyWordsView builds the «Мои слова» screen: a single list of the words
+// the user is working on. Membership is by STORED status (study or learned),
+// so a word drafted to skipped stays visible (with the ❌ icon) until commit.
+func (s *Service) buildMyWordsView(u *User, page int) ListView {
+	var bases []string
+	for base, w := range u.Words {
+		if w.Status == StatusStudy || w.Status == StatusLearned {
+			bases = append(bases, base)
 		}
 	}
-	for base := range u.Words {
-		add(base)
-	}
-	if u.State.List != nil {
-		for base := range u.State.List.Draft {
-			add(base)
-		}
-	}
-	sort.Strings(study)
-	sort.Strings(skipped)
+	sort.Strings(bases)
 
-	bases := study
-	if section == StatusSkipped {
-		bases = skipped
-	}
 	start, end, pages, clamped := pageBounds(len(bases), page)
 	items := make([]ListItem, 0, end-start)
 	for _, b := range bases[start:end] {
 		past, part, tr := s.itemForms(u, b)
-		items = append(items, ListItem{Base: b, Status: seen[b], Past: past, Participle: part, Translation: tr})
+		items = append(items, ListItem{Base: b, Status: effectiveStatus(u, b), Past: past, Participle: part, Translation: tr})
 	}
 	return ListView{
-		Kind:         KindMyWords,
-		Section:      section,
-		StudyCount:   len(study),
-		SkippedCount: len(skipped),
-		Page:         clamped,
-		Pages:        pages,
-		HasPrev:      clamped > 0,
-		HasNext:      clamped < pages-1,
-		Items:        items,
-		Dirty:        draftDirty(u),
+		Kind:    KindMyWords,
+		Page:    clamped,
+		Pages:   pages,
+		HasPrev: clamped > 0,
+		HasNext: clamped < pages-1,
+		Items:   items,
+		Dirty:   draftDirty(u),
 	}
 }
 
@@ -148,7 +125,7 @@ func (s *Service) listView(u *User) View {
 		ls.Page = lv.Page
 		return View{Screen: ScreenWordList, List: &lv}
 	}
-	lv := s.buildMyWordsView(u, ls.Section, ls.Page)
+	lv := s.buildMyWordsView(u, ls.Page)
 	ls.Page = lv.Page
 	return View{Screen: ScreenMyWords, List: &lv}
 }
@@ -161,7 +138,7 @@ func (s *Service) OpenMyWords(ctx context.Context, userID int64) (View, error) {
 	}
 	u.State = State{
 		Screen: string(ScreenMyWords),
-		List:   &ListState{Kind: KindMyWords, Section: StatusStudy, Page: 0, Draft: map[string]string{}},
+		List:   &ListState{Kind: KindMyWords, Page: 0, Draft: map[string]string{}},
 	}
 	v := s.listView(u)
 	if err := s.save(ctx, u); err != nil {
@@ -196,27 +173,6 @@ func (s *Service) ChooseLevel(ctx context.Context, userID int64, level string) (
 		Screen: string(ScreenWordList),
 		List:   &ListState{Kind: KindWordList, Level: level, Page: 0, Draft: map[string]string{}},
 	}
-	v := s.listView(u)
-	if err := s.save(ctx, u); err != nil {
-		return View{}, err
-	}
-	return v, nil
-}
-
-// ListSection switches the active «Мои слова» section.
-func (s *Service) ListSection(ctx context.Context, userID int64, section string) (View, error) {
-	u, err := s.load(ctx, userID)
-	if err != nil {
-		return View{}, err
-	}
-	if u.State.List == nil || u.State.List.Kind != KindMyWords {
-		return View{}, nil
-	}
-	if section != StatusStudy && section != StatusSkipped {
-		return View{}, nil
-	}
-	u.State.List.Section = section
-	u.State.List.Page = 0
 	v := s.listView(u)
 	if err := s.save(ctx, u); err != nil {
 		return View{}, err

@@ -25,7 +25,7 @@ func TestOpenMyWordsInitsState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if v.Screen != ScreenMyWords || v.List == nil || v.List.Section != StatusStudy {
+	if v.Screen != ScreenMyWords || v.List == nil {
 		t.Fatalf("view = %+v", v)
 	}
 	u, _ := repo.Get(ctx, 7)
@@ -112,23 +112,6 @@ func TestListBackSteps(t *testing.T) {
 	}
 }
 
-func TestListSectionSwitches(t *testing.T) {
-	ctx := context.Background()
-	svc, repo := navSvc(t)
-	_, _ = svc.OpenMyWords(ctx, 7)
-	v, err := svc.ListSection(ctx, 7, StatusSkipped)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if v.List.Section != StatusSkipped || len(v.List.Items) != 1 || v.List.Items[0].Base != "do" {
-		t.Fatalf("view = %+v", v.List)
-	}
-	u, _ := repo.Get(ctx, 7)
-	if u.State.List.Section != StatusSkipped || u.State.List.Page != 0 {
-		t.Fatalf("state = %+v", u.State.List)
-	}
-}
-
 func TestListPageClamps(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := navSvc(t)
@@ -148,9 +131,6 @@ func TestListNavNoStateIgnored(t *testing.T) {
 	ctx := context.Background()
 	svc, _ := navSvc(t)
 	// no OpenMyWords/OpenWordList first -> List is nil
-	if v, _ := svc.ListSection(ctx, 7, StatusSkipped); v.Screen != ScreenNone {
-		t.Fatalf("expected empty view, got %+v", v)
-	}
 	if v, _ := svc.ListPage(ctx, 7, 1); v.Screen != ScreenNone {
 		t.Fatalf("expected empty view, got %+v", v)
 	}

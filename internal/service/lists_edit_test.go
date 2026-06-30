@@ -260,3 +260,28 @@ func TestCommitLearnedWritesLearned(t *testing.T) {
 		t.Fatalf("go = %+v, want {learned, mode 2, box 5}", got)
 	}
 }
+
+func TestMyWordsSkipDraftStaysVisibleUntilCommit(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeUserRepo()
+	_ = repo.Save(ctx, &User{
+		ID:       7,
+		Settings: Settings{Variant: "gb"},
+		Words:    map[string]WordProgress{"go": {Status: StatusStudy}},
+	})
+	svc := New(repo, testCatalog())
+
+	_, _ = svc.OpenMyWords(ctx, 7)
+	// study -> learned -> skipped (draft)
+	_, _ = svc.ListToggle(ctx, 7, "go")
+	v, _ := svc.ListToggle(ctx, 7, "go")
+	// still visible with the skipped icon, because membership uses stored status
+	if len(v.List.Items) != 1 || v.List.Items[0].Base != "go" || v.List.Items[0].Status != StatusSkipped {
+		t.Fatalf("drafted-skip word must stay visible as skipped: %+v", v.List.Items)
+	}
+	// after commit it leaves the list
+	v, _ = svc.CommitList(ctx, 7)
+	if len(v.List.Items) != 0 {
+		t.Fatalf("after commit skipped word must be gone: %+v", v.List.Items)
+	}
+}

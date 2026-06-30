@@ -12,8 +12,8 @@ func TestListItemsCarryForms(t *testing.T) {
 		Words: map[string]WordProgress{"be": {Status: StatusStudy}}})
 	svc := New(repo, testCatalog())
 
-	// my_words study section contains "be" with its forms
-	mv := svc.buildMyWordsView(mustUser(t, repo), StatusStudy, 0)
+	// my_words list contains "be" with its forms
+	mv := svc.buildMyWordsView(mustUser(t, repo), 0)
 	var be *ListItem
 	for i := range mv.Items {
 		if mv.Items[i].Base == "be" {
