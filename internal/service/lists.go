@@ -130,7 +130,7 @@ func (s *Service) listView(u *User) View {
 	return View{Screen: ScreenMyWords, List: &lv}
 }
 
-// OpenMyWords opens the «Мои слова» editor (Изучаю section).
+// OpenMyWords opens the «Мои слова» word list editor.
 func (s *Service) OpenMyWords(ctx context.Context, userID int64) (View, error) {
 	u, err := s.load(ctx, userID)
 	if err != nil {
