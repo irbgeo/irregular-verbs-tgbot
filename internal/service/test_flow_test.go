@@ -39,6 +39,32 @@ func TestStartTestBuildsSession(t *testing.T) {
 	}
 }
 
+func TestStartTestIncludesEarlierLevels(t *testing.T) {
+	ctx := context.Background()
+	svc, repo := newSvc()
+	svc.rng = func(int) int { return 0 }
+
+	if _, err := svc.StartTest(ctx, 7, "pre-intermediate"); err != nil {
+		t.Fatal(err)
+	}
+	u, _ := repo.Get(ctx, 7)
+	sess := u.State.Session
+	got := append([]string{sess.Base}, sess.Queue...)
+	// pre-intermediate test is cumulative: elementary (be, go) + pre-intermediate (build)
+	if len(got) != 3 {
+		t.Fatalf("want 3 words (cumulative), got %d: %v", len(got), got)
+	}
+	set := map[string]bool{}
+	for _, b := range got {
+		set[b] = true
+	}
+	for _, want := range []string{"be", "go", "build"} {
+		if !set[want] {
+			t.Fatalf("missing %q in %v", want, got)
+		}
+	}
+}
+
 func TestStartTestRejectsUnknownLevel(t *testing.T) {
 	ctx := context.Background()
 	svc, _ := newSvc()

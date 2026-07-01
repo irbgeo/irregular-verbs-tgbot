@@ -14,6 +14,20 @@ func validLevel(level string) bool {
 	return false
 }
 
+// levelsUpTo returns the level slugs from the first level through `level`
+// (inclusive), in study order. A test for a level is cumulative: it covers that
+// level and every earlier one.
+func levelsUpTo(level string) []string {
+	var out []string
+	for _, l := range Levels {
+		out = append(out, l)
+		if l == level {
+			break
+		}
+	}
+	return out
+}
+
 func (s *Service) shuffle(in []string) []string {
 	out := append([]string(nil), in...)
 	for i := len(out) - 1; i > 0; i-- {
@@ -52,8 +66,10 @@ func (s *Service) StartTest(ctx context.Context, userID int64, level string) (Vi
 		return View{}, err
 	}
 	var bases []string
-	for _, v := range s.levelWords(level) {
-		bases = append(bases, v.Base)
+	for _, l := range levelsUpTo(level) {
+		for _, v := range s.levelWords(l) {
+			bases = append(bases, v.Base)
+		}
 	}
 	bases = s.shuffle(bases)
 	if len(bases) == 0 {
