@@ -83,6 +83,10 @@ func (s *Service) StartTest(ctx context.Context, userID int64, level string) (Vi
 	return View{Screen: ScreenQuiz, Quiz: s.testQuestion(sess)}, nil
 }
 
+// studyAddedNote is appended to Тест feedback when a word is auto-added to the
+// study list (wrong answer or «Помощь»).
+const studyAddedNote = "\n➕ Добавлено в изучение"
+
 func (s *Service) setStudy(u *User, base string) {
 	if u.Words == nil {
 		u.Words = map[string]WordProgress{}
@@ -128,7 +132,7 @@ func (s *Service) Answer(ctx context.Context, userID int64, text string) (View, 
 	if !s.checkAllFormsOrdered(v, text, u.Settings.Variant) {
 		s.setStudy(u, sess.Base)
 		out := s.advance(u)
-		out.Feedback = "❌ Неверно.\n" + s.correctText(v, u.Settings.Variant) + "\n\n"
+		out.Feedback = "❌ Неверно.\n" + s.correctText(v, u.Settings.Variant) + studyAddedNote + "\n\n"
 		if err := s.save(ctx, u); err != nil {
 			return View{}, err
 		}
@@ -159,7 +163,7 @@ func (s *Service) Help(ctx context.Context, userID int64) (View, error) {
 	v, _ := s.verb(u.State.Session.Base)
 	s.setStudy(u, u.State.Session.Base)
 	out := s.advance(u)
-	out.Feedback = "💡 " + s.correctText(v, u.Settings.Variant) + "\n\n"
+	out.Feedback = "💡 " + s.correctText(v, u.Settings.Variant) + studyAddedNote + "\n\n"
 	if err := s.save(ctx, u); err != nil {
 		return View{}, err
 	}

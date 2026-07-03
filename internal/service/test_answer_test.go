@@ -79,6 +79,9 @@ func TestAnswerWrongOrderAddsToStudy(t *testing.T) {
 	if strings.Contains(out.Feedback, "Правильно:") {
 		t.Fatalf("wrong feedback must not contain Правильно: %q", out.Feedback)
 	}
+	if !strings.Contains(out.Feedback, "➕ Добавлено в изучение") {
+		t.Fatalf("wrong feedback must note the word was added: %q", out.Feedback)
+	}
 	if u, _ := repo.Get(ctx, 7); u.Words[cur].Status != StatusStudy {
 		t.Fatalf("wrong answer should add %s to study", cur)
 	}
@@ -114,6 +117,9 @@ func TestHelpAddsToStudyAndAdvances(t *testing.T) {
 	}
 	if out.Screen != ScreenQuiz || out.Feedback == "" {
 		t.Fatalf("view = %+v", out)
+	}
+	if !strings.Contains(out.Feedback, "➕ Добавлено в изучение") {
+		t.Fatalf("help feedback must note the word was added: %q", out.Feedback)
 	}
 	u, _ := repo.Get(ctx, 7)
 	if u.Words[cur].Status != StatusStudy {
