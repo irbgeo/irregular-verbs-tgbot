@@ -40,11 +40,11 @@ func TestFormOptions(t *testing.T) {
 	svc.rng = func(n int) int { return 0 } // deterministic shuffle
 	v, _ := svc.verb("be")
 	opts := svc.formOptions(v, KindPast, "gb")
-	// correct (was/were, both variants) + remaining forms (be, been) + 2 common mistakes (beed, are)
-	if len(opts) != 5 {
-		t.Fatalf("want 5 options, got %d: %v", len(opts), opts)
+	// correct split per variant (was, were) + remaining forms (be, been) + 2 common mistakes (beed, are)
+	if len(opts) != 6 {
+		t.Fatalf("want 6 options, got %d: %v", len(opts), opts)
 	}
-	for _, want := range []string{"was/were", "be", "been", "beed", "are"} {
+	for _, want := range []string{"was", "were", "be", "been", "beed", "are"} {
 		if !contains(opts, want) {
 			t.Fatalf("missing %q in %v", want, opts)
 		}

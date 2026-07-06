@@ -88,6 +88,20 @@ func formValue(v Verb, kind, variant string) string {
 	}
 }
 
+// formVariants returns each variant of a form as its own string (base has one;
+// past/participle may have several, e.g. was/were → ["was", "were"]). Choice
+// buttons are built from these, one button per variant.
+func formVariants(v Verb, kind, variant string) []string {
+	switch kind {
+	case KindBase:
+		return []string{v.Base}
+	case KindPast:
+		return v.Past[variant]
+	default: // KindParticiple
+		return v.Participle[variant]
+	}
+}
+
 // correctOption is the choice-button value for a form target. For a
 // multi-variant form it lists all variants (e.g. "was/were"), so both variants
 // are shown in the options and either is accepted.
@@ -106,14 +120,15 @@ func (s *Service) checkTarget(v Verb, kind, input, variant string) bool {
 	}
 }
 
-// formOptions returns the choice buttons for a form target, shuffled: the
-// correct form, the word's two other forms, and up to 2 of the word's own
-// common mistakes. Duplicates (case-insensitive) are dropped, so a verb whose
-// forms coincide — or whose mistakes repeat a form — yields fewer buttons.
+// formOptions returns the choice buttons for a form target, shuffled: every
+// variant of the correct form, every variant of the word's two other forms, and
+// up to 2 of the word's own common mistakes. Multi-variant forms (e.g.
+// was/were) contribute one button per variant. Duplicates (case-insensitive)
+// are dropped, so a verb whose forms coincide — or whose mistakes repeat a form
+// — yields fewer buttons.
 func (s *Service) formOptions(v Verb, kind, variant string) []string {
-	correct := correctOption(v, kind, variant)
-	opts := []string{correct}
-	seen := map[string]bool{norm(correct): true}
+	opts := []string{}
+	seen := map[string]bool{}
 	add := func(val string) {
 		n := norm(val)
 		if val == "" || seen[n] {
@@ -122,10 +137,17 @@ func (s *Service) formOptions(v Verb, kind, variant string) []string {
 		seen[n] = true
 		opts = append(opts, val)
 	}
-	// the word's remaining forms (the two kinds other than the asked one)
+	// the correct form, one button per variant
+	for _, f := range formVariants(v, kind, variant) {
+		add(f)
+	}
+	// the word's remaining forms (the two kinds other than the asked one),
+	// again one button per variant
 	for _, k := range []string{KindBase, KindPast, KindParticiple} {
 		if k != kind {
-			add(correctOption(v, k, variant))
+			for _, f := range formVariants(v, k, variant) {
+				add(f)
+			}
 		}
 	}
 	// up to 2 of the word's own common mistakes (skipping any that duplicate
@@ -334,6 +356,8 @@ func (s *Service) LearnChoose(ctx context.Context, userID int64, idx int) (View,
 		return View{}, nil
 	}
 	v, _ := s.verb(sess.Base)
-	ok := norm(sess.Options[idx]) == norm(correctOption(v, sess.TargetKind, u.Settings.Variant))
+	// the tapped option is correct if it matches any variant of the target form
+	// (multi-variant forms are split across several buttons).
+	ok := s.checkTarget(v, sess.TargetKind, sess.Options[idx], u.Settings.Variant)
 	return s.resolveLearn(ctx, u, ok, false)
 }
