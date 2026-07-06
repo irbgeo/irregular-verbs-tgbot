@@ -22,25 +22,11 @@ func anyEqual(input string, options []string) bool {
 	return false
 }
 
-// requiresAllVariants reports whether all variants of a form must be entered.
-// Only the verb "be" past (was/were) qualifies — they are grammatically
-// distinct; other multi-variant forms are spelling alternatives where any one
+// matchForm reports whether input correctly answers a form. For a multi-variant
+// form (e.g. was/were, burnt/burned) any single variant OR all of them together
 // is accepted.
-func requiresAllVariants(forms []string) bool {
-	if len(forms) != 2 {
-		return false
-	}
-	a, b := norm(forms[0]), norm(forms[1])
-	return (a == "was" && b == "were") || (a == "were" && b == "was")
-}
-
-// matchForm reports whether input correctly answers a form: was/were needs all
-// variants, any other form accepts a single valid variant.
 func matchForm(input string, forms []string) bool {
-	if requiresAllVariants(forms) {
-		return allFormsMatch(input, forms)
-	}
-	return anyEqual(input, forms)
+	return anyEqual(input, forms) || allFormsMatch(input, forms)
 }
 
 // allFormsMatch reports whether input lists exactly the set of options
@@ -111,24 +97,31 @@ func (s *Service) checkAllFormsOrdered(v Verb, input, variant string) bool {
 		i++ // optional infinitive marker
 	}
 	groups := [][]string{{v.Base}, v.Past[variant], v.Participle[variant]}
-	for _, g := range groups {
-		if len(g) == 0 {
-			return false
-		}
-		// was/were consumes both tokens; any other form consumes one.
-		if requiresAllVariants(g) {
-			if i+len(g) > len(toks) || !sameFormSet(toks[i:i+len(g)], g) {
-				return false
-			}
-			i += len(g)
-		} else {
-			if i >= len(toks) || !anyEqual(toks[i], g) {
-				return false
-			}
-			i++
-		}
+	return matchGroupsOrdered(groups, toks[i:])
+}
+
+// matchGroupsOrdered reports whether toks answers the ordered groups. Each
+// multi-variant group accepts either one variant (consumes one token) or all of
+// them together (consumes len(group) tokens). It backtracks so an ambiguous
+// token — e.g. a past variant that also spells the participle — is tried both
+// ways.
+func matchGroupsOrdered(groups [][]string, toks []string) bool {
+	if len(groups) == 0 {
+		return len(toks) == 0
 	}
-	return i == len(toks)
+	g := groups[0]
+	if len(g) == 0 {
+		return false
+	}
+	// one variant
+	if len(toks) >= 1 && anyEqual(toks[0], g) && matchGroupsOrdered(groups[1:], toks[1:]) {
+		return true
+	}
+	// all variants listed together
+	if len(g) > 1 && len(toks) >= len(g) && sameFormSet(toks[:len(g)], g) && matchGroupsOrdered(groups[1:], toks[len(g):]) {
+		return true
+	}
+	return false
 }
 
 // correctText is the human "correct answer" block for feedback: the three

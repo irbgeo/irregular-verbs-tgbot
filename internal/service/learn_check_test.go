@@ -8,7 +8,7 @@ func TestFormValueAndCorrectOption(t *testing.T) {
 	if got := formValue(v, KindPast, "gb"); got != "was/were" {
 		t.Fatalf("formValue past = %q", got)
 	}
-	if got := correctOption(v, KindPast, "gb"); got != "was" {
+	if got := correctOption(v, KindPast, "gb"); got != "was/were" {
 		t.Fatalf("correctOption past = %q", got)
 	}
 }
@@ -22,8 +22,9 @@ func TestCheckTarget(t *testing.T) {
 	}{
 		{KindBase, " Be ", "gb", true},
 		{KindBase, "go", "gb", false},
-		{KindPast, "was were", "gb", true}, // all forms required
-		{KindPast, "was", "gb", false},     // one form not enough
+		{KindPast, "was were", "gb", true}, // both variants together
+		{KindPast, "was", "gb", true},      // one variant is enough
+		{KindPast, "were", "gb", true},     // the other single variant
 		{KindPast, "wos", "gb", false},
 		{KindParticiple, "been", "us", true}, // single form
 	}
@@ -39,11 +40,11 @@ func TestFormOptions(t *testing.T) {
 	svc.rng = func(n int) int { return 0 } // deterministic shuffle
 	v, _ := svc.verb("be")
 	opts := svc.formOptions(v, KindPast, "gb")
-	// correct (was) + remaining forms (be, been) + 2 common mistakes (beed, are)
+	// correct (was/were, both variants) + remaining forms (be, been) + 2 common mistakes (beed, are)
 	if len(opts) != 5 {
 		t.Fatalf("want 5 options, got %d: %v", len(opts), opts)
 	}
-	for _, want := range []string{"was", "be", "been", "beed", "are"} {
+	for _, want := range []string{"was/were", "be", "been", "beed", "are"} {
 		if !contains(opts, want) {
 			t.Fatalf("missing %q in %v", want, opts)
 		}

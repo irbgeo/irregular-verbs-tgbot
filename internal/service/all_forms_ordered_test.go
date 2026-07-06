@@ -30,11 +30,13 @@ func TestCheckAllFormsOrdered(t *testing.T) {
 		{be, "be was were been", true},
 		{be, "be was/were been", true},
 		{be, "be were was been", true},           // within past, order-insensitive
-		{be, "be was been", false},               // past missing a variant
+		{be, "be was been", true},                // one variant of past is enough
 		{be, "be been was were", false},          // groups out of order
 		{burn, "burn burnt burnt", true},         // any one variant per position
 		{burn, "burn burned burned", true},       // the other variant
-		{burn, "burn burnt burned burnt", false}, // extra token (don't list both)
+		{burn, "burn burnt burned", true},        // different single variant per position
+		{burn, "burn burned burnt", true},        // reversed single variants per position
+		{burn, "burn burnt burned burnt", true},  // may also list both past variants
 		{burn, "burn nope burnt", false},         // wrong past
 	}
 	for _, c := range cases {

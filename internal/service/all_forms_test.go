@@ -37,13 +37,16 @@ func TestAllFormsMatch(t *testing.T) {
 	}
 }
 
-func TestCheckTargetPastRequiresAllForms(t *testing.T) {
+func TestCheckTargetPastAcceptsOneOrBoth(t *testing.T) {
 	svc, _ := newLearnSvc()
 	v, _ := svc.verb("be") // past gb = [was, were]
 	if !svc.checkTarget(v, KindPast, "were was", "gb") {
-		t.Error("'were was' should be correct for past target")
+		t.Error("'were was' (both) should be correct for past target")
 	}
-	if svc.checkTarget(v, KindPast, "was", "gb") {
-		t.Error("'was' alone should be incorrect for multi-form past target")
+	if !svc.checkTarget(v, KindPast, "was", "gb") {
+		t.Error("'was' alone should be accepted for a multi-variant past target")
+	}
+	if !svc.checkTarget(v, KindPast, "were", "gb") {
+		t.Error("'were' alone should be accepted for a multi-variant past target")
 	}
 }

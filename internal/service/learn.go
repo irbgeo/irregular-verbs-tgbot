@@ -88,22 +88,11 @@ func formValue(v Verb, kind, variant string) string {
 	}
 }
 
+// correctOption is the choice-button value for a form target. For a
+// multi-variant form it lists all variants (e.g. "was/were"), so both variants
+// are shown in the options and either is accepted.
 func correctOption(v Verb, kind, variant string) string {
-	switch kind {
-	case KindBase:
-		return v.Base
-	case KindPast:
-		return first(v.Past[variant])
-	default: // KindParticiple
-		return first(v.Participle[variant])
-	}
-}
-
-func first(xs []string) string {
-	if len(xs) == 0 {
-		return ""
-	}
-	return xs[0]
+	return formValue(v, kind, variant)
 }
 
 func (s *Service) checkTarget(v Verb, kind, input, variant string) bool {
