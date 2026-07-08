@@ -7,8 +7,8 @@ func TestLoadVerbsParsesAll(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadVerbs: %v", err)
 	}
-	if len(vs) != 113 {
-		t.Fatalf("got %d verbs, want 113", len(vs))
+	if len(vs) != 133 {
+		t.Fatalf("got %d verbs, want 133", len(vs))
 	}
 
 	var be Verb

@@ -10,7 +10,9 @@ func norm(s string) string { return strings.ToLower(strings.TrimSpace(s)) }
 // normBase normalizes a base-form answer, accepting an optional "to " prefix.
 func normBase(s string) string { return strings.TrimPrefix(norm(s), "to ") }
 
-func isFormSep(r rune) bool { return r == '/' || r == ',' || unicode.IsSpace(r) }
+// isFormSep treats any non-letter rune as a separator between forms, so users
+// may divide answers with spaces, "/", ",", "-", "|", "." or anything else.
+func isFormSep(r rune) bool { return !unicode.IsLetter(r) }
 
 func anyEqual(input string, options []string) bool {
 	in := norm(input)
@@ -56,7 +58,7 @@ func allFormsMatch(input string, options []string) bool {
 	return true
 }
 
-// tokensOf splits input on any separator (space, "/", ",", newline) and
+// tokensOf splits input on any non-letter separator and
 // normalizes each token.
 func tokensOf(s string) []string {
 	raw := strings.FieldsFunc(s, isFormSep)
