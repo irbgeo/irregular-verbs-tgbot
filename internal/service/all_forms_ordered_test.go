@@ -24,6 +24,7 @@ func TestCheckAllFormsOrdered(t *testing.T) {
 		{goVerb, "to go went gone", true},    // optional "to"
 		{goVerb, "GO  went / gone", true},    // mixed separators, case
 		{goVerb, "go-went-gone", true},       // hyphen separator
+		{goVerb, "go - went - gone", true},
 		{goVerb, "go|went|gone", true},       // pipe separator
 		{goVerb, "go.went.gone", true},       // dot separator
 		{goVerb, "go;went,gone", true},       // mixed non-letter separators
