@@ -12,6 +12,8 @@ services:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
+    networks:
+      - mongo
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
       interval: 10s
@@ -28,6 +30,15 @@ services:
       BOT_TOKEN: ${BOT_TOKEN:?set BOT_TOKEN in the environment or a .env file}
       MONGO_URI: mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongo:27017/?authSource=admin
       MONGO_DB: irregular_verbs
+    networks:
+      - mongo
 
 volumes:
   mongo-data:
+
+networks:
+  # Shared network created outside Compose (once, on the server):
+  #   docker network create mongo
+  # bot and mongo talk over it by service name; other projects can join it too.
+  mongo:
+    external: true
