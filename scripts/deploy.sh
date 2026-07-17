@@ -53,7 +53,7 @@ git fetch --quiet origin
 git checkout --quiet "$BRANCH"
 git pull --ff-only
 echo "--- ensure shared network ---"
-docker network inspect mongo >/dev/null 2>&1 || docker network create mongo
+docker network inspect geoirb_network >/dev/null 2>&1 || docker network create geoirb_network
 echo "--- rebuild bot ---"
 docker compose up -d --build bot
 echo "--- HEAD ---"

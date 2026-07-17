@@ -13,7 +13,7 @@ services:
     volumes:
       - mongo-data:/data/db
     networks:
-      - mongo
+      - geoirb_network
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
       interval: 10s
@@ -31,14 +31,14 @@ services:
       MONGO_URI: mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongo:27017/?authSource=admin
       MONGO_DB: irregular_verbs
     networks:
-      - mongo
+      - geoirb_network
 
 volumes:
   mongo-data:
 
 networks:
   # Shared network created outside Compose (once, on the server):
-  #   docker network create mongo
+  #   docker network create geoirb_network
   # bot and mongo talk over it by service name; other projects can join it too.
-  mongo:
+  geoirb_network:
     external: true
