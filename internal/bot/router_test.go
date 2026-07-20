@@ -6,8 +6,10 @@ import (
 	"time"
 
 	tgbot "github.com/irbgeo/go-tgbot"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	mocks "github.com/irbgeo/irregular-verbs-tgbot/internal/bot/mocks"
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/service"
 )
 
@@ -39,34 +41,55 @@ type sentMsg struct {
 	edit bool
 }
 
-type fakeSender struct {
+// senderLog captures what the router sent, so tests keep simple assertions
+// (.msgs/.answers/.last) while the Sender itself is a mockery MockSender.
+type senderLog struct {
 	msgs    []sentMsg
 	answers []string
 }
 
-func (f *fakeSender) Send(_ context.Context, _ int64, text string, _ *tgbot.InlineKeyboardMarkup) error {
-	f.msgs = append(f.msgs, sentMsg{text, false})
-	return nil
-}
-func (f *fakeSender) Edit(_ context.Context, _, _ int64, text string, _ *tgbot.InlineKeyboardMarkup) error {
-	f.msgs = append(f.msgs, sentMsg{text, true})
-	return nil
-}
-func (f *fakeSender) Answer(_ context.Context, _ string) error {
-	f.answers = append(f.answers, "")
-	return nil
-}
-func (f *fakeSender) AnswerText(_ context.Context, _, text string) error {
-	f.answers = append(f.answers, text)
-	return nil
-}
-func (f *fakeSender) last() sentMsg { return f.msgs[len(f.msgs)-1] }
+func (l *senderLog) last() sentMsg { return l.msgs[len(l.msgs)-1] }
 
-func newRouter() (*Router, *fakeUserRepo, *fakeSender) {
+// newSender returns a MockSender that records every Send/Edit/Answer/AnswerText
+// into the returned log. All calls are optional (Maybe).
+func newSender(t *testing.T) (*mocks.MockSender, *senderLog) {
+	log := &senderLog{}
+	s := mocks.NewMockSender(t)
+	s.EXPECT().Send(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		RunAndReturn(func(_ context.Context, _ int64, text string, _ *tgbot.InlineKeyboardMarkup) error {
+			log.msgs = append(log.msgs, sentMsg{text, false})
+			return nil
+		}).Maybe()
+	s.EXPECT().Edit(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		RunAndReturn(func(_ context.Context, _, _ int64, text string, _ *tgbot.InlineKeyboardMarkup) error {
+			log.msgs = append(log.msgs, sentMsg{text, true})
+			return nil
+		}).Maybe()
+	s.EXPECT().Answer(mock.Anything, mock.Anything).
+		RunAndReturn(func(_ context.Context, _ string) error {
+			log.answers = append(log.answers, "")
+			return nil
+		}).Maybe()
+	s.EXPECT().AnswerText(mock.Anything, mock.Anything, mock.Anything).
+		RunAndReturn(func(_ context.Context, _, text string) error {
+			log.answers = append(log.answers, text)
+			return nil
+		}).Maybe()
+	return s, log
+}
+
+// mockSender returns just the MockSender, for tests that don't assert on what
+// was sent.
+func mockSender(t *testing.T) *mocks.MockSender {
+	s, _ := newSender(t)
+	return s
+}
+
+func newRouter(t *testing.T) (*Router, *fakeUserRepo, *senderLog) {
 	repo := newFakeUserRepo()
 	svc := service.New(repo, nil)
-	sender := &fakeSender{}
-	return New(svc, sender), repo, sender
+	sender, log := newSender(t)
+	return New(svc, sender), repo, log
 }
 
 func startUpdate(id int64) tgbot.Update {
@@ -78,7 +101,7 @@ func cbUpdate(id int64, data string) tgbot.Update {
 
 func TestRouterStartAndVariant(t *testing.T) {
 	ctx := context.Background()
-	r, repo, sender := newRouter()
+	r, repo, sender := newRouter(t)
 	_ = r.Handle(ctx, startUpdate(7))
 	require.Equal(t, "Выберите вариант форм:", sender.last().text)
 	_ = r.Handle(ctx, cbUpdate(7, "variant:gb"))

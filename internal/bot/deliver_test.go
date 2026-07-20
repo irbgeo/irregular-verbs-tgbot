@@ -10,7 +10,7 @@ import (
 )
 
 func TestDeliverSendsRenderedView(t *testing.T) {
-	r, _, sender := newRouter()
+	r, _, sender := newRouter(t)
 	v := service.View{Screen: service.ScreenQuiz, Quiz: &service.QuizView{
 		Mode: "learn", Format: "input", Base: "go",
 		AnchorKind: "past", AnchorValue: "went", TargetKind: "base",
@@ -22,7 +22,7 @@ func TestDeliverSendsRenderedView(t *testing.T) {
 }
 
 func TestDeliverEmptyViewSendsNothing(t *testing.T) {
-	r, _, sender := newRouter()
+	r, _, sender := newRouter(t)
 	require.NoError(t, r.Deliver(context.Background(), 42, &service.View{}))
 	require.Empty(t, sender.msgs, "empty view should send nothing, got %+v", sender.msgs)
 }

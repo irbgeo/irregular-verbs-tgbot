@@ -13,8 +13,8 @@ func TestRouterMenuCommand(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeUserRepo()
 	svc := service.New(repo, catalog())
-	sender := &fakeSender{}
-	r := New(svc, sender)
+	senderMock, sender := newSender(t)
+	r := New(svc, senderMock)
 	_ = repo.Save(ctx, &service.User{ID: 7, Settings: service.Settings{Variant: "gb"},
 		State: service.State{Screen: string(service.ScreenQuiz)}})
 
@@ -28,8 +28,8 @@ func TestRouterHelpCommand(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeUserRepo()
 	svc := service.New(repo, catalog())
-	sender := &fakeSender{}
-	r := New(svc, sender)
+	senderMock, sender := newSender(t)
+	r := New(svc, senderMock)
 
 	require.NoError(t, r.Handle(ctx, textUpdate(7, "/help")))
 	require.Contains(t, sender.last().text, "docs/USER_GUIDE.md", "help text = %q", sender.last().text)

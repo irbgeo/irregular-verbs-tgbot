@@ -25,8 +25,8 @@ func TestRouterFullTestFlow(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeUserRepo()
 	svc := service.New(repo, catalog())
-	sender := &fakeSender{}
-	r := New(svc, sender)
+	senderMock, sender := newSender(t)
+	r := New(svc, senderMock)
 
 	_ = repo.Save(ctx, &service.User{ID: 7, Settings: service.Settings{Variant: "gb"}, State: service.State{Screen: string(service.ScreenMainMenu)}})
 
@@ -49,8 +49,8 @@ func TestRouterHelpThenMenu(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeUserRepo()
 	svc := service.New(repo, catalog())
-	sender := &fakeSender{}
-	r := New(svc, sender)
+	senderMock, _ := newSender(t)
+	r := New(svc, senderMock)
 	_ = repo.Save(ctx, &service.User{ID: 7, Settings: service.Settings{Variant: "gb"}, State: service.State{Screen: string(service.ScreenMainMenu)}})
 
 	_ = r.Handle(ctx, cbUpdate(7, "menu:test"))

@@ -54,7 +54,9 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	router := bot.New(svc, bot.TelegramSender{Client: client})
+
+	tgSender := bot.NewTelegramSender(client)
+	router := bot.New(svc, tgSender)
 
 	worker.New(svc, router).Start(ctx)
 

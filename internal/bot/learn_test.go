@@ -58,8 +58,8 @@ func TestRouterMenuLearnStartsSession(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeUserRepo()
 	svc := service.New(repo, learnBotCatalog())
-	sender := &fakeSender{}
-	r := New(svc, sender)
+	senderMock, _ := newSender(t)
+	r := New(svc, senderMock)
 	_ = repo.Save(ctx, &service.User{ID: 7, Settings: service.Settings{Variant: "gb"},
 		State: service.State{Screen: string(service.ScreenMainMenu)},
 		Words: map[string]service.WordProgress{"go": {Status: service.StatusStudy, Mode: 2}}})
@@ -75,8 +75,8 @@ func TestRouterMenuLearnEmpty(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeUserRepo()
 	svc := service.New(repo, learnBotCatalog())
-	sender := &fakeSender{}
-	r := New(svc, sender)
+	senderMock, sender := newSender(t)
+	r := New(svc, senderMock)
 	_ = repo.Save(ctx, &service.User{ID: 7, Settings: service.Settings{Variant: "gb"},
 		State: service.State{Screen: string(service.ScreenMainMenu)}})
 

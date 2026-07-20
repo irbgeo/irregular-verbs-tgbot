@@ -83,7 +83,7 @@ func TestRouterWordListPickerFlow(t *testing.T) {
 	repo := newFakeUserRepo()
 	svc := service.New(repo, catalog())
 	_ = repo.Save(ctx, &service.User{ID: 7, Settings: service.Settings{Variant: "gb"}, State: service.State{Screen: string(service.ScreenMainMenu)}})
-	r := New(svc, &fakeSender{})
+	r := New(svc, mockSender(t))
 
 	_ = r.Handle(ctx, cbUpdate(7, "menu:list")) // -> picker
 	u, _ := repo.Get(ctx, 7)
@@ -149,7 +149,7 @@ func TestRouterMyWordsToggleCommit(t *testing.T) {
 		State: service.State{Screen: string(service.ScreenMainMenu)},
 		Words: map[string]service.WordProgress{"go": {Status: service.StatusStudy}},
 	})
-	r := New(svc, &fakeSender{})
+	r := New(svc, mockSender(t))
 
 	require.NoError(t, r.Handle(ctx, cbUpdate(7, "menu:mywords")))
 	require.NoError(t, r.Handle(ctx, cbUpdate(7, "tog:go"))) // study -> learned (draft)

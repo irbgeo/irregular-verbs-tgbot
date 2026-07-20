@@ -39,7 +39,7 @@ func TestRouterSearchFlow(t *testing.T) {
 	repo := newFakeUserRepo()
 	svc := service.New(repo, catalog())
 	_ = repo.Save(ctx, &service.User{ID: 7, Settings: service.Settings{Variant: "gb"}, State: service.State{Screen: string(service.ScreenMainMenu)}})
-	r := New(svc, &fakeSender{})
+	r := New(svc, mockSender(t))
 
 	require.NoError(t, r.Handle(ctx, cbUpdate(7, "menu:search"))) // -> prompt
 	u, _ := repo.Get(ctx, 7)
