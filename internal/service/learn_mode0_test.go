@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 // A word added to study via lists has mode 0; «Учить» must start it at mode 1
@@ -16,16 +18,11 @@ func TestLearnStartsMode0WordAtMode1(t *testing.T) {
 	}))
 
 	v, err := svc.StartLearn(ctx, 7)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if v.Quiz == nil || v.Quiz.Format != FormatChoice {
-		t.Fatalf("mode0 study word should be choice (mode 1), got %+v", v.Quiz)
-	}
+	require.NoError(t, err)
+	require.NotNil(t, v.Quiz)
+	require.Equal(t, FormatChoice, v.Quiz.Format, "mode0 study word should be choice (mode 1)")
 	u, _ := repo.Get(ctx, 7)
-	if u.Words["go"].Mode != 1 {
-		t.Fatalf("mode should be initialized to 1, got %+v", u.Words["go"])
-	}
+	require.Equal(t, 1, u.Words["go"].Mode, "mode should be initialized to 1")
 
 	// A correct choice advances the box via the mode-1 ladder branch.
 	sess := u.State.Session
@@ -37,14 +34,9 @@ func TestLearnStartsMode0WordAtMode1(t *testing.T) {
 			idx = i
 		}
 	}
-	if idx < 0 {
-		t.Fatalf("correct option missing from %v", sess.Options)
-	}
-	if _, err := svc.LearnChoose(ctx, 7, idx); err != nil {
-		t.Fatal(err)
-	}
+	require.GreaterOrEqual(t, idx, 0, "correct option missing")
+	_, err = svc.LearnChoose(ctx, 7, idx)
+	require.NoError(t, err)
 	u, _ = repo.Get(ctx, 7)
-	if u.Words["go"].Box != 1 {
-		t.Fatalf("mode-1 success should bump box to 1, got %+v", u.Words["go"])
-	}
+	require.Equal(t, 1, u.Words["go"].Box, "mode-1 success should bump box to 1")
 }

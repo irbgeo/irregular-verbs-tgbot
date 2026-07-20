@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func navSvc(t *testing.T) (*Service, *fakeUserRepo) {
@@ -22,32 +24,25 @@ func TestOpenMyWordsInitsState(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := navSvc(t)
 	v, err := svc.OpenMyWords(ctx, 7)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if v.Screen != ScreenMyWords || v.List == nil {
-		t.Fatalf("view = %+v", v)
-	}
+	require.NoError(t, err)
+	require.Equal(t, ScreenMyWords, v.Screen)
+	require.NotNil(t, v.List)
 	u, _ := repo.Get(ctx, 7)
-	if u.State.List == nil || u.State.List.Kind != KindMyWords || u.State.List.Draft == nil {
-		t.Fatalf("state = %+v", u.State.List)
-	}
+	require.NotNil(t, u.State.List)
+	require.Equal(t, KindMyWords, u.State.List.Kind)
+	require.NotNil(t, u.State.List.Draft)
 }
 
 func TestOpenWordListShowsPicker(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := navSvc(t)
 	v, err := svc.OpenWordList(ctx, 7)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if v.Screen != ScreenWordListLevels || len(v.Levels) != len(Levels) {
-		t.Fatalf("view = %+v", v)
-	}
+	require.NoError(t, err)
+	require.Equal(t, ScreenWordListLevels, v.Screen)
+	require.Len(t, v.Levels, len(Levels))
 	u, _ := repo.Get(ctx, 7)
-	if u.State.Screen != string(ScreenWordListLevels) || u.State.List != nil {
-		t.Fatalf("state = %+v", u.State)
-	}
+	require.Equal(t, string(ScreenWordListLevels), u.State.Screen)
+	require.Nil(t, u.State.List)
 }
 
 func TestChooseLevelOpensPool(t *testing.T) {
@@ -55,20 +50,15 @@ func TestChooseLevelOpensPool(t *testing.T) {
 	svc, repo := navSvc(t)
 	_, _ = svc.OpenWordList(ctx, 7)
 	v, err := svc.ChooseLevel(ctx, 7, "elementary")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if v.Screen != ScreenWordList || v.List == nil || v.List.Kind != KindWordList {
-		t.Fatalf("view = %+v", v)
-	}
+	require.NoError(t, err)
+	require.Equal(t, ScreenWordList, v.Screen)
+	require.NotNil(t, v.List)
+	require.Equal(t, KindWordList, v.List.Kind)
 	// elementary pool = be, go (2 words), alpha
-	if len(v.List.Items) != 2 || v.List.Items[0].Base != "be" {
-		t.Fatalf("items = %+v", v.List.Items)
-	}
+	require.Len(t, v.List.Items, 2)
+	require.Equal(t, "be", v.List.Items[0].Base)
 	u, _ := repo.Get(ctx, 7)
-	if u.State.List.Level != "elementary" {
-		t.Fatalf("level = %q", u.State.List.Level)
-	}
+	require.Equal(t, "elementary", u.State.List.Level)
 }
 
 func TestChooseLevelAll(t *testing.T) {
@@ -76,13 +66,10 @@ func TestChooseLevelAll(t *testing.T) {
 	svc, repo := navSvc(t)
 	_, _ = svc.OpenWordList(ctx, 7)
 	v, _ := svc.ChooseLevel(ctx, 7, "all")
-	if v.List == nil || len(v.List.Items) != 3 { // be, go, build
-		t.Fatalf("all pool items = %+v", v.List)
-	}
+	require.NotNil(t, v.List)
+	require.Len(t, v.List.Items, 3) // be, go, build
 	u, _ := repo.Get(ctx, 7)
-	if u.State.List.Level != "all" {
-		t.Fatalf("level = %q", u.State.List.Level)
-	}
+	require.Equal(t, "all", u.State.List.Level)
 }
 
 func TestListBackSteps(t *testing.T) {
@@ -92,24 +79,16 @@ func TestListBackSteps(t *testing.T) {
 	_, _ = svc.OpenWordList(ctx, 7)
 	_, _ = svc.ChooseLevel(ctx, 7, "elementary")
 	v, _ := svc.ListBack(ctx, 7)
-	if v.Screen != ScreenWordListLevels {
-		t.Fatalf("back from list = %s", v.Screen)
-	}
+	require.Equal(t, ScreenWordListLevels, v.Screen)
 	// picker -> menu
 	v, _ = svc.ListBack(ctx, 7)
-	if v.Screen != ScreenMainMenu {
-		t.Fatalf("back from picker = %s", v.Screen)
-	}
+	require.Equal(t, ScreenMainMenu, v.Screen)
 	// my_words -> menu
 	_, _ = svc.OpenMyWords(ctx, 7)
 	v, _ = svc.ListBack(ctx, 7)
-	if v.Screen != ScreenMainMenu {
-		t.Fatalf("back from my_words = %s", v.Screen)
-	}
+	require.Equal(t, ScreenMainMenu, v.Screen)
 	u, _ := repo.Get(ctx, 7)
-	if u.State.List != nil {
-		t.Fatal("back must clear list state")
-	}
+	require.Nil(t, u.State.List, "back must clear list state")
 }
 
 func TestListPageClamps(t *testing.T) {
@@ -118,20 +97,15 @@ func TestListPageClamps(t *testing.T) {
 	_, _ = svc.OpenWordList(ctx, 7)
 	_, _ = svc.ChooseLevel(ctx, 7, "all")
 	v, _ := svc.ListPage(ctx, 7, 99) // only 1 page (3 words)
-	if v.List.Page != 0 {
-		t.Fatalf("page = %d, want clamped 0", v.List.Page)
-	}
+	require.Zero(t, v.List.Page, "want clamped 0")
 	u, _ := repo.Get(ctx, 7)
-	if u.State.List.Page != 0 {
-		t.Fatalf("persisted page = %d", u.State.List.Page)
-	}
+	require.Zero(t, u.State.List.Page)
 }
 
 func TestListNavNoStateIgnored(t *testing.T) {
 	ctx := context.Background()
 	svc, _ := navSvc(t)
 	// no OpenMyWords/OpenWordList first -> List is nil
-	if v, _ := svc.ListPage(ctx, 7, 1); v.Screen != ScreenNone {
-		t.Fatalf("expected empty view, got %+v", v)
-	}
+	v, _ := svc.ListPage(ctx, 7, 1)
+	require.Equal(t, ScreenNone, v.Screen, "expected empty view")
 }

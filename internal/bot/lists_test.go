@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/service"
 )
 
@@ -18,16 +20,10 @@ func TestRenderMyWordsButtons(t *testing.T) {
 		Pages: 1,
 	}}
 	text, k := render(v)
-	if !strings.HasPrefix(text, "📋 Мои слова") {
-		t.Fatalf("text = %q", text)
-	}
-	if k.InlineKeyboard[0][0].CallbackData != "tog:be" {
-		t.Fatalf("first word = %+v", k.InlineKeyboard[0][0])
-	}
+	require.True(t, strings.HasPrefix(text, "📋 Мои слова"), "text = %q", text)
+	require.Equal(t, "tog:be", k.InlineKeyboard[0][0].CallbackData)
 	last := k.InlineKeyboard[len(k.InlineKeyboard)-1]
-	if last[0].CallbackData != "list:back" {
-		t.Fatalf("control row first = %+v", last)
-	}
+	require.Equal(t, "list:back", last[0].CallbackData)
 }
 
 func TestRenderWordListHeaderAndNav(t *testing.T) {
@@ -37,20 +33,13 @@ func TestRenderWordListHeaderAndNav(t *testing.T) {
 		Items: []service.ListItem{{Base: "be", Status: service.StatusNew}},
 	}}
 	text, k := render(v)
-	if !strings.Contains(text, "Elementary") || !strings.Contains(text, "стр. 1/2") {
-		t.Fatalf("text = %q", text)
-	}
-	if k.InlineKeyboard[0][0].CallbackData != "tog:be" {
-		t.Fatalf("word row = %+v", k.InlineKeyboard[0])
-	}
+	require.Contains(t, text, "Elementary")
+	require.Contains(t, text, "стр. 1/2")
+	require.Equal(t, "tog:be", k.InlineKeyboard[0][0].CallbackData)
 	// control row: 🔙 ➡️ (no dirty, has next)
 	last := k.InlineKeyboard[len(k.InlineKeyboard)-1]
-	if last[0].CallbackData != "list:back" {
-		t.Fatalf("control row first = %+v", last)
-	}
-	if last[len(last)-1].CallbackData != "lp:1" {
-		t.Fatalf("control row last = %+v", last)
-	}
+	require.Equal(t, "list:back", last[0].CallbackData)
+	require.Equal(t, "lp:1", last[len(last)-1].CallbackData)
 }
 
 func TestRenderMyWordsControlRow(t *testing.T) {
@@ -62,17 +51,17 @@ func TestRenderMyWordsControlRow(t *testing.T) {
 	_, k := render(v)
 	last := k.InlineKeyboard[len(k.InlineKeyboard)-1]
 	// dirty, single page: 🔙 ❌ ✅
-	if len(last) != 3 || last[0].CallbackData != "list:back" || last[1].CallbackData != "list:cancel" || last[2].CallbackData != "list:ok" {
-		t.Fatalf("control row = %+v", last)
-	}
+	require.Len(t, last, 3)
+	require.Equal(t, "list:back", last[0].CallbackData)
+	require.Equal(t, "list:cancel", last[1].CallbackData)
+	require.Equal(t, "list:ok", last[2].CallbackData)
 }
 
 func TestRenderWordListLevels(t *testing.T) {
 	v := service.View{Screen: service.ScreenWordListLevels, Levels: service.Levels}
 	text, k := render(v)
-	if text == "" || k.InlineKeyboard[0][0].CallbackData != "wl:elementary" {
-		t.Fatalf("levels = %+v", k.InlineKeyboard)
-	}
+	require.NotEmpty(t, text)
+	require.Equal(t, "wl:elementary", k.InlineKeyboard[0][0].CallbackData)
 	// has «Все слова» and back
 	var hasAll, hasBack bool
 	for _, row := range k.InlineKeyboard {
@@ -85,9 +74,8 @@ func TestRenderWordListLevels(t *testing.T) {
 			}
 		}
 	}
-	if !hasAll || !hasBack {
-		t.Fatalf("missing all/back: %+v", k.InlineKeyboard)
-	}
+	require.True(t, hasAll, "missing all")
+	require.True(t, hasBack, "missing back")
 }
 
 func TestRouterWordListPickerFlow(t *testing.T) {
@@ -99,19 +87,15 @@ func TestRouterWordListPickerFlow(t *testing.T) {
 
 	_ = r.Handle(ctx, cbUpdate(7, "menu:list")) // -> picker
 	u, _ := repo.Get(ctx, 7)
-	if u.State.Screen != string(service.ScreenWordListLevels) {
-		t.Fatalf("screen = %s", u.State.Screen)
-	}
+	require.Equal(t, string(service.ScreenWordListLevels), u.State.Screen)
 	_ = r.Handle(ctx, cbUpdate(7, "wl:elementary")) // -> list
 	u, _ = repo.Get(ctx, 7)
-	if u.State.List == nil || u.State.List.Level != "elementary" {
-		t.Fatalf("list = %+v", u.State.List)
-	}
+	require.NotNil(t, u.State.List)
+	require.Equal(t, "elementary", u.State.List.Level)
 	_ = r.Handle(ctx, cbUpdate(7, "list:back")) // -> picker
 	u, _ = repo.Get(ctx, 7)
-	if u.State.Screen != string(service.ScreenWordListLevels) || u.State.List != nil {
-		t.Fatalf("after back: %+v", u.State)
-	}
+	require.Equal(t, string(service.ScreenWordListLevels), u.State.Screen)
+	require.Nil(t, u.State.List)
 }
 
 func TestWordButtonShowsThreeForms(t *testing.T) {
@@ -121,9 +105,7 @@ func TestWordButtonShowsThreeForms(t *testing.T) {
 	}}
 	_, k := render(v)
 	label := k.InlineKeyboard[0][0].Text
-	if label != "📘 be - was/were - been" {
-		t.Fatalf("word label = %q", label)
-	}
+	require.Equal(t, "📘 be - was/were - been", label)
 }
 
 func TestListSelectedShowsInfoBlock(t *testing.T) {
@@ -135,9 +117,7 @@ func TestListSelectedShowsInfoBlock(t *testing.T) {
 	}}
 	text, _ := render(v)
 	want := "📋 Мои слова (стр. 1/1)\n\nbe - was/were - been\nбыть, являться"
-	if text != want {
-		t.Fatalf("text = %q, want %q", text, want)
-	}
+	require.Equal(t, want, text)
 }
 
 func TestListNoSelectionNoInfoBlock(t *testing.T) {
@@ -146,9 +126,7 @@ func TestListNoSelectionNoInfoBlock(t *testing.T) {
 		Items: []service.ListItem{{Base: "be", Status: service.StatusNew, Past: "was/were", Participle: "been", Translation: "быть"}},
 	}}
 	text, _ := render(v)
-	if want := "📚 Список слов — Elementary (стр. 1/1)"; text != want {
-		t.Fatalf("text = %q, want %q", text, want)
-	}
+	require.Equal(t, "📚 Список слов — Elementary (стр. 1/1)", text)
 }
 
 func TestBackEmojiIsReturnArrow(t *testing.T) {
@@ -158,9 +136,8 @@ func TestBackEmojiIsReturnArrow(t *testing.T) {
 	}}
 	_, k := render(v)
 	last := k.InlineKeyboard[len(k.InlineKeyboard)-1]
-	if last[0].Text != "↩️" || last[0].CallbackData != "list:back" {
-		t.Fatalf("back button = %+v", last[0])
-	}
+	require.Equal(t, "↩️", last[0].Text)
+	require.Equal(t, "list:back", last[0].CallbackData)
 }
 
 func TestRouterMyWordsToggleCommit(t *testing.T) {
@@ -174,25 +151,14 @@ func TestRouterMyWordsToggleCommit(t *testing.T) {
 	})
 	r := New(svc, &fakeSender{})
 
-	if err := r.Handle(ctx, cbUpdate(7, "menu:mywords")); err != nil {
-		t.Fatal(err)
-	}
-	if err := r.Handle(ctx, cbUpdate(7, "tog:go")); err != nil { // study -> learned (draft)
-		t.Fatal(err)
-	}
-	if err := r.Handle(ctx, cbUpdate(7, "tog:go")); err != nil { // learned -> skipped (draft)
-		t.Fatal(err)
-	}
+	require.NoError(t, r.Handle(ctx, cbUpdate(7, "menu:mywords")))
+	require.NoError(t, r.Handle(ctx, cbUpdate(7, "tog:go"))) // study -> learned (draft)
+	require.NoError(t, r.Handle(ctx, cbUpdate(7, "tog:go"))) // learned -> skipped (draft)
 	u, _ := repo.Get(ctx, 7)
-	if u.Words["go"].Status != service.StatusStudy {
-		t.Fatal("must not change before commit")
-	}
+	require.Equal(t, service.StatusStudy, u.Words["go"].Status, "must not change before commit")
 	_ = r.Handle(ctx, cbUpdate(7, "list:ok"))
 	u, _ = repo.Get(ctx, 7)
-	if u.Words["go"].Status != service.StatusSkipped {
-		t.Fatalf("after commit go = %+v", u.Words["go"])
-	}
-	if u.State.Screen != string(service.ScreenMyWords) || u.State.List == nil {
-		t.Fatalf("commit should stay on my_words; state=%+v", u.State)
-	}
+	require.Equal(t, service.StatusSkipped, u.Words["go"].Status)
+	require.Equal(t, string(service.ScreenMyWords), u.State.Screen)
+	require.NotNil(t, u.State.List)
 }

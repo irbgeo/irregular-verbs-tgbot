@@ -3,6 +3,8 @@ package service
 import (
 	"sort"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func testCatalog() []Verb {
@@ -16,12 +18,11 @@ func testCatalog() []Verb {
 func TestCatalogByBaseAndLevel(t *testing.T) {
 	s := New(nil, testCatalog())
 
-	if v, ok := s.verb("be"); !ok || v.Level != "elementary" {
-		t.Fatalf("verb(be) = %+v ok=%v", v, ok)
-	}
-	if _, ok := s.verb("nope"); ok {
-		t.Fatal("verb(nope) should be missing")
-	}
+	v, ok := s.verb("be")
+	require.True(t, ok)
+	require.Equal(t, "elementary", v.Level)
+	_, ok = s.verb("nope")
+	require.False(t, ok, "verb(nope) should be missing")
 
 	el := s.levelWords("elementary")
 	got := []string{}
@@ -29,7 +30,6 @@ func TestCatalogByBaseAndLevel(t *testing.T) {
 		got = append(got, v.Base)
 	}
 	want := []string{"be", "go"} // sorted by base
-	if !sort.StringsAreSorted(got) || len(got) != 2 || got[0] != want[0] || got[1] != want[1] {
-		t.Fatalf("levelWords(elementary) = %v, want %v", got, want)
-	}
+	require.True(t, sort.StringsAreSorted(got), "levelWords(elementary) = %v", got)
+	require.Equal(t, want, got)
 }

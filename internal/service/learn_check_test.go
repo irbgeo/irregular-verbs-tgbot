@@ -1,16 +1,16 @@
 package service
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
 
 func TestFormValueAndCorrectOption(t *testing.T) {
 	svc, _ := newLearnSvc()
 	v, _ := svc.verb("be")
-	if got := formValue(v, KindPast, "gb"); got != "was/were" {
-		t.Fatalf("formValue past = %q", got)
-	}
-	if got := correctOption(v, KindPast, "gb"); got != "was/were" {
-		t.Fatalf("correctOption past = %q", got)
-	}
+	require.Equal(t, "was/were", formValue(v, KindPast, "gb"))
+	require.Equal(t, "was/were", correctOption(v, KindPast, "gb"))
 }
 
 func TestCheckTarget(t *testing.T) {
@@ -29,9 +29,8 @@ func TestCheckTarget(t *testing.T) {
 		{KindParticiple, "been", "us", true}, // single form
 	}
 	for _, c := range cases {
-		if got := svc.checkTarget(v, c.kind, c.input, c.variant); got != c.want {
-			t.Errorf("checkTarget(%s,%q) = %v, want %v", c.kind, c.input, got, c.want)
-		}
+		got := svc.checkTarget(v, c.kind, c.input, c.variant)
+		require.Equal(t, c.want, got, "checkTarget(%s,%q)", c.kind, c.input)
 	}
 }
 
@@ -41,17 +40,11 @@ func TestFormOptions(t *testing.T) {
 	v, _ := svc.verb("be")
 	opts := svc.formOptions(v, KindPast, "gb")
 	// correct split per variant (was, were) + remaining forms (be, been) + 2 common mistakes (beed, are)
-	if len(opts) != 6 {
-		t.Fatalf("want 6 options, got %d: %v", len(opts), opts)
-	}
+	require.Len(t, opts, 6)
 	for _, want := range []string{"was", "were", "be", "been", "beed", "are"} {
-		if !contains(opts, want) {
-			t.Fatalf("missing %q in %v", want, opts)
-		}
+		require.True(t, contains(opts, want), "missing %q in %v", want, opts)
 	}
-	if !allDistinct(opts) {
-		t.Fatalf("options not distinct: %v", opts)
-	}
+	require.True(t, allDistinct(opts), "options not distinct: %v", opts)
 }
 
 func TestFormOptionsDedupsFormsAndMistakes(t *testing.T) {
@@ -61,17 +54,11 @@ func TestFormOptionsDedupsFormsAndMistakes(t *testing.T) {
 	// "done" repeats the participle form, so it is dropped → 4 options.
 	v, _ := svc.verb("do")
 	opts := svc.formOptions(v, KindPast, "gb")
-	if len(opts) != 4 {
-		t.Fatalf("want 4 options (done deduped), got %d: %v", len(opts), opts)
-	}
+	require.Len(t, opts, 4)
 	for _, want := range []string{"did", "do", "done", "doed"} {
-		if !contains(opts, want) {
-			t.Fatalf("missing %q in %v", want, opts)
-		}
+		require.True(t, contains(opts, want), "missing %q in %v", want, opts)
 	}
-	if !allDistinct(opts) {
-		t.Fatalf("options not distinct: %v", opts)
-	}
+	require.True(t, allDistinct(opts), "options not distinct: %v", opts)
 }
 
 func contains(xs []string, x string) bool {

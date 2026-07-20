@@ -1,6 +1,10 @@
 package service
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
 
 func TestAllFormsMatch(t *testing.T) {
 	opts := []string{"was", "were"}
@@ -21,32 +25,19 @@ func TestAllFormsMatch(t *testing.T) {
 		{"", false},
 	}
 	for _, c := range cases {
-		if got := allFormsMatch(c.in, opts); got != c.want {
-			t.Errorf("allFormsMatch(%q) = %v, want %v", c.in, got, c.want)
-		}
+		got := allFormsMatch(c.in, opts)
+		require.Equal(t, c.want, got, "allFormsMatch(%q)", c.in)
 	}
 	// single-form list: one token, exact
-	if !allFormsMatch("went", []string{"went"}) {
-		t.Error("single form 'went' should match")
-	}
-	if allFormsMatch("go", []string{"went"}) {
-		t.Error("'go' should not match [went]")
-	}
-	if allFormsMatch("anything", nil) {
-		t.Error("empty options must not match")
-	}
+	require.True(t, allFormsMatch("went", []string{"went"}), "single form 'went' should match")
+	require.False(t, allFormsMatch("go", []string{"went"}), "'go' should not match [went]")
+	require.False(t, allFormsMatch("anything", nil), "empty options must not match")
 }
 
 func TestCheckTargetPastAcceptsOneOrBoth(t *testing.T) {
 	svc, _ := newLearnSvc()
 	v, _ := svc.verb("be") // past gb = [was, were]
-	if !svc.checkTarget(v, KindPast, "were was", "gb") {
-		t.Error("'were was' (both) should be correct for past target")
-	}
-	if !svc.checkTarget(v, KindPast, "was", "gb") {
-		t.Error("'was' alone should be accepted for a multi-variant past target")
-	}
-	if !svc.checkTarget(v, KindPast, "were", "gb") {
-		t.Error("'were' alone should be accepted for a multi-variant past target")
-	}
+	require.True(t, svc.checkTarget(v, KindPast, "were was", "gb"), "'were was' (both) should be correct for past target")
+	require.True(t, svc.checkTarget(v, KindPast, "was", "gb"), "'was' alone should be accepted for a multi-variant past target")
+	require.True(t, svc.checkTarget(v, KindPast, "were", "gb"), "'were' alone should be accepted for a multi-variant past target")
 }

@@ -2,21 +2,18 @@ package bot
 
 import (
 	"context"
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/service"
 )
 
 func TestRenderSearchPrompt(t *testing.T) {
 	text, k := render(service.View{Screen: service.ScreenSearch}) // nil List -> prompt
-	if !strings.Contains(text, "Введите слово") {
-		t.Fatalf("prompt text = %q", text)
-	}
+	require.Contains(t, text, "Введите слово")
 	last := k.InlineKeyboard[len(k.InlineKeyboard)-1]
-	if last[0].CallbackData != "list:back" {
-		t.Fatalf("prompt back button = %+v", last[0])
-	}
+	require.Equal(t, "list:back", last[0].CallbackData)
 }
 
 func TestRenderSearchResults(t *testing.T) {
@@ -25,12 +22,8 @@ func TestRenderSearchResults(t *testing.T) {
 		Items: []service.ListItem{{Base: "go", Status: service.StatusNew, Past: "went", Participle: "gone"}},
 	}}
 	text, k := render(v)
-	if !strings.Contains(text, "🔎 Поиск") {
-		t.Fatalf("results text = %q", text)
-	}
-	if k.InlineKeyboard[0][0].CallbackData != "tog:go" {
-		t.Fatalf("first row = %+v", k.InlineKeyboard[0][0])
-	}
+	require.Contains(t, text, "🔎 Поиск")
+	require.Equal(t, "tog:go", k.InlineKeyboard[0][0].CallbackData)
 }
 
 func TestRenderSearchEmpty(t *testing.T) {
@@ -38,9 +31,7 @@ func TestRenderSearchEmpty(t *testing.T) {
 		Kind: service.KindSearch, Page: 0, Pages: 1, Items: []service.ListItem{},
 	}}
 	text, _ := render(v)
-	if !strings.Contains(text, "ничего не найдено") {
-		t.Fatalf("empty text = %q", text)
-	}
+	require.Contains(t, text, "ничего не найдено")
 }
 
 func TestRouterSearchFlow(t *testing.T) {
@@ -50,18 +41,11 @@ func TestRouterSearchFlow(t *testing.T) {
 	_ = repo.Save(ctx, &service.User{ID: 7, Settings: service.Settings{Variant: "gb"}, State: service.State{Screen: string(service.ScreenMainMenu)}})
 	r := New(svc, &fakeSender{})
 
-	if err := r.Handle(ctx, cbUpdate(7, "menu:search")); err != nil { // -> prompt
-		t.Fatal(err)
-	}
+	require.NoError(t, r.Handle(ctx, cbUpdate(7, "menu:search"))) // -> prompt
 	u, _ := repo.Get(ctx, 7)
-	if u.State.Screen != string(service.ScreenSearch) {
-		t.Fatalf("screen = %s", u.State.Screen)
-	}
-	if err := r.Handle(ctx, textUpdate(7, "go")); err != nil { // typed query -> results
-		t.Fatal(err)
-	}
+	require.Equal(t, string(service.ScreenSearch), u.State.Screen)
+	require.NoError(t, r.Handle(ctx, textUpdate(7, "go"))) // typed query -> results
 	u, _ = repo.Get(ctx, 7)
-	if u.State.List == nil || u.State.List.Kind != service.KindSearch {
-		t.Fatalf("after query, list = %+v", u.State.List)
-	}
+	require.NotNil(t, u.State.List)
+	require.Equal(t, service.KindSearch, u.State.List.Kind)
 }

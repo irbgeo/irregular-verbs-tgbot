@@ -1,6 +1,10 @@
 package service
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
 
 func listUser() *User {
 	return &User{
@@ -19,12 +23,11 @@ func TestBuildMyWordsView(t *testing.T) {
 
 	v := s.buildMyWordsView(u, 0)
 	// stored study + learned only, alpha: be (learned), go (study); "do" (skipped) hidden
-	if len(v.Items) != 2 || v.Items[0].Base != "be" || v.Items[1].Base != "go" {
-		t.Fatalf("items = %+v", v.Items)
-	}
-	if v.Items[0].Status != StatusLearned || v.Items[1].Status != StatusStudy {
-		t.Fatalf("statuses = %+v", v.Items)
-	}
+	require.Len(t, v.Items, 2)
+	require.Equal(t, "be", v.Items[0].Base)
+	require.Equal(t, "go", v.Items[1].Base)
+	require.Equal(t, StatusLearned, v.Items[0].Status)
+	require.Equal(t, StatusStudy, v.Items[1].Status)
 }
 
 func TestBuildWordListView(t *testing.T) {
@@ -33,23 +36,18 @@ func TestBuildWordListView(t *testing.T) {
 
 	// "all" level: all 3 words in catalog order
 	v := s.buildWordListView(u, "all", 0)
-	if v.Pages != 1 {
-		t.Fatalf("pages = %d, want 1 (3 words)", v.Pages)
-	}
+	require.Equal(t, 1, v.Pages, "pages want 1 (3 words)")
 	// order: elementary(be, go) then pre-intermediate(build)
-	if len(v.Items) != 3 || v.Items[0].Base != "be" || v.Items[2].Base != "build" {
-		t.Fatalf("items = %+v", v.Items)
-	}
-	if v.Items[1].Base != "go" || v.Items[1].Status != StatusStudy {
-		t.Errorf("go item = %+v", v.Items[1])
-	}
+	require.Len(t, v.Items, 3)
+	require.Equal(t, "be", v.Items[0].Base)
+	require.Equal(t, "build", v.Items[2].Base)
+	require.Equal(t, "go", v.Items[1].Base)
+	require.Equal(t, StatusStudy, v.Items[1].Status)
 
 	// elementary level: only be, go
 	el := s.buildWordListView(u, "elementary", 0)
-	if len(el.Items) != 2 || el.Items[0].Base != "be" || el.Items[1].Base != "go" {
-		t.Fatalf("elementary items = %+v", el.Items)
-	}
-	if el.Level != "elementary" {
-		t.Errorf("level = %q", el.Level)
-	}
+	require.Len(t, el.Items, 2)
+	require.Equal(t, "be", el.Items[0].Base)
+	require.Equal(t, "go", el.Items[1].Base)
+	require.Equal(t, "elementary", el.Level)
 }

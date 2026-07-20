@@ -2,8 +2,9 @@ package bot
 
 import (
 	"context"
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/service"
 )
@@ -22,12 +23,8 @@ func learnBotCatalog() []service.Verb {
 
 func TestRenderLearnEmpty(t *testing.T) {
 	text, k := render(service.View{Screen: service.ScreenLearnEmpty})
-	if !strings.Contains(text, "Пока нечего учить") {
-		t.Fatalf("text = %q", text)
-	}
-	if k.InlineKeyboard[0][0].CallbackData != "menu:test" {
-		t.Fatalf("first button = %+v", k.InlineKeyboard[0][0])
-	}
+	require.Contains(t, text, "Пока нечего учить", "text = %q", text)
+	require.Equal(t, "menu:test", k.InlineKeyboard[0][0].CallbackData, "first button = %+v", k.InlineKeyboard[0][0])
 }
 
 func TestRenderLearnInputHasShowAndMenuOnly(t *testing.T) {
@@ -36,16 +33,13 @@ func TestRenderLearnInputHasShowAndMenuOnly(t *testing.T) {
 		AnchorKind: "past", AnchorValue: "went", TargetKind: "base",
 	}}
 	text, k := render(v)
-	if !strings.Contains(text, "went") || strings.Contains(text, "(past)") || !strings.Contains(text, "Введите инфинитив") {
-		t.Fatalf("text = %q", text)
-	}
+	require.Contains(t, text, "went", "text = %q", text)
+	require.NotContains(t, text, "(past)", "text = %q", text)
+	require.Contains(t, text, "Введите инфинитив", "text = %q", text)
 	// no choice buttons; rows are [Показать] then [Меню]
-	if len(k.InlineKeyboard) != 2 || k.InlineKeyboard[0][0].CallbackData != "quiz:help" {
-		t.Fatalf("keyboard = %+v", k.InlineKeyboard)
-	}
-	if k.InlineKeyboard[1][0].CallbackData != "nav:menu" {
-		t.Fatalf("menu row = %+v", k.InlineKeyboard[1])
-	}
+	require.Len(t, k.InlineKeyboard, 2, "keyboard = %+v", k.InlineKeyboard)
+	require.Equal(t, "quiz:help", k.InlineKeyboard[0][0].CallbackData, "keyboard = %+v", k.InlineKeyboard)
+	require.Equal(t, "nav:menu", k.InlineKeyboard[1][0].CallbackData, "menu row = %+v", k.InlineKeyboard[1])
 }
 
 func TestRenderLearnChoiceHasOptionButtons(t *testing.T) {
@@ -55,12 +49,9 @@ func TestRenderLearnChoiceHasOptionButtons(t *testing.T) {
 		Options: []string{"went", "goed", "gone", "did"},
 	}}
 	text, k := render(v)
-	if !strings.Contains(text, "Выберите past") {
-		t.Fatalf("text = %q", text)
-	}
-	if k.InlineKeyboard[0][0].CallbackData != "lc:0" || k.InlineKeyboard[3][0].CallbackData != "lc:3" {
-		t.Fatalf("option callbacks = %+v", k.InlineKeyboard)
-	}
+	require.Contains(t, text, "Выберите past", "text = %q", text)
+	require.Equal(t, "lc:0", k.InlineKeyboard[0][0].CallbackData, "option callbacks = %+v", k.InlineKeyboard)
+	require.Equal(t, "lc:3", k.InlineKeyboard[3][0].CallbackData, "option callbacks = %+v", k.InlineKeyboard)
 }
 
 func TestRouterMenuLearnStartsSession(t *testing.T) {
@@ -73,13 +64,11 @@ func TestRouterMenuLearnStartsSession(t *testing.T) {
 		State: service.State{Screen: string(service.ScreenMainMenu)},
 		Words: map[string]service.WordProgress{"go": {Status: service.StatusStudy, Mode: 2}}})
 
-	if err := r.Handle(ctx, cbUpdate(7, "menu:learn")); err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, r.Handle(ctx, cbUpdate(7, "menu:learn")))
 	u, _ := repo.Get(ctx, 7)
-	if u.State.Screen != string(service.ScreenQuiz) || u.State.Session == nil || u.State.Session.Mode != "learn" {
-		t.Fatalf("state = %+v", u.State)
-	}
+	require.Equal(t, string(service.ScreenQuiz), u.State.Screen, "state = %+v", u.State)
+	require.NotNil(t, u.State.Session, "state = %+v", u.State)
+	require.Equal(t, "learn", u.State.Session.Mode, "state = %+v", u.State)
 }
 
 func TestRouterMenuLearnEmpty(t *testing.T) {
@@ -91,10 +80,6 @@ func TestRouterMenuLearnEmpty(t *testing.T) {
 	_ = repo.Save(ctx, &service.User{ID: 7, Settings: service.Settings{Variant: "gb"},
 		State: service.State{Screen: string(service.ScreenMainMenu)}})
 
-	if err := r.Handle(ctx, cbUpdate(7, "menu:learn")); err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(sender.last().text, "Пока нечего учить") {
-		t.Fatalf("text = %q", sender.last().text)
-	}
+	require.NoError(t, r.Handle(ctx, cbUpdate(7, "menu:learn")))
+	require.Contains(t, sender.last().text, "Пока нечего учить", "text = %q", sender.last().text)
 }

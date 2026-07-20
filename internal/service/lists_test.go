@@ -1,6 +1,10 @@
 package service
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
 
 func TestEffectiveStatus(t *testing.T) {
 	u := &User{
@@ -17,36 +21,31 @@ func TestEffectiveStatus(t *testing.T) {
 		"xx": StatusNew,   // unknown
 	}
 	for base, want := range cases {
-		if got := effectiveStatus(u, base); got != want {
-			t.Errorf("effectiveStatus(%q) = %q, want %q", base, got, want)
-		}
+		require.Equal(t, want, effectiveStatus(u, base), "effectiveStatus(%q)", base)
 	}
 
 	noDraft := &User{Words: map[string]WordProgress{"go": {Status: StatusLearned}}}
-	if got := effectiveStatus(noDraft, "go"); got != StatusLearned {
-		t.Errorf("no-draft effectiveStatus = %q", got)
-	}
+	require.Equal(t, StatusLearned, effectiveStatus(noDraft, "go"), "no-draft effectiveStatus")
 }
 
 func TestPageBounds(t *testing.T) {
 	// 23 items, 10/page -> 3 pages
 	start, end, pages, clamped := pageBounds(23, 1)
-	if start != 10 || end != 20 || pages != 3 || clamped != 1 {
-		t.Fatalf("page1: %d %d %d %d", start, end, pages, clamped)
-	}
+	require.Equal(t, 10, start)
+	require.Equal(t, 20, end)
+	require.Equal(t, 3, pages)
+	require.Equal(t, 1, clamped)
 	// last page partial
 	start, end, _, _ = pageBounds(23, 2)
-	if start != 20 || end != 23 {
-		t.Fatalf("page2: %d %d", start, end)
-	}
+	require.Equal(t, 20, start)
+	require.Equal(t, 23, end)
 	// over-range clamps to last
 	_, _, _, clamped = pageBounds(23, 9)
-	if clamped != 2 {
-		t.Fatalf("clamped = %d, want 2", clamped)
-	}
+	require.Equal(t, 2, clamped)
 	// empty -> 1 page
 	start, end, pages, clamped = pageBounds(0, 0)
-	if start != 0 || end != 0 || pages != 1 || clamped != 0 {
-		t.Fatalf("empty: %d %d %d %d", start, end, pages, clamped)
-	}
+	require.Zero(t, start)
+	require.Zero(t, end)
+	require.Equal(t, 1, pages)
+	require.Zero(t, clamped)
 }

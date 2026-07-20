@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestListItemsCarryForms(t *testing.T) {
@@ -20,15 +22,16 @@ func TestListItemsCarryForms(t *testing.T) {
 			be = &mv.Items[i]
 		}
 	}
-	if be == nil || be.Past != "was/were" || be.Participle != "been" {
-		t.Fatalf("my_words be item = %+v", be)
-	}
+	require.NotNil(t, be)
+	require.Equal(t, "was/were", be.Past)
+	require.Equal(t, "been", be.Participle)
 
 	// word_list elementary pool likewise
 	wv := svc.buildWordListView(mustUser(t, repo), "elementary", 0)
 	for _, it := range wv.Items {
-		if it.Base == "be" && (it.Past != "was/were" || it.Participle != "been") {
-			t.Fatalf("word_list be item = %+v", it)
+		if it.Base == "be" {
+			require.Equal(t, "was/were", it.Past)
+			require.Equal(t, "been", it.Participle)
 		}
 	}
 }

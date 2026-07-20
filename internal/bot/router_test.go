@@ -6,6 +6,8 @@ import (
 	"time"
 
 	tgbot "github.com/irbgeo/go-tgbot"
+	"github.com/stretchr/testify/require"
+
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/service"
 )
 
@@ -78,12 +80,9 @@ func TestRouterStartAndVariant(t *testing.T) {
 	ctx := context.Background()
 	r, repo, sender := newRouter()
 	_ = r.Handle(ctx, startUpdate(7))
-	if sender.last().text != "Выберите вариант форм:" {
-		t.Fatalf("start text = %q", sender.last().text)
-	}
+	require.Equal(t, "Выберите вариант форм:", sender.last().text)
 	_ = r.Handle(ctx, cbUpdate(7, "variant:gb"))
 	u, _ := repo.Get(ctx, 7)
-	if u.Settings.Variant != "gb" || u.State.Screen != string(service.ScreenMainMenu) {
-		t.Fatalf("after variant: %+v", u)
-	}
+	require.Equal(t, "gb", u.Settings.Variant)
+	require.Equal(t, string(service.ScreenMainMenu), u.State.Screen)
 }

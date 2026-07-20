@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 var fixedNow = time.Date(2026, 6, 29, 12, 0, 0, 0, time.UTC)
@@ -14,13 +16,10 @@ func TestTestAnswerMarksSolved(t *testing.T) {
 	svc.now = func() time.Time { return fixedNow }
 	cur := sess(t, repo).Base
 	v, _ := svc.verb(cur)
-	if _, err := svc.Answer(ctx, 7, v.Base); err != nil { // step 0: base, correct
-		t.Fatal(err)
-	}
+	_, err := svc.Answer(ctx, 7, v.Base) // step 0: base, correct
+	require.NoError(t, err)
 	u, _ := repo.Get(ctx, 7)
-	if !u.LastSolvedAt.Equal(fixedNow) {
-		t.Fatalf("LastSolvedAt = %v, want %v", u.LastSolvedAt, fixedNow)
-	}
+	require.True(t, u.LastSolvedAt.Equal(fixedNow), "LastSolvedAt = %v, want %v", u.LastSolvedAt, fixedNow)
 }
 
 func TestDueReminders(t *testing.T) {
@@ -41,12 +40,9 @@ func TestDueReminders(t *testing.T) {
 	mk(5, study, fixedNow, time.Time{}, time.Time{}) // new account (<24h)
 
 	ids, err := svc.DueReminders(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(ids) != 1 || ids[0] != 1 {
-		t.Fatalf("due = %v, want [1]", ids)
-	}
+	require.NoError(t, err)
+	require.Len(t, ids, 1, "due = %v, want [1]", ids)
+	require.Equal(t, int64(1), ids[0], "due = %v, want [1]", ids)
 }
 
 func TestRemind(t *testing.T) {
@@ -58,33 +54,24 @@ func TestRemind(t *testing.T) {
 	_ = repo.Save(ctx, &User{ID: 1, Settings: Settings{Variant: "gb"},
 		Words: map[string]WordProgress{"go": {Status: StatusStudy, Mode: 1}}})
 	v, ok, err := svc.Remind(ctx, 1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !ok || v.Screen != ScreenQuiz || v.Quiz == nil {
-		t.Fatalf("remind = %+v ok=%v", v, ok)
-	}
+	require.NoError(t, err)
+	require.True(t, ok, "remind = %+v ok=%v", v, ok)
+	require.Equal(t, ScreenQuiz, v.Screen, "remind = %+v ok=%v", v, ok)
+	require.NotNil(t, v.Quiz, "remind = %+v ok=%v", v, ok)
 	u, _ := repo.Get(ctx, 1)
-	if !u.LastRemindedAt.Equal(fixedNow) {
-		t.Fatalf("LastRemindedAt = %v", u.LastRemindedAt)
-	}
-	if u.State.Session == nil || u.State.Session.Mode != "learn" {
-		t.Fatalf("session not started: %+v", u.State)
-	}
+	require.True(t, u.LastRemindedAt.Equal(fixedNow), "LastRemindedAt = %v", u.LastRemindedAt)
+	require.NotNil(t, u.State.Session, "session not started: %+v", u.State)
+	require.Equal(t, "learn", u.State.Session.Mode, "session not started: %+v", u.State)
 
 	// empty pool -> ok=false, no reminded stamp, no state change
 	_ = repo.Save(ctx, &User{ID: 2, Settings: Settings{Variant: "gb"},
 		Words: map[string]WordProgress{"do": {Status: StatusSkipped}}})
 	v2, ok2, err := svc.Remind(ctx, 2)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if ok2 || v2.Screen != ScreenNone {
-		t.Fatalf("empty pool remind = %+v ok=%v", v2, ok2)
-	}
-	if u2, _ := repo.Get(ctx, 2); !u2.LastRemindedAt.IsZero() {
-		t.Fatalf("empty pool must not stamp reminded: %v", u2.LastRemindedAt)
-	}
+	require.NoError(t, err)
+	require.False(t, ok2, "empty pool remind = %+v ok=%v", v2, ok2)
+	require.Equal(t, ScreenNone, v2.Screen, "empty pool remind = %+v ok=%v", v2, ok2)
+	u2, _ := repo.Get(ctx, 2)
+	require.True(t, u2.LastRemindedAt.IsZero(), "empty pool must not stamp reminded: %v", u2.LastRemindedAt)
 }
 
 func TestLearnAnswerMarksSolved(t *testing.T) {
@@ -93,14 +80,10 @@ func TestLearnAnswerMarksSolved(t *testing.T) {
 	svc.now = func() time.Time { return fixedNow }
 	svc.rng = func(n int) int { return 0 }
 	_ = repo.Save(ctx, learnUser(map[string]WordProgress{"go": {Status: StatusStudy, Mode: 2}}))
-	if _, err := svc.StartLearn(ctx, 7); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := svc.Answer(ctx, 7, "definitely-wrong"); err != nil { // attempt counts as solving
-		t.Fatal(err)
-	}
+	_, err := svc.StartLearn(ctx, 7)
+	require.NoError(t, err)
+	_, err = svc.Answer(ctx, 7, "definitely-wrong") // attempt counts as solving
+	require.NoError(t, err)
 	u, _ := repo.Get(ctx, 7)
-	if !u.LastSolvedAt.Equal(fixedNow) {
-		t.Fatalf("LastSolvedAt = %v, want %v", u.LastSolvedAt, fixedNow)
-	}
+	require.True(t, u.LastSolvedAt.Equal(fixedNow), "LastSolvedAt = %v, want %v", u.LastSolvedAt, fixedNow)
 }

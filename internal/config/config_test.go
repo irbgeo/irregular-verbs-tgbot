@@ -3,6 +3,8 @@ package config
 import (
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 // unsetEnv removes key for the duration of the test, restoring it afterwards.
@@ -20,18 +22,10 @@ func TestLoadDefaults(t *testing.T) {
 	unsetEnv(t, "MONGO_DB")
 	unsetEnv(t, "VERBS_PATH")
 	c, err := Load()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if c.MongoURI != "mongodb://localhost:27017" {
-		t.Errorf("MongoURI = %q", c.MongoURI)
-	}
-	if c.MongoDB != "irregular_verbs" {
-		t.Errorf("MongoDB = %q", c.MongoDB)
-	}
-	if c.VerbsPath != "data/verbs.json" {
-		t.Errorf("VerbsPath = %q", c.VerbsPath)
-	}
+	require.NoError(t, err)
+	require.Equal(t, "mongodb://localhost:27017", c.MongoURI)
+	require.Equal(t, "irregular_verbs", c.MongoDB)
+	require.Equal(t, "data/verbs.json", c.VerbsPath)
 }
 
 func TestLoadReadsValues(t *testing.T) {
@@ -40,18 +34,15 @@ func TestLoadReadsValues(t *testing.T) {
 	t.Setenv("MONGO_DB", "custom")
 	t.Setenv("VERBS_PATH", "/tmp/verbs.json")
 	c, err := Load()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if c.BotToken != "abc" || c.MongoURI != "mongodb://db:27017" ||
-		c.MongoDB != "custom" || c.VerbsPath != "/tmp/verbs.json" {
-		t.Fatalf("config = %+v", c)
-	}
+	require.NoError(t, err)
+	require.Equal(t, "abc", c.BotToken)
+	require.Equal(t, "mongodb://db:27017", c.MongoURI)
+	require.Equal(t, "custom", c.MongoDB)
+	require.Equal(t, "/tmp/verbs.json", c.VerbsPath)
 }
 
 func TestLoadRequiresToken(t *testing.T) {
 	unsetEnv(t, "BOT_TOKEN")
-	if _, err := Load(); err == nil {
-		t.Fatal("expected error when BOT_TOKEN is missing")
-	}
+	_, err := Load()
+	require.Error(t, err, "expected error when BOT_TOKEN is missing")
 }

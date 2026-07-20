@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/service"
 )
 
@@ -21,10 +23,8 @@ func TestDueForReminder(t *testing.T) {
 
 	save := func(id int64, w map[string]service.WordProgress, created, solved, reminded time.Time) {
 		t.Helper()
-		if err := s.Users.Save(ctx, &service.User{ID: id, Words: w,
-			CreatedAt: created, LastSolvedAt: solved, LastRemindedAt: reminded}); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, s.Users.Save(ctx, &service.User{ID: id, Words: w,
+			CreatedAt: created, LastSolvedAt: solved, LastRemindedAt: reminded}))
 	}
 	save(1, words, old, time.Time{}, time.Time{}) // due
 	save(2, words, old, now, time.Time{})         // solved recently
@@ -33,14 +33,7 @@ func TestDueForReminder(t *testing.T) {
 	save(5, words, now, time.Time{}, time.Time{}) // new account
 
 	got, err := s.Users.DueForReminder(ctx, before)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(got) != 1 || got[0].ID != 1 {
-		ids := make([]int64, len(got))
-		for i, u := range got {
-			ids[i] = u.ID
-		}
-		t.Fatalf("DueForReminder = %v, want [1]", ids)
-	}
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	require.Equal(t, int64(1), got[0].ID)
 }

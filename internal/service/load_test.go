@@ -1,15 +1,15 @@
 package service
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
 
 func TestLoadVerbsParsesAll(t *testing.T) {
 	vs, err := LoadVerbs("../../data/verbs.json")
-	if err != nil {
-		t.Fatalf("LoadVerbs: %v", err)
-	}
-	if len(vs) != 133 {
-		t.Fatalf("got %d verbs, want 133", len(vs))
-	}
+	require.NoError(t, err, "LoadVerbs")
+	require.Len(t, vs, 133)
 
 	var be Verb
 	for _, v := range vs {
@@ -18,13 +18,9 @@ func TestLoadVerbsParsesAll(t *testing.T) {
 			break
 		}
 	}
-	if be.Level != "elementary" {
-		t.Errorf("be.Level = %q, want elementary", be.Level)
-	}
+	require.Equal(t, "elementary", be.Level)
 	got := be.Past["gb"]
-	if len(got) != 2 || got[0] != "was" || got[1] != "were" {
-		t.Errorf("be.Past[gb] = %v, want [was were]", got)
-	}
+	require.Equal(t, []string{"was", "were"}, got)
 }
 
 // TestVerbsDatasetInvariants guards the dataset against malformed entries: each
@@ -32,9 +28,7 @@ func TestLoadVerbsParsesAll(t *testing.T) {
 // translation, and distractors the bot needs to render quizzes.
 func TestVerbsDatasetInvariants(t *testing.T) {
 	vs, err := LoadVerbs("../../data/verbs.json")
-	if err != nil {
-		t.Fatalf("LoadVerbs: %v", err)
-	}
+	require.NoError(t, err, "LoadVerbs")
 
 	known := map[string]bool{}
 	for _, l := range Levels {
@@ -43,28 +37,16 @@ func TestVerbsDatasetInvariants(t *testing.T) {
 
 	seen := map[string]bool{}
 	for _, v := range vs {
-		if seen[v.Base] {
-			t.Errorf("duplicate base %q", v.Base)
-		}
+		require.False(t, seen[v.Base], "duplicate base %q", v.Base)
 		seen[v.Base] = true
 
-		if !known[v.Level] {
-			t.Errorf("%s: unknown level %q", v.Base, v.Level)
-		}
+		require.True(t, known[v.Level], "%s: unknown level %q", v.Base, v.Level)
 		for _, variant := range []string{"gb", "us"} {
-			if len(v.Past[variant]) == 0 {
-				t.Errorf("%s: empty past[%s]", v.Base, variant)
-			}
-			if len(v.Participle[variant]) == 0 {
-				t.Errorf("%s: empty participle[%s]", v.Base, variant)
-			}
+			require.NotEmpty(t, v.Past[variant], "%s: empty past[%s]", v.Base, variant)
+			require.NotEmpty(t, v.Participle[variant], "%s: empty participle[%s]", v.Base, variant)
 		}
-		if len(v.Translations) == 0 {
-			t.Errorf("%s: no translations", v.Base)
-		}
-		if len(v.CommonMistakes) < 2 {
-			t.Errorf("%s: want >=2 common_mistakes, got %d", v.Base, len(v.CommonMistakes))
-		}
+		require.NotEmpty(t, v.Translations, "%s: no translations", v.Base)
+		require.GreaterOrEqual(t, len(v.CommonMistakes), 2, "%s: want >=2 common_mistakes, got %d", v.Base, len(v.CommonMistakes))
 	}
 }
 
@@ -74,9 +56,7 @@ func TestVerbsDatasetInvariants(t *testing.T) {
 // verb (a "mistake" that is actually a correct form is not a distractor).
 func TestCommonMistakesAreCleanDistractors(t *testing.T) {
 	vs, err := LoadVerbs("../../data/verbs.json")
-	if err != nil {
-		t.Fatalf("LoadVerbs: %v", err)
-	}
+	require.NoError(t, err, "LoadVerbs")
 	isWord := func(s string) bool {
 		if s == "" {
 			return false
@@ -101,14 +81,9 @@ func TestCommonMistakesAreCleanDistractors(t *testing.T) {
 		seen := map[string]bool{}
 		for _, m := range v.CommonMistakes {
 			n := norm(m)
-			switch {
-			case !isWord(n):
-				t.Errorf("%s: mistake %q must be a single latin word", v.Base, m)
-			case forms[n]:
-				t.Errorf("%s: mistake %q equals a real form", v.Base, m)
-			case seen[n]:
-				t.Errorf("%s: duplicate mistake %q", v.Base, m)
-			}
+			require.True(t, isWord(n), "%s: mistake %q must be a single latin word", v.Base, m)
+			require.False(t, forms[n], "%s: mistake %q equals a real form", v.Base, m)
+			require.False(t, seen[n], "%s: duplicate mistake %q", v.Base, m)
 			seen[n] = true
 		}
 		clean := 0
@@ -117,8 +92,6 @@ func TestCommonMistakesAreCleanDistractors(t *testing.T) {
 				clean++
 			}
 		}
-		if clean < 2 {
-			t.Errorf("%s: want >=2 clean distinct mistakes, got %d in %v", v.Base, clean, v.CommonMistakes)
-		}
+		require.GreaterOrEqual(t, clean, 2, "%s: want >=2 clean distinct mistakes, got %d in %v", v.Base, clean, v.CommonMistakes)
 	}
 }

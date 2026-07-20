@@ -2,10 +2,11 @@ package bot
 
 import (
 	"context"
-	"strings"
 	"testing"
 
 	tgbot "github.com/irbgeo/go-tgbot"
+	"github.com/stretchr/testify/require"
+
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/service"
 )
 
@@ -33,20 +34,15 @@ func TestRouterFullTestFlow(t *testing.T) {
 	_ = r.Handle(ctx, cbUpdate(7, "level:elementary")) // -> quiz (first word)
 
 	u, _ := repo.Get(ctx, 7)
-	if u.State.Session == nil || u.State.Screen != string(service.ScreenQuiz) {
-		t.Fatalf("expected quiz session, got %+v", u.State)
-	}
+	require.NotNil(t, u.State.Session)
+	require.Equal(t, string(service.ScreenQuiz), u.State.Screen)
 
 	// Answer the current word wrong via a typed message -> goes to study, advances.
 	cur := u.State.Session.Base
 	_ = r.Handle(ctx, textUpdate(7, "zzz"))
 	u, _ = repo.Get(ctx, 7)
-	if u.Words[cur].Status != service.StatusStudy {
-		t.Fatalf("wrong answer should add %s to study", cur)
-	}
-	if !strings.Contains(sender.last().text, "Неверно") {
-		t.Fatalf("expected feedback, got %q", sender.last().text)
-	}
+	require.Equal(t, service.StatusStudy, u.Words[cur].Status, "wrong answer should add %s to study", cur)
+	require.Contains(t, sender.last().text, "Неверно")
 }
 
 func TestRouterHelpThenMenu(t *testing.T) {
@@ -61,12 +57,9 @@ func TestRouterHelpThenMenu(t *testing.T) {
 	_ = r.Handle(ctx, cbUpdate(7, "level:elementary"))
 	_ = r.Handle(ctx, cbUpdate(7, "quiz:help")) // reveals + advances
 	u, _ := repo.Get(ctx, 7)
-	if len(u.Words) == 0 {
-		t.Fatal("help should have added a word to study")
-	}
+	require.NotEmpty(t, u.Words, "help should have added a word to study")
 	_ = r.Handle(ctx, cbUpdate(7, "nav:menu"))
 	u, _ = repo.Get(ctx, 7)
-	if u.State.Screen != string(service.ScreenMainMenu) || u.State.Session != nil {
-		t.Fatalf("menu should clear session, got %+v", u.State)
-	}
+	require.Equal(t, string(service.ScreenMainMenu), u.State.Screen)
+	require.Nil(t, u.State.Session)
 }

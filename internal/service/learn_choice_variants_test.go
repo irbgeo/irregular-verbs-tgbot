@@ -4,6 +4,8 @@ import (
 	"context"
 	"slices"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func optsHas(opts []string, s string) bool {
@@ -17,12 +19,9 @@ func TestFormOptionsSplitsMultiVariantTarget(t *testing.T) {
 	svc.rng = func(n int) int { return 0 } // deterministic shuffle
 	v, _ := svc.verb("be")
 	opts := svc.formOptions(v, KindPast, "gb")
-	if !optsHas(opts, "was") || !optsHas(opts, "were") {
-		t.Fatalf("multi-variant target must be split into was & were; got %v", opts)
-	}
-	if optsHas(opts, "was/were") {
-		t.Fatalf("must not show the joined form as one button; got %v", opts)
-	}
+	require.True(t, optsHas(opts, "was"), "multi-variant target must be split into was & were; got %v", opts)
+	require.True(t, optsHas(opts, "were"), "multi-variant target must be split into was & were; got %v", opts)
+	require.False(t, optsHas(opts, "was/were"), "must not show the joined form as one button; got %v", opts)
 }
 
 // A multi-variant form used as a distractor (here past, while base is asked) is
@@ -32,9 +31,9 @@ func TestFormOptionsSplitsMultiVariantDistractor(t *testing.T) {
 	svc.rng = func(n int) int { return 0 }
 	v, _ := svc.verb("be")
 	opts := svc.formOptions(v, KindBase, "gb") // target base; past is a distractor
-	if !optsHas(opts, "was") || !optsHas(opts, "were") || optsHas(opts, "was/were") {
-		t.Fatalf("multi-variant distractor must be split; got %v", opts)
-	}
+	require.True(t, optsHas(opts, "was"), "multi-variant distractor must be split; got %v", opts)
+	require.True(t, optsHas(opts, "were"), "multi-variant distractor must be split; got %v", opts)
+	require.False(t, optsHas(opts, "was/were"), "multi-variant distractor must be split; got %v", opts)
 }
 
 // Tapping either variant of a multi-variant target counts as correct.
@@ -58,12 +57,9 @@ func TestLearnChooseAcceptsAnyVariant(t *testing.T) {
 				idx = i
 			}
 		}
-		if _, err := svc.LearnChoose(ctx, 7, idx); err != nil {
-			t.Fatal(err)
-		}
+		_, err := svc.LearnChoose(ctx, 7, idx)
+		require.NoError(t, err)
 		u, _ := repo.Get(ctx, 7)
-		if u.Words["be"].Box != 1 {
-			t.Fatalf("tapping %q must count as correct (box 0->1); got %+v", pick, u.Words["be"])
-		}
+		require.Equal(t, 1, u.Words["be"].Box, "tapping %q must count as correct (box 0->1); got %+v", pick, u.Words["be"])
 	}
 }

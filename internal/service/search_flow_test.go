@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func searchSvc(t *testing.T) (*Service, *fakeUserRepo) {
@@ -16,16 +18,12 @@ func TestOpenSearchShowsPrompt(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := searchSvc(t)
 	v, err := svc.OpenSearch(ctx, 7)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if v.Screen != ScreenSearch || v.List != nil {
-		t.Fatalf("open search view = %+v (want screen=search, nil list)", v)
-	}
+	require.NoError(t, err)
+	require.Equal(t, ScreenSearch, v.Screen, "open search view = %+v (want screen=search, nil list)", v)
+	require.Nil(t, v.List, "open search view = %+v (want screen=search, nil list)", v)
 	u, _ := repo.Get(ctx, 7)
-	if u.State.Screen != string(ScreenSearch) || u.State.List != nil {
-		t.Fatalf("state = %+v", u.State)
-	}
+	require.Equal(t, string(ScreenSearch), u.State.Screen, "state = %+v", u.State)
+	require.Nil(t, u.State.List, "state = %+v", u.State)
 }
 
 func TestSearchPopulatesResults(t *testing.T) {
@@ -33,19 +31,16 @@ func TestSearchPopulatesResults(t *testing.T) {
 	svc, repo := searchSvc(t)
 	_, _ = svc.OpenSearch(ctx, 7)
 	v, err := svc.Search(ctx, 7, "go run")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if v.Screen != ScreenSearch || v.List == nil || v.List.Kind != KindSearch {
-		t.Fatalf("search view = %+v", v)
-	}
-	if len(v.List.Items) != 2 || v.List.Items[0].Base != "go" || v.List.Items[1].Base != "run" {
-		t.Fatalf("items = %+v", v.List.Items)
-	}
+	require.NoError(t, err)
+	require.Equal(t, ScreenSearch, v.Screen, "search view = %+v", v)
+	require.NotNil(t, v.List, "search view = %+v", v)
+	require.Equal(t, KindSearch, v.List.Kind, "search view = %+v", v)
+	require.Len(t, v.List.Items, 2, "items = %+v", v.List.Items)
+	require.Equal(t, "go", v.List.Items[0].Base, "items = %+v", v.List.Items)
+	require.Equal(t, "run", v.List.Items[1].Base, "items = %+v", v.List.Items)
 	u, _ := repo.Get(ctx, 7)
-	if u.State.List == nil || u.State.List.Query != "go run" {
-		t.Fatalf("state list = %+v", u.State.List)
-	}
+	require.NotNil(t, u.State.List, "state list = %+v", u.State.List)
+	require.Equal(t, "go run", u.State.List.Query, "state list = %+v", u.State.List)
 }
 
 func TestSearchTapAddsToStudyOnCommit(t *testing.T) {
@@ -56,20 +51,14 @@ func TestSearchTapAddsToStudyOnCommit(t *testing.T) {
 	// tap "go" -> draft study; words unchanged until commit
 	_, _ = svc.ListToggle(ctx, 7, "go")
 	u, _ := repo.Get(ctx, 7)
-	if u.State.List.Draft["go"] != StatusStudy {
-		t.Fatalf("draft = %+v", u.State.List.Draft)
-	}
-	if _, ok := u.Words["go"]; ok {
-		t.Fatal("must not write words before commit")
-	}
+	require.Equal(t, StatusStudy, u.State.List.Draft["go"], "draft = %+v", u.State.List.Draft)
+	_, ok := u.Words["go"]
+	require.False(t, ok, "must not write words before commit")
 	// commit -> go becomes study
-	if _, err := svc.CommitList(ctx, 7); err != nil {
-		t.Fatal(err)
-	}
+	_, err := svc.CommitList(ctx, 7)
+	require.NoError(t, err)
 	u, _ = repo.Get(ctx, 7)
-	if u.Words["go"].Status != StatusStudy {
-		t.Fatalf("after commit go = %+v", u.Words["go"])
-	}
+	require.Equal(t, StatusStudy, u.Words["go"].Status, "after commit go = %+v", u.Words["go"])
 }
 
 func TestSearchBackToMenu(t *testing.T) {
@@ -78,9 +67,7 @@ func TestSearchBackToMenu(t *testing.T) {
 	_, _ = svc.OpenSearch(ctx, 7)
 	_, _ = svc.Search(ctx, 7, "go")
 	v, _ := svc.ListBack(ctx, 7)
-	if v.Screen != ScreenMainMenu {
-		t.Fatalf("back from search = %s", v.Screen)
-	}
+	require.Equal(t, ScreenMainMenu, v.Screen, "back from search = %s", v.Screen)
 }
 
 func TestOnTextRoutesToSearch(t *testing.T) {
@@ -88,12 +75,11 @@ func TestOnTextRoutesToSearch(t *testing.T) {
 	svc, _ := searchSvc(t)
 	_, _ = svc.OpenSearch(ctx, 7)
 	v, err := svc.OnText(ctx, 7, "go")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if v.Screen != ScreenSearch || v.List == nil || len(v.List.Items) != 1 || v.List.Items[0].Base != "go" {
-		t.Fatalf("OnText on search screen must search; got %+v", v)
-	}
+	require.NoError(t, err)
+	require.Equal(t, ScreenSearch, v.Screen, "OnText on search screen must search; got %+v", v)
+	require.NotNil(t, v.List, "OnText on search screen must search; got %+v", v)
+	require.Len(t, v.List.Items, 1, "OnText on search screen must search; got %+v", v)
+	require.Equal(t, "go", v.List.Items[0].Base, "OnText on search screen must search; got %+v", v)
 }
 
 func TestOnTextOffSearchDelegatesToAnswer(t *testing.T) {
@@ -102,10 +88,6 @@ func TestOnTextOffSearchDelegatesToAnswer(t *testing.T) {
 	// not on the search screen: OnText must behave like Answer (no panic, no search list)
 	_ = repo.Save(ctx, &User{ID: 7, Settings: Settings{Variant: "gb"}, State: State{Screen: string(ScreenMainMenu)}})
 	v, err := svc.OnText(ctx, 7, "whatever")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if v.List != nil && v.List.Kind == KindSearch {
-		t.Fatalf("off-search OnText must not produce a search list; got %+v", v)
-	}
+	require.NoError(t, err)
+	require.False(t, v.List != nil && v.List.Kind == KindSearch, "off-search OnText must not produce a search list; got %+v", v)
 }

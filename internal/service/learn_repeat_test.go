@@ -1,6 +1,10 @@
 package service
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
 
 func TestLearnQuestionRepeatFlag(t *testing.T) {
 	svc, _ := newLearnSvc()
@@ -10,15 +14,13 @@ func TestLearnQuestionRepeatFlag(t *testing.T) {
 	uL := learnUser(map[string]WordProgress{"go": {Status: StatusLearned}})
 	sessL := &Session{Mode: "learn", Base: "go"}
 	svc.buildRound(uL, sessL)
-	if q := svc.learnQuestion(uL, sessL); !q.Repeat {
-		t.Fatalf("learned word should set Repeat=true, got %+v", q)
-	}
+	q := svc.learnQuestion(uL, sessL)
+	require.True(t, q.Repeat, "learned word should set Repeat=true")
 
 	// study word -> Repeat false
 	uS := learnUser(map[string]WordProgress{"go": {Status: StatusStudy, Mode: 2}})
 	sessS := &Session{Mode: "learn", Base: "go"}
 	svc.buildRound(uS, sessS)
-	if q := svc.learnQuestion(uS, sessS); q.Repeat {
-		t.Fatalf("study word should set Repeat=false, got %+v", q)
-	}
+	q = svc.learnQuestion(uS, sessS)
+	require.False(t, q.Repeat, "study word should set Repeat=false")
 }

@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 type fakeVerbRepo struct {
@@ -19,10 +21,8 @@ func (f *fakeVerbRepo) Upsert(_ context.Context, v Verb) error {
 
 func TestSeedVerbsUpsertsEach(t *testing.T) {
 	vr := &fakeVerbRepo{}
-	if err := SeedVerbs(context.Background(), vr, []Verb{{Base: "go"}, {Base: "be"}}); err != nil {
-		t.Fatalf("SeedVerbs: %v", err)
-	}
-	if vr.calls["go"] != 1 || vr.calls["be"] != 1 {
-		t.Fatalf("calls = %v, want each verb upserted once", vr.calls)
-	}
+	err := SeedVerbs(context.Background(), vr, []Verb{{Base: "go"}, {Base: "be"}})
+	require.NoError(t, err)
+	require.Equal(t, 1, vr.calls["go"], "calls = %v, want each verb upserted once", vr.calls)
+	require.Equal(t, 1, vr.calls["be"], "calls = %v, want each verb upserted once", vr.calls)
 }

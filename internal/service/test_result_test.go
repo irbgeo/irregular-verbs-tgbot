@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 // drive the current word to the test_result screen (all 3 correct).
@@ -12,9 +14,8 @@ func toResult(t *testing.T, svc *Service, repo *fakeUserRepo) string {
 	cur := sess(t, repo).Base
 	v, _ := svc.verb(cur)
 	// one message with all three forms in order -> result
-	if out, _ := svc.Answer(ctx, 7, allFormsAnswer(v, "gb")); out.Screen != ScreenTestResult {
-		t.Fatalf("expected result screen, got %s", out.Screen)
-	}
+	out, _ := svc.Answer(ctx, 7, allFormsAnswer(v, "gb"))
+	require.Equal(t, ScreenTestResult, out.Screen)
 	return cur
 }
 
@@ -23,27 +24,18 @@ func TestKeepWritesStudyAndAdvances(t *testing.T) {
 	svc, repo := startedTest(t)
 	cur := toResult(t, svc, repo)
 	out, err := svc.Keep(ctx, 7)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if out.Screen != ScreenQuiz && out.Screen != ScreenTestDone {
-		t.Fatalf("view = %+v", out)
-	}
+	require.NoError(t, err)
+	require.Contains(t, []Screen{ScreenQuiz, ScreenTestDone}, out.Screen, "view = %+v", out)
 	u, _ := repo.Get(ctx, 7)
-	if u.Words[cur].Status != StatusStudy {
-		t.Fatalf("keep should mark %s study, got %+v", cur, u.Words[cur])
-	}
+	require.Equal(t, StatusStudy, u.Words[cur].Status, "keep should mark %s study, got %+v", cur, u.Words[cur])
 }
 
 func TestDropWritesSkippedAndAdvances(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := startedTest(t)
 	cur := toResult(t, svc, repo)
-	if _, err := svc.Drop(ctx, 7); err != nil {
-		t.Fatal(err)
-	}
+	_, err := svc.Drop(ctx, 7)
+	require.NoError(t, err)
 	u, _ := repo.Get(ctx, 7)
-	if u.Words[cur].Status != StatusSkipped {
-		t.Fatalf("drop should mark %s skipped, got %+v", cur, u.Words[cur])
-	}
+	require.Equal(t, StatusSkipped, u.Words[cur].Status, "drop should mark %s skipped, got %+v", cur, u.Words[cur])
 }

@@ -2,8 +2,9 @@ package bot
 
 import (
 	"context"
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/service"
 )
@@ -14,23 +15,14 @@ func TestDeliverSendsRenderedView(t *testing.T) {
 		Mode: "learn", Format: "input", Base: "go",
 		AnchorKind: "past", AnchorValue: "went", TargetKind: "base",
 	}}
-	if err := r.Deliver(context.Background(), 42, v); err != nil {
-		t.Fatal(err)
-	}
-	if len(sender.msgs) != 1 || sender.last().edit {
-		t.Fatalf("expected one fresh Send, got %+v", sender.msgs)
-	}
-	if !strings.Contains(sender.last().text, "went") {
-		t.Fatalf("delivered text = %q", sender.last().text)
-	}
+	require.NoError(t, r.Deliver(context.Background(), 42, v))
+	require.Len(t, sender.msgs, 1, "expected one fresh Send, got %+v", sender.msgs)
+	require.False(t, sender.last().edit, "expected one fresh Send, got %+v", sender.msgs)
+	require.Contains(t, sender.last().text, "went", "delivered text = %q", sender.last().text)
 }
 
 func TestDeliverEmptyViewSendsNothing(t *testing.T) {
 	r, _, sender := newRouter()
-	if err := r.Deliver(context.Background(), 42, service.View{}); err != nil {
-		t.Fatal(err)
-	}
-	if len(sender.msgs) != 0 {
-		t.Fatalf("empty view should send nothing, got %+v", sender.msgs)
-	}
+	require.NoError(t, r.Deliver(context.Background(), 42, service.View{}))
+	require.Empty(t, sender.msgs, "empty view should send nothing, got %+v", sender.msgs)
 }

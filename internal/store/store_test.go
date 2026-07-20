@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/service"
 )
 
@@ -30,24 +32,22 @@ func TestUserRoundTrip(t *testing.T) {
 	defer s.Disconnect(ctx)
 	_ = s.Users.coll.Drop(ctx)
 
-	if u, err := s.Users.Get(ctx, 42); err != nil || u != nil {
-		t.Fatalf("Get missing: u=%v err=%v, want nil,nil", u, err)
-	}
+	u, err := s.Users.Get(ctx, 42)
+	require.NoError(t, err)
+	require.Nil(t, u)
+
 	in := &service.User{
 		ID:       42,
 		Settings: service.Settings{Variant: "gb"},
 		State:    service.State{Screen: "main_menu"},
 	}
-	if err := s.Users.Save(ctx, in); err != nil {
-		t.Fatalf("Save: %v", err)
-	}
+	require.NoError(t, s.Users.Save(ctx, in))
+
 	got, err := s.Users.Get(ctx, 42)
-	if err != nil || got == nil {
-		t.Fatalf("Get: got=%v err=%v", got, err)
-	}
-	if got.Settings.Variant != "gb" || got.State.Screen != "main_menu" {
-		t.Errorf("got %+v", got)
-	}
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	require.Equal(t, "gb", got.Settings.Variant)
+	require.Equal(t, "main_menu", got.State.Screen)
 }
 
 func TestVerbUpsertIdempotent(t *testing.T) {
@@ -57,17 +57,10 @@ func TestVerbUpsertIdempotent(t *testing.T) {
 	_ = s.Verbs.coll.Drop(ctx)
 
 	v := service.Verb{Base: "go", Level: "elementary"}
-	if err := s.Verbs.Upsert(ctx, v); err != nil {
-		t.Fatalf("Upsert: %v", err)
-	}
-	if err := s.Verbs.Upsert(ctx, v); err != nil {
-		t.Fatalf("Upsert again: %v", err)
-	}
+	require.NoError(t, s.Verbs.Upsert(ctx, v))
+	require.NoError(t, s.Verbs.Upsert(ctx, v))
+
 	n, err := s.Verbs.coll.CountDocuments(ctx, map[string]any{"_id": "go"})
-	if err != nil {
-		t.Fatalf("count: %v", err)
-	}
-	if n != 1 {
-		t.Errorf("count = %d, want 1 (upsert must not duplicate)", n)
-	}
+	require.NoError(t, err)
+	require.Equal(t, int64(1), n, "upsert must not duplicate")
 }

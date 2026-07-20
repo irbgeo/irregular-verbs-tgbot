@@ -1,6 +1,10 @@
 package service
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
 
 func TestCheckAllFormsOrdered(t *testing.T) {
 	s := New(nil, nil)
@@ -45,8 +49,7 @@ func TestCheckAllFormsOrdered(t *testing.T) {
 		{burn, "burn nope burnt", false},        // wrong past
 	}
 	for _, c := range cases {
-		if got := s.checkAllFormsOrdered(c.v, c.in, "gb"); got != c.want {
-			t.Errorf("checkAllFormsOrdered(%q) = %v, want %v", c.in, got, c.want)
-		}
+		got := s.checkAllFormsOrdered(c.v, c.in, "gb")
+		require.Equal(t, c.want, got, "checkAllFormsOrdered(%q)", c.in)
 	}
 }

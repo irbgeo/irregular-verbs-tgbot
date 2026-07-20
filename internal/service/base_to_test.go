@@ -1,6 +1,10 @@
 package service
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
 
 func TestCheckAnswerBaseAcceptsToPrefix(t *testing.T) {
 	s := New(nil, nil)
@@ -16,9 +20,8 @@ func TestCheckAnswerBaseAcceptsToPrefix(t *testing.T) {
 		{"to go", false},
 	}
 	for _, c := range cases {
-		if got := s.checkTarget(v, KindBase, c.in, "gb"); got != c.want {
-			t.Errorf("checkTarget(base,%q) = %v, want %v", c.in, got, c.want)
-		}
+		got := s.checkTarget(v, KindBase, c.in, "gb")
+		require.Equal(t, c.want, got, "checkTarget(base,%q)", c.in)
 	}
 }
 
@@ -35,16 +38,13 @@ func TestCheckTargetBaseAcceptsToPrefix(t *testing.T) {
 		{"to went", false},
 	}
 	for _, c := range cases {
-		if got := svc.checkTarget(v, KindBase, c.in, "gb"); got != c.want {
-			t.Errorf("checkTarget(base,%q) = %v, want %v", c.in, got, c.want)
-		}
+		got := svc.checkTarget(v, KindBase, c.in, "gb")
+		require.Equal(t, c.want, got, "checkTarget(base,%q)", c.in)
 	}
 }
 
 func TestCorrectTextNoToMarker(t *testing.T) {
 	svc, _ := newLearnSvc()
 	v, _ := svc.verb("go")
-	if got := svc.correctText(v, "gb"); got != "go - went - gone\nидти" {
-		t.Fatalf("correctText = %q", got)
-	}
+	require.Equal(t, "go - went - gone\nидти", svc.correctText(v, "gb"))
 }

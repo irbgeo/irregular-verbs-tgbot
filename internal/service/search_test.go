@@ -1,8 +1,9 @@
 package service
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func searchCatalog() []Verb {
@@ -35,8 +36,6 @@ func TestSearchVerbs(t *testing.T) {
 		if len(got) == 0 && len(c.want) == 0 {
 			continue
 		}
-		if !reflect.DeepEqual(got, c.want) {
-			t.Errorf("searchVerbs(%q) = %v, want %v", c.query, got, c.want)
-		}
+		require.Equal(t, c.want, got, "searchVerbs(%q)", c.query)
 	}
 }
