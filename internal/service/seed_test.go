@@ -7,6 +7,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestSeedVerbsUpsertsEach(t *testing.T) {
+	vr := &fakeVerbRepo{}
+	err := SeedVerbs(context.Background(), vr, []Verb{{Base: "go"}, {Base: "be"}})
+	require.NoError(t, err)
+	require.Equal(t, 1, vr.calls["go"], "calls = %v, want each verb upserted once", vr.calls)
+	require.Equal(t, 1, vr.calls["be"], "calls = %v, want each verb upserted once", vr.calls)
+}
+
 type fakeVerbRepo struct {
 	calls map[string]int
 }
@@ -17,12 +25,4 @@ func (f *fakeVerbRepo) Upsert(_ context.Context, v *Verb) error {
 	}
 	f.calls[v.Base]++
 	return nil
-}
-
-func TestSeedVerbsUpsertsEach(t *testing.T) {
-	vr := &fakeVerbRepo{}
-	err := SeedVerbs(context.Background(), vr, []Verb{{Base: "go"}, {Base: "be"}})
-	require.NoError(t, err)
-	require.Equal(t, 1, vr.calls["go"], "calls = %v, want each verb upserted once", vr.calls)
-	require.Equal(t, 1, vr.calls["be"], "calls = %v, want each verb upserted once", vr.calls)
 }

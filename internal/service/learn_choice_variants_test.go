@@ -8,10 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func optsHas(opts []string, s string) bool {
-	return slices.Contains(opts, s)
-}
-
 // A multi-variant target form (e.g. past of "be" = was/were) must be offered as
 // one button per variant, never as a single joined "was/were" button.
 func TestFormOptionsSplitsMultiVariantTarget(t *testing.T) {
@@ -62,4 +58,8 @@ func TestLearnChooseAcceptsAnyVariant(t *testing.T) {
 		u, _ := repo.Get(ctx, 7)
 		require.Equal(t, 1, u.Words["be"].Box, "tapping %q must count as correct (box 0->1); got %+v", pick, u.Words["be"])
 	}
+}
+
+func optsHas(opts []string, s string) bool {
+	return slices.Contains(opts, s)
 }

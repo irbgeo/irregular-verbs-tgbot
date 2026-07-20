@@ -8,8 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var fixedNow = time.Date(2026, 6, 29, 12, 0, 0, 0, time.UTC)
-
 func TestTestAnswerMarksSolved(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := startedTest(t)
@@ -87,3 +85,5 @@ func TestLearnAnswerMarksSolved(t *testing.T) {
 	u, _ := repo.Get(ctx, 7)
 	require.True(t, u.LastSolvedAt.Equal(fixedNow), "LastSolvedAt = %v, want %v", u.LastSolvedAt, fixedNow)
 }
+
+var fixedNow = time.Date(2026, 6, 29, 12, 0, 0, 0, time.UTC)

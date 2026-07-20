@@ -8,31 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// allFormsAnswer builds the ordered "base past participle" answer for a verb.
-func allFormsAnswer(v *Verb, variant string) string {
-	parts := []string{v.Base}
-	parts = append(parts, v.Past[variant]...)
-	parts = append(parts, v.Participle[variant]...)
-	return strings.Join(parts, " ")
-}
-
-func startedTest(t *testing.T) (*Service, *fakeUserRepo) {
-	t.Helper()
-	svc, repo := newSvc()
-	svc.rng = func(int) int { return 0 }
-	_, err := svc.SetVariant(context.Background(), 7, "gb")
-	require.NoError(t, err)
-	_, err = svc.StartTest(context.Background(), 7, "elementary")
-	require.NoError(t, err)
-	return svc, repo
-}
-
-func sess(t *testing.T, repo *fakeUserRepo) *Session {
-	t.Helper()
-	u, _ := repo.Get(context.Background(), 7)
-	return u.State.Session
-}
-
 func TestAnswerWrongAddsToStudyAndAdvances(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := startedTest(t)
@@ -120,4 +95,29 @@ func TestQueueEndDone(t *testing.T) {
 	require.Equal(t, ScreenTestDone, out.Screen, "view = %+v", out)
 	u, _ := repo.Get(ctx, 7)
 	require.Nil(t, u.State.Session, "session must be cleared at done")
+}
+
+// allFormsAnswer builds the ordered "base past participle" answer for a verb.
+func allFormsAnswer(v *Verb, variant string) string {
+	parts := []string{v.Base}
+	parts = append(parts, v.Past[variant]...)
+	parts = append(parts, v.Participle[variant]...)
+	return strings.Join(parts, " ")
+}
+
+func startedTest(t *testing.T) (*Service, *fakeUserRepo) {
+	t.Helper()
+	svc, repo := newSvc()
+	svc.rng = func(int) int { return 0 }
+	_, err := svc.SetVariant(context.Background(), 7, "gb")
+	require.NoError(t, err)
+	_, err = svc.StartTest(context.Background(), 7, "elementary")
+	require.NoError(t, err)
+	return svc, repo
+}
+
+func sess(t *testing.T, repo *fakeUserRepo) *Session {
+	t.Helper()
+	u, _ := repo.Get(context.Background(), 7)
+	return u.State.Session
 }

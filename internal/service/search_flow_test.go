@@ -7,13 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func searchSvc(t *testing.T) (*Service, *fakeUserRepo) {
-	t.Helper()
-	repo := newFakeUserRepo()
-	_ = repo.Save(context.Background(), &User{ID: 7, Settings: Settings{Variant: "gb"}})
-	return New(repo, searchCatalog()), repo
-}
-
 func TestOpenSearchShowsPrompt(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := searchSvc(t)
@@ -90,4 +83,11 @@ func TestOnTextOffSearchDelegatesToAnswer(t *testing.T) {
 	v, err := svc.OnText(ctx, 7, "whatever")
 	require.NoError(t, err)
 	require.False(t, v.List != nil && v.List.Kind == KindSearch, "off-search OnText must not produce a search list; got %+v", v)
+}
+
+func searchSvc(t *testing.T) (*Service, *fakeUserRepo) {
+	t.Helper()
+	repo := newFakeUserRepo()
+	_ = repo.Save(context.Background(), &User{ID: 7, Settings: Settings{Variant: "gb"}})
+	return New(repo, searchCatalog()), repo
 }

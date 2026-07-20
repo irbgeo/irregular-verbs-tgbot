@@ -11,21 +11,6 @@ import (
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/service"
 )
 
-func testStore(t *testing.T) *Store {
-	t.Helper()
-	uri := os.Getenv("MONGO_URI")
-	if uri == "" {
-		uri = "mongodb://localhost:27017"
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	s, err := Connect(ctx, uri, "irregular_verbs_test")
-	if err != nil {
-		t.Skipf("skipping: no MongoDB at %s: %v", uri, err)
-	}
-	return s
-}
-
 func TestUserRoundTrip(t *testing.T) {
 	s := testStore(t)
 	ctx := context.Background()
@@ -63,4 +48,19 @@ func TestVerbUpsertIdempotent(t *testing.T) {
 	n, err := s.Verbs.coll.CountDocuments(ctx, map[string]any{"_id": "go"})
 	require.NoError(t, err)
 	require.Equal(t, int64(1), n, "upsert must not duplicate")
+}
+
+func testStore(t *testing.T) *Store {
+	t.Helper()
+	uri := os.Getenv("MONGO_URI")
+	if uri == "" {
+		uri = "mongodb://localhost:27017"
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	s, err := Connect(ctx, uri, "irregular_verbs_test")
+	if err != nil {
+		t.Skipf("skipping: no MongoDB at %s: %v", uri, err)
+	}
+	return s
 }

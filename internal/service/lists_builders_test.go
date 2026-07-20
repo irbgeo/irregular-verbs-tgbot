@@ -6,17 +6,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func listUser() *User {
-	return &User{
-		Words: map[string]WordProgress{
-			"go": {Status: StatusStudy},
-			"be": {Status: StatusLearned},
-			"do": {Status: StatusSkipped},
-		},
-		State: State{List: &ListState{Kind: KindMyWords, Draft: map[string]string{}}},
-	}
-}
-
 func TestBuildMyWordsView(t *testing.T) {
 	s := New(nil, testCatalog())
 	u := listUser()
@@ -50,4 +39,15 @@ func TestBuildWordListView(t *testing.T) {
 	require.Equal(t, "be", el.Items[0].Base)
 	require.Equal(t, "go", el.Items[1].Base)
 	require.Equal(t, "elementary", el.Level)
+}
+
+func listUser() *User {
+	return &User{
+		Words: map[string]WordProgress{
+			"go": {Status: StatusStudy},
+			"be": {Status: StatusLearned},
+			"do": {Status: StatusSkipped},
+		},
+		State: State{List: &ListState{Kind: KindMyWords, Draft: map[string]string{}}},
+	}
 }

@@ -6,15 +6,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func searchCatalog() []Verb {
-	return []Verb{
-		{Base: "go", Level: "elementary", Past: map[string][]string{"gb": {"went"}, "us": {"went"}}, Participle: map[string][]string{"gb": {"gone"}, "us": {"gone"}}, Translations: []string{"идти", "ехать"}},
-		{Base: "get", Level: "elementary", Past: map[string][]string{"gb": {"got"}, "us": {"got"}}, Participle: map[string][]string{"gb": {"got"}, "us": {"gotten"}}, Translations: []string{"получать"}},
-		{Base: "run", Level: "elementary", Past: map[string][]string{"gb": {"ran"}, "us": {"ran"}}, Participle: map[string][]string{"gb": {"run"}, "us": {"run"}}, Translations: []string{"бежать"}},
-		{Base: "drive", Level: "elementary", Past: map[string][]string{"gb": {"drove"}, "us": {"drove"}}, Participle: map[string][]string{"gb": {"driven"}, "us": {"driven"}}, Translations: []string{"управлять машиной"}},
-	}
-}
-
 func TestSearchVerbs(t *testing.T) {
 	s := New(nil, searchCatalog())
 	cases := []struct {
@@ -37,5 +28,14 @@ func TestSearchVerbs(t *testing.T) {
 			continue
 		}
 		require.Equal(t, c.want, got, "searchVerbs(%q)", c.query)
+	}
+}
+
+func searchCatalog() []Verb {
+	return []Verb{
+		{Base: "go", Level: "elementary", Past: map[string][]string{"gb": {"went"}, "us": {"went"}}, Participle: map[string][]string{"gb": {"gone"}, "us": {"gone"}}, Translations: []string{"идти", "ехать"}},
+		{Base: "get", Level: "elementary", Past: map[string][]string{"gb": {"got"}, "us": {"got"}}, Participle: map[string][]string{"gb": {"got"}, "us": {"gotten"}}, Translations: []string{"получать"}},
+		{Base: "run", Level: "elementary", Past: map[string][]string{"gb": {"ran"}, "us": {"ran"}}, Participle: map[string][]string{"gb": {"run"}, "us": {"run"}}, Translations: []string{"бежать"}},
+		{Base: "drive", Level: "elementary", Past: map[string][]string{"gb": {"drove"}, "us": {"drove"}}, Participle: map[string][]string{"gb": {"driven"}, "us": {"driven"}}, Translations: []string{"управлять машиной"}},
 	}
 }

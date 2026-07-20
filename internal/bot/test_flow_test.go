@@ -10,17 +10,6 @@ import (
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/service"
 )
 
-func catalog() []service.Verb {
-	return []service.Verb{
-		{Base: "go", Level: "elementary", Past: map[string][]string{"gb": {"went"}, "us": {"went"}}, Participle: map[string][]string{"gb": {"gone"}, "us": {"gone"}}, Translations: []string{"идти"}},
-		{Base: "be", Level: "elementary", Past: map[string][]string{"gb": {"was", "were"}, "us": {"was", "were"}}, Participle: map[string][]string{"gb": {"been"}, "us": {"been"}}, Translations: []string{"быть"}},
-	}
-}
-
-func textUpdate(id int64, text string) tgbot.Update {
-	return tgbot.Update{Message: &tgbot.Message{Text: text, Chat: tgbot.Chat{ID: id}, From: &tgbot.User{ID: id}}}
-}
-
 func TestRouterFullTestFlow(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeUserRepo()
@@ -62,4 +51,15 @@ func TestRouterHelpThenMenu(t *testing.T) {
 	u, _ = repo.Get(ctx, 7)
 	require.Equal(t, string(service.ScreenMainMenu), u.State.Screen)
 	require.Nil(t, u.State.Session)
+}
+
+func catalog() []service.Verb {
+	return []service.Verb{
+		{Base: "go", Level: "elementary", Past: map[string][]string{"gb": {"went"}, "us": {"went"}}, Participle: map[string][]string{"gb": {"gone"}, "us": {"gone"}}, Translations: []string{"идти"}},
+		{Base: "be", Level: "elementary", Past: map[string][]string{"gb": {"was", "were"}, "us": {"was", "were"}}, Participle: map[string][]string{"gb": {"been"}, "us": {"been"}}, Translations: []string{"быть"}},
+	}
+}
+
+func textUpdate(id int64, text string) tgbot.Update {
+	return tgbot.Update{Message: &tgbot.Message{Text: text, Chat: tgbot.Chat{ID: id}, From: &tgbot.User{ID: id}}}
 }

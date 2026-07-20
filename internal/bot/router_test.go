@@ -13,6 +13,17 @@ import (
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/service"
 )
 
+func TestRouterStartAndVariant(t *testing.T) {
+	ctx := context.Background()
+	r, repo, sender := newRouter(t)
+	_ = r.Handle(ctx, startUpdate(7))
+	require.Equal(t, "Выберите вариант форм:", sender.last().text)
+	_ = r.Handle(ctx, cbUpdate(7, "variant:gb"))
+	u, _ := repo.Get(ctx, 7)
+	require.Equal(t, "gb", u.Settings.Variant)
+	require.Equal(t, string(service.ScreenMainMenu), u.State.Screen)
+}
+
 type fakeUserRepo struct{ m map[int64]*service.User }
 
 func newFakeUserRepo() *fakeUserRepo { return &fakeUserRepo{m: map[int64]*service.User{}} }
@@ -97,15 +108,4 @@ func startUpdate(id int64) tgbot.Update {
 }
 func cbUpdate(id int64, data string) tgbot.Update {
 	return tgbot.Update{CallbackQuery: &tgbot.CallbackQuery{ID: "cb", From: tgbot.User{ID: id}, Data: data, Message: &tgbot.Message{MessageID: 100, Chat: tgbot.Chat{ID: id}}}}
-}
-
-func TestRouterStartAndVariant(t *testing.T) {
-	ctx := context.Background()
-	r, repo, sender := newRouter(t)
-	_ = r.Handle(ctx, startUpdate(7))
-	require.Equal(t, "Выберите вариант форм:", sender.last().text)
-	_ = r.Handle(ctx, cbUpdate(7, "variant:gb"))
-	u, _ := repo.Get(ctx, 7)
-	require.Equal(t, "gb", u.Settings.Variant)
-	require.Equal(t, string(service.ScreenMainMenu), u.State.Screen)
 }

@@ -6,14 +6,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func ladderResult(t *testing.T, start WordProgress, ok bool) WordProgress {
-	t.Helper()
-	svc, _ := newLearnSvc()
-	u := learnUser(map[string]WordProgress{"go": start})
-	svc.learnLadder(u, "go", ok)
-	return u.Words["go"]
-}
-
 func TestLadderMode1Success(t *testing.T) {
 	got := ladderResult(t, WordProgress{Status: StatusStudy, Mode: 1, Box: 2}, true)
 	require.Equal(t, WordProgress{Status: StatusStudy, Mode: 1, Box: 3}, got, "mode1 +1")
@@ -48,4 +40,12 @@ func TestLadderLearnedSuccessUnchanged(t *testing.T) {
 func TestLadderLearnedFailDemotes(t *testing.T) {
 	got := ladderResult(t, WordProgress{Status: StatusLearned, Mode: 0, Box: 0}, false)
 	require.Equal(t, WordProgress{Status: StatusStudy, Mode: 2, Box: 0}, got, "learned fail -> study mode2")
+}
+
+func ladderResult(t *testing.T, start WordProgress, ok bool) WordProgress {
+	t.Helper()
+	svc, _ := newLearnSvc()
+	u := learnUser(map[string]WordProgress{"go": start})
+	svc.learnLadder(u, "go", ok)
+	return u.Words["go"]
 }

@@ -7,19 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func navSvc(t *testing.T) (*Service, *fakeUserRepo) {
-	t.Helper()
-	repo := newFakeUserRepo()
-	_ = repo.Save(context.Background(), &User{
-		ID:       7,
-		Settings: Settings{Variant: "gb"},
-		Words: map[string]WordProgress{
-			"go": {Status: StatusStudy}, "be": {Status: StatusLearned}, "do": {Status: StatusSkipped},
-		},
-	})
-	return New(repo, testCatalog()), repo
-}
-
 func TestOpenMyWordsInitsState(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := navSvc(t)
@@ -108,4 +95,17 @@ func TestListNavNoStateIgnored(t *testing.T) {
 	// no OpenMyWords/OpenWordList first -> List is nil
 	v, _ := svc.ListPage(ctx, 7, 1)
 	require.Equal(t, ScreenNone, v.Screen, "expected empty view")
+}
+
+func navSvc(t *testing.T) (*Service, *fakeUserRepo) {
+	t.Helper()
+	repo := newFakeUserRepo()
+	_ = repo.Save(context.Background(), &User{
+		ID:       7,
+		Settings: Settings{Variant: "gb"},
+		Words: map[string]WordProgress{
+			"go": {Status: StatusStudy}, "be": {Status: StatusLearned}, "do": {Status: StatusSkipped},
+		},
+	})
+	return New(repo, testCatalog()), repo
 }
