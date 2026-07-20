@@ -29,7 +29,7 @@ func TestRouterFullTestFlow(t *testing.T) {
 
 	_ = repo.Save(ctx, &service.User{ID: 7, Settings: service.Settings{Variant: "gb"}, State: service.State{Screen: string(service.ScreenMainMenu)}})
 
-	_ = r.Handle(ctx, cbUpdate(7, "menu:test"))       // -> test_level
+	_ = r.Handle(ctx, cbUpdate(7, "menu:test"))        // -> test_level
 	_ = r.Handle(ctx, cbUpdate(7, "level:elementary")) // -> quiz (first word)
 
 	u, _ := repo.Get(ctx, 7)

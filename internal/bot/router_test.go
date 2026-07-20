@@ -50,7 +50,10 @@ func (f *fakeSender) Edit(_ context.Context, _, _ int64, text string, _ *tgbot.I
 	f.msgs = append(f.msgs, sentMsg{text, true})
 	return nil
 }
-func (f *fakeSender) Answer(_ context.Context, _ string) error { f.answers = append(f.answers, ""); return nil }
+func (f *fakeSender) Answer(_ context.Context, _ string) error {
+	f.answers = append(f.answers, "")
+	return nil
+}
 func (f *fakeSender) AnswerText(_ context.Context, _, text string) error {
 	f.answers = append(f.answers, text)
 	return nil
@@ -84,4 +87,3 @@ func TestRouterStartAndVariant(t *testing.T) {
 		t.Fatalf("after variant: %+v", u)
 	}
 }
-

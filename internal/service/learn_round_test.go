@@ -5,9 +5,9 @@ import "testing"
 func TestWordFormat(t *testing.T) {
 	svc, _ := newLearnSvc()
 	u := learnUser(map[string]WordProgress{
-		"go":   {Status: StatusStudy, Mode: 1},
-		"do":   {Status: StatusStudy, Mode: 2},
-		"be":   {Status: StatusLearned},
+		"go": {Status: StatusStudy, Mode: 1},
+		"do": {Status: StatusStudy, Mode: 2},
+		"be": {Status: StatusLearned},
 	})
 	if got := svc.wordFormat(u, "go"); got != FormatChoice {
 		t.Fatalf("study mode1 = %q", got)
@@ -23,7 +23,7 @@ func TestWordFormat(t *testing.T) {
 func TestBuildRoundPicksFormsOnly(t *testing.T) {
 	svc, _ := newLearnSvc()
 	u := learnUser(map[string]WordProgress{"go": {Status: StatusStudy, Mode: 2}}) // input
-	svc.rng = seqRng(0, 1) // anchor index 0 (base), target index 1 (past)
+	svc.rng = seqRng(0, 1)                                                        // anchor index 0 (base), target index 1 (past)
 	sess := &Session{Mode: "learn", Base: "go"}
 	svc.buildRound(u, sess)
 	if sess.AnchorKind != KindBase || sess.TargetKind != KindPast {
@@ -41,7 +41,7 @@ func TestBuildRoundPicksFormsOnly(t *testing.T) {
 func TestBuildRoundChoiceFillsOptions(t *testing.T) {
 	svc, _ := newLearnSvc()
 	u := learnUser(map[string]WordProgress{"go": {Status: StatusStudy, Mode: 1}}) // choice
-	svc.rng = func(n int) int { return 0 } // anchor base, target base, deterministic shuffle
+	svc.rng = func(n int) int { return 0 }                                        // anchor base, target base, deterministic shuffle
 	sess := &Session{Mode: "learn", Base: "go"}
 	svc.buildRound(u, sess)
 	// go (base, correct) + remaining forms (went, gone) + 2 mistakes (goed, wented)

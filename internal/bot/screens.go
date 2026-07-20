@@ -8,12 +8,10 @@ import (
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/service"
 )
 
-func btn(text, data string) tgbot.InlineKeyboardButton {
-	return tgbot.InlineKeyboardButton{Text: text, CallbackData: data}
-}
+func btn(text, data string) tgbot.InlineKeyboardButton { return tgbot.Button(text, data) }
 
 func kb(rows ...[]tgbot.InlineKeyboardButton) *tgbot.InlineKeyboardMarkup {
-	return &tgbot.InlineKeyboardMarkup{InlineKeyboard: rows}
+	return tgbot.Keyboard(rows...)
 }
 
 var levelLabels = map[string]string{

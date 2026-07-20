@@ -34,7 +34,7 @@ func (s TelegramSender) Edit(ctx context.Context, chatID, messageID int64, text 
 }
 
 func (s TelegramSender) Answer(ctx context.Context, callbackID string) error {
-	_, err := s.Client.AnswerCallbackQuery(ctx, callbackID, nil)
+	_, err := s.Client.AnswerCallback(ctx, callbackID)
 	return err
 }
 

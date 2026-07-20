@@ -55,7 +55,7 @@ func TestRenderWordListHeaderAndNav(t *testing.T) {
 
 func TestRenderMyWordsControlRow(t *testing.T) {
 	v := service.View{Screen: service.ScreenMyWords, List: &service.ListView{
-		Kind: service.KindMyWords,
+		Kind:  service.KindMyWords,
 		Items: []service.ListItem{{Base: "go", Status: service.StatusStudy}},
 		Pages: 1, Dirty: true,
 	}}
@@ -97,7 +97,7 @@ func TestRouterWordListPickerFlow(t *testing.T) {
 	_ = repo.Save(ctx, &service.User{ID: 7, Settings: service.Settings{Variant: "gb"}, State: service.State{Screen: string(service.ScreenMainMenu)}})
 	r := New(svc, &fakeSender{})
 
-	_ = r.Handle(ctx, cbUpdate(7, "menu:list"))       // -> picker
+	_ = r.Handle(ctx, cbUpdate(7, "menu:list")) // -> picker
 	u, _ := repo.Get(ctx, 7)
 	if u.State.Screen != string(service.ScreenWordListLevels) {
 		t.Fatalf("screen = %s", u.State.Screen)

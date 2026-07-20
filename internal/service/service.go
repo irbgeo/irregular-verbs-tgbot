@@ -23,7 +23,12 @@ func New(users UserRepository, verbs []Verb) *Service {
 		byBase:  make(map[string]Verb, len(verbs)),
 		byLevel: make(map[string][]Verb),
 		now:     time.Now,
-		rng:     func(n int) int { if n <= 0 { return 0 }; return rand.Intn(n) },
+		rng: func(n int) int {
+			if n <= 0 {
+				return 0
+			}
+			return rand.Intn(n)
+		},
 	}
 	for _, v := range verbs {
 		s.byBase[v.Base] = v

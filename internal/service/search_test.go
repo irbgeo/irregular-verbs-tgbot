@@ -20,15 +20,15 @@ func TestSearchVerbs(t *testing.T) {
 		query string
 		want  []string
 	}{
-		{"go", []string{"go"}},                 // exact base
-		{"went", []string{"go"}},               // exact past
-		{"gotten", []string{"get"}},            // exact participle, us-only variant
-		{"машиной", []string{"drive"}},         // translation substring
-		{"GO", []string{"go"}},                 // case-insensitive
-		{"go went gone", []string{"go"}},       // all 3 forms -> single de-duped result
-		{"go run", []string{"go", "run"}},      // union of tokens, sorted
-		{"xyz", nil},                           // no match
-		{"   ", nil},                           // blank query -> no tokens
+		{"go", []string{"go"}},            // exact base
+		{"went", []string{"go"}},          // exact past
+		{"gotten", []string{"get"}},       // exact participle, us-only variant
+		{"машиной", []string{"drive"}},    // translation substring
+		{"GO", []string{"go"}},            // case-insensitive
+		{"go went gone", []string{"go"}},  // all 3 forms -> single de-duped result
+		{"go run", []string{"go", "run"}}, // union of tokens, sorted
+		{"xyz", nil},                      // no match
+		{"   ", nil},                      // blank query -> no tokens
 	}
 	for _, c := range cases {
 		got := s.searchVerbs(c.query)

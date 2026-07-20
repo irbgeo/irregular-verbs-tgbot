@@ -11,10 +11,10 @@ func TestEffectiveStatus(t *testing.T) {
 		State: State{List: &ListState{Draft: map[string]string{"be": StatusStudy, "do": StatusStudy}}},
 	}
 	cases := map[string]string{
-		"go": StatusStudy,   // from words, no draft
-		"be": StatusStudy,   // draft overrides skipped
-		"do": StatusStudy,   // draft only
-		"xx": StatusNew,     // unknown
+		"go": StatusStudy, // from words, no draft
+		"be": StatusStudy, // draft overrides skipped
+		"do": StatusStudy, // draft only
+		"xx": StatusNew,   // unknown
 	}
 	for base, want := range cases {
 		if got := effectiveStatus(u, base); got != want {

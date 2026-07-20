@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"log"
 	"os/signal"
 	"syscall"
@@ -57,7 +56,10 @@ func run() error {
 
 	log.Println("bot started (long polling)")
 	go remindLoop(ctx, svc, router)
-	return poll(ctx, client, router)
+	return client.Poll(ctx, tgbot.PollOptions{
+		Timeout: 10,
+		OnError: func(err error) { log.Printf("poll: %v", err) },
+	}, router.Handle)
 }
 
 // reminderTick is how often the scheduler scans for users due a reminder.
@@ -89,43 +91,6 @@ func remindLoop(ctx context.Context, svc *service.Service, router *bot.Router) {
 				if err := router.Deliver(ctx, id, v); err != nil {
 					log.Printf("reminders: deliver %d: %v", id, err)
 				}
-			}
-		}
-	}
-}
-
-func poll(ctx context.Context, client *tgbot.Client, router *bot.Router) error {
-	var offset int64
-	for {
-		select {
-		case <-ctx.Done():
-			log.Println("shutting down")
-			return nil
-		default:
-		}
-
-		updates, err := client.GetUpdates(ctx, &tgbot.GetUpdatesOptions{
-			Offset:  offset,
-			Timeout: 10,
-		})
-		if err != nil {
-			if ctx.Err() != nil {
-				return nil
-			}
-			var apiErr *tgbot.APIError
-			if errors.As(err, &apiErr) && apiErr.Parameters != nil && apiErr.Parameters.RetryAfter > 0 {
-				time.Sleep(time.Duration(apiErr.Parameters.RetryAfter) * time.Second)
-				continue
-			}
-			log.Printf("getUpdates error: %v", err)
-			time.Sleep(3 * time.Second)
-			continue
-		}
-
-		for _, upd := range updates {
-			offset = upd.UpdateID + 1
-			if err := router.Handle(ctx, upd); err != nil {
-				log.Printf("handle update %d: %v", upd.UpdateID, err)
 			}
 		}
 	}
