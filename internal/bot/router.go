@@ -42,7 +42,7 @@ func (s *Router) Handle(ctx context.Context, upd tgbot.Update) error {
 
 // Deliver renders a View and sends it as a new message to chatID. Used for
 // proactive reminders (chatID is the user's private chat == userID).
-func (s *Router) Deliver(ctx context.Context, chatID int64, v service.View) error {
+func (s *Router) Deliver(ctx context.Context, chatID int64, v *service.View) error {
 	text, kb := render(v)
 	if text == "" {
 		return nil
@@ -63,7 +63,7 @@ func (s *Router) handleMenu(ctx context.Context, m *tgbot.Message) error {
 	if err != nil {
 		return err
 	}
-	text, kb := render(view)
+	text, kb := render(&view)
 	return s.sender.Send(ctx, m.Chat.ID, text, kb)
 }
 
@@ -80,7 +80,7 @@ func (s *Router) handleStart(ctx context.Context, m *tgbot.Message) error {
 	if err != nil {
 		return err
 	}
-	text, kb := render(view)
+	text, kb := render(&view)
 	return s.sender.Send(ctx, m.Chat.ID, text, kb)
 }
 
@@ -92,7 +92,7 @@ func (s *Router) handleText(ctx context.Context, m *tgbot.Message) error {
 	if err != nil {
 		return err
 	}
-	text, kb := render(view)
+	text, kb := render(&view)
 	if text == "" {
 		return nil
 	}
@@ -124,7 +124,7 @@ func (s *Router) handleCallback(ctx context.Context, cq *tgbot.CallbackQuery) er
 		return s.sender.Answer(ctx, cq.ID)
 	}
 
-	text, kb := render(view)
+	text, kb := render(&view)
 	if err := s.sender.Edit(ctx, chatID, msgID, text, kb); err != nil {
 		return err
 	}

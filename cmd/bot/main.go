@@ -37,7 +37,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	defer st.Disconnect(context.Background())
+	defer st.Disconnect(context.Background()) // nolint:errcheck
 
 	list, err := service.LoadVerbs(cfg.VerbsPath)
 	if err != nil {

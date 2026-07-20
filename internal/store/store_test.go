@@ -57,8 +57,8 @@ func TestVerbUpsertIdempotent(t *testing.T) {
 	_ = s.Verbs.coll.Drop(ctx)
 
 	v := service.Verb{Base: "go", Level: "elementary"}
-	require.NoError(t, s.Verbs.Upsert(ctx, v))
-	require.NoError(t, s.Verbs.Upsert(ctx, v))
+	require.NoError(t, s.Verbs.Upsert(ctx, &v))
+	require.NoError(t, s.Verbs.Upsert(ctx, &v))
 
 	n, err := s.Verbs.coll.CountDocuments(ctx, map[string]any{"_id": "go"})
 	require.NoError(t, err)

@@ -18,7 +18,8 @@ func (s *Service) searchVerbs(query string) []string {
 	}
 	var out []string
 	for _, base := range s.allBases {
-		if verbMatchesAny(s.byBase[base], tokens) {
+		v := s.byBase[base]
+		if verbMatchesAny(&v, tokens) {
 			out = append(out, base)
 		}
 	}
@@ -27,7 +28,7 @@ func (s *Service) searchVerbs(query string) []string {
 }
 
 // verbMatchesAny reports whether the verb matches at least one token.
-func verbMatchesAny(v Verb, tokens []string) bool {
+func verbMatchesAny(v *Verb, tokens []string) bool {
 	forms := formSet(v)
 	for _, t := range tokens {
 		if forms[t] {
@@ -44,7 +45,7 @@ func verbMatchesAny(v Verb, tokens []string) bool {
 
 // formSet is the set of normalized forms (base + past + participle, both
 // variants) used for exact matching.
-func formSet(v Verb) map[string]bool {
+func formSet(v *Verb) map[string]bool {
 	set := map[string]bool{norm(v.Base): true}
 	for _, variant := range []string{"gb", "us"} {
 		for _, f := range v.Past[variant] {

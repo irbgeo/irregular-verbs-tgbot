@@ -18,7 +18,7 @@ var levelLabels = map[string]string{
 
 // render maps a View to Telegram text and keyboard. Returns ("", nil) for
 // ScreenNone (nothing to show).
-func render(v service.View) (string, *tgbot.InlineKeyboardMarkup) {
+func render(v *service.View) (string, *tgbot.InlineKeyboardMarkup) {
 	switch v.Screen {
 	case service.ScreenOnboardingVariant:
 		return "Выберите вариант форм:", tgbot.InlineKeyboard(
@@ -47,8 +47,10 @@ func render(v service.View) (string, *tgbot.InlineKeyboardMarkup) {
 					rows = append(rows, []tgbot.InlineKeyboardButton{tgbot.Button(opt, "lc:"+strconv.Itoa(i))})
 				}
 			}
-			rows = append(rows, []tgbot.InlineKeyboardButton{tgbot.Button("💡 Показать", "quiz:help")})
-			rows = append(rows, []tgbot.InlineKeyboardButton{tgbot.Button("⬅️ Меню", "nav:menu")})
+			rows = append(rows,
+				[]tgbot.InlineKeyboardButton{tgbot.Button("💡 Показать", "quiz:help")},
+				[]tgbot.InlineKeyboardButton{tgbot.Button("⬅️ Меню", "nav:menu")},
+			)
 			return withNewWord(v.Feedback, learnPrompt(v.Quiz)), tgbot.InlineKeyboard(rows...)
 		}
 		return withNewWord(v.Feedback, quizPrompt(v.Quiz)), tgbot.InlineKeyboard(
@@ -78,8 +80,10 @@ func render(v service.View) (string, *tgbot.InlineKeyboardMarkup) {
 		for _, lvl := range v.Levels {
 			rows = append(rows, []tgbot.InlineKeyboardButton{tgbot.Button(levelLabels[lvl], "wl:"+lvl)})
 		}
-		rows = append(rows, []tgbot.InlineKeyboardButton{tgbot.Button("Все слова", "wl:all")})
-		rows = append(rows, []tgbot.InlineKeyboardButton{tgbot.Button("↩️", "list:back")})
+		rows = append(rows,
+			[]tgbot.InlineKeyboardButton{tgbot.Button("Все слова", "wl:all")},
+			[]tgbot.InlineKeyboardButton{tgbot.Button("↩️", "list:back")},
+		)
 		return "📚 Список слов — выберите уровень:", tgbot.InlineKeyboard(rows...)
 	default:
 		return "", nil
@@ -109,7 +113,7 @@ func statusIcon(status string) string {
 }
 
 func wordRows(items []service.ListItem) [][]tgbot.InlineKeyboardButton {
-	var rows [][]tgbot.InlineKeyboardButton
+	rows := make([][]tgbot.InlineKeyboardButton, 0, len(items))
 	for _, it := range items {
 		label := statusIcon(it.Status) + " " + it.Base + " - " + it.Past + " - " + it.Participle
 		rows = append(rows, []tgbot.InlineKeyboardButton{tgbot.Button(label, "tog:"+it.Base)})

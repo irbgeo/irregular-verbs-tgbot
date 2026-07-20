@@ -17,5 +17,5 @@ type UserRepository interface {
 
 // VerbRepository persists verbs.
 type VerbRepository interface {
-	Upsert(ctx context.Context, v Verb) error
+	Upsert(ctx context.Context, v *Verb) error
 }

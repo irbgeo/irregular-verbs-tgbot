@@ -77,7 +77,7 @@ func pushRecent(recent []string, base string) []string {
 	return recent
 }
 
-func formValue(v Verb, kind, variant string) string {
+func formValue(v *Verb, kind, variant string) string {
 	switch kind {
 	case KindBase:
 		return v.Base
@@ -91,7 +91,7 @@ func formValue(v Verb, kind, variant string) string {
 // formVariants returns each variant of a form as its own string (base has one;
 // past/participle may have several, e.g. was/were → ["was", "were"]). Choice
 // buttons are built from these, one button per variant.
-func formVariants(v Verb, kind, variant string) []string {
+func formVariants(v *Verb, kind, variant string) []string {
 	switch kind {
 	case KindBase:
 		return []string{v.Base}
@@ -102,14 +102,7 @@ func formVariants(v Verb, kind, variant string) []string {
 	}
 }
 
-// correctOption is the choice-button value for a form target. For a
-// multi-variant form it lists all variants (e.g. "was/were"), so both variants
-// are shown in the options and either is accepted.
-func correctOption(v Verb, kind, variant string) string {
-	return formValue(v, kind, variant)
-}
-
-func (s *Service) checkTarget(v Verb, kind, input, variant string) bool {
+func (s *Service) checkTarget(v *Verb, kind, input, variant string) bool {
 	switch kind {
 	case KindBase:
 		return normBase(input) == norm(v.Base)
@@ -126,7 +119,7 @@ func (s *Service) checkTarget(v Verb, kind, input, variant string) bool {
 // was/were) contribute one button per variant. Duplicates (case-insensitive)
 // are dropped, so a verb whose forms coincide — or whose mistakes repeat a form
 // — yields fewer buttons.
-func (s *Service) formOptions(v Verb, kind, variant string) []string {
+func (s *Service) formOptions(v *Verb, kind, variant string) []string {
 	opts := []string{}
 	seen := map[string]bool{}
 	add := func(val string) {

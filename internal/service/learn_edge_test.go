@@ -33,7 +33,7 @@ func TestPromotionKeepsSessionAlive(t *testing.T) {
 	require.NoError(t, err)
 	u, _ := repo.Get(ctx, 7)
 	v, _ := svc.verb("go")
-	out, _ := svc.Answer(ctx, 7, correctOption(v, u.State.Session.TargetKind, "gb"))
+	out, _ := svc.Answer(ctx, 7, formValue(v, u.State.Session.TargetKind, "gb"))
 	require.Equal(t, ScreenQuiz, out.Screen, "after promotion to learned, repetition keeps quiz")
 	u, _ = repo.Get(ctx, 7)
 	require.Equal(t, StatusLearned, u.Words["go"].Status, "word should be learned")

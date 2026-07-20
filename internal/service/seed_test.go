@@ -11,7 +11,7 @@ type fakeVerbRepo struct {
 	calls map[string]int
 }
 
-func (f *fakeVerbRepo) Upsert(_ context.Context, v Verb) error {
+func (f *fakeVerbRepo) Upsert(_ context.Context, v *Verb) error {
 	if f.calls == nil {
 		f.calls = map[string]int{}
 	}

@@ -10,7 +10,7 @@ import (
 )
 
 func TestRenderSearchPrompt(t *testing.T) {
-	text, k := render(service.View{Screen: service.ScreenSearch}) // nil List -> prompt
+	text, k := render(&service.View{Screen: service.ScreenSearch}) // nil List -> prompt
 	require.Contains(t, text, "Введите слово")
 	last := k.InlineKeyboard[len(k.InlineKeyboard)-1]
 	require.Equal(t, "list:back", last[0].CallbackData)
@@ -21,7 +21,7 @@ func TestRenderSearchResults(t *testing.T) {
 		Kind: service.KindSearch, Page: 0, Pages: 1,
 		Items: []service.ListItem{{Base: "go", Status: service.StatusNew, Past: "went", Participle: "gone"}},
 	}}
-	text, k := render(v)
+	text, k := render(&v)
 	require.Contains(t, text, "🔎 Поиск")
 	require.Equal(t, "tog:go", k.InlineKeyboard[0][0].CallbackData)
 }
@@ -30,7 +30,7 @@ func TestRenderSearchEmpty(t *testing.T) {
 	v := service.View{Screen: service.ScreenSearch, List: &service.ListView{
 		Kind: service.KindSearch, Page: 0, Pages: 1, Items: []service.ListItem{},
 	}}
-	text, _ := render(v)
+	text, _ := render(&v)
 	require.Contains(t, text, "ничего не найдено")
 }
 

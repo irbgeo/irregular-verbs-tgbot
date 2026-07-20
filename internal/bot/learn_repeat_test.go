@@ -14,13 +14,13 @@ func TestLearnPromptRepeatIcon(t *testing.T) {
 		Mode: "learn", Format: "input", Base: "write",
 		AnchorKind: "participle", AnchorValue: "written", TargetKind: "past", Repeat: true,
 	}}
-	text, _ := render(repeat)
+	text, _ := render(&repeat)
 	require.True(t, strings.HasPrefix(text, "🔁 written"), "repeat prompt = %q", text)
 
 	study := service.View{Screen: service.ScreenQuiz, Quiz: &service.QuizView{
 		Mode: "learn", Format: "input", Base: "write",
 		AnchorKind: "participle", AnchorValue: "written", TargetKind: "past", Repeat: false,
 	}}
-	text, _ = render(study)
+	text, _ = render(&study)
 	require.True(t, strings.HasPrefix(text, "🎓 written"), "study prompt = %q", text)
 }

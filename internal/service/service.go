@@ -47,6 +47,6 @@ func New(users UserRepository, verbs []Verb) *Service {
 	return s
 }
 
-func (s *Service) verb(base string) (Verb, bool) { v, ok := s.byBase[base]; return v, ok }
+func (s *Service) verb(base string) (*Verb, bool) { v, ok := s.byBase[base]; return &v, ok }
 
 func (s *Service) levelWords(level string) []Verb { return s.byLevel[level] }

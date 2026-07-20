@@ -12,7 +12,7 @@ import (
 func TestQuizSeparatorWithFeedback(t *testing.T) {
 	v := service.View{Screen: service.ScreenQuiz, Feedback: "✅ Верно!\ngo - went - gone\nидти\n\n",
 		Quiz: &service.QuizView{Mode: "test", Base: "forbid"}}
-	text, _ := render(v)
+	text, _ := render(&v)
 	require.Contains(t, text, "🆕 Новое задание")
 	require.Contains(t, text, "➖")
 	// feedback must come before the separator, the new word after it
@@ -24,7 +24,7 @@ func TestQuizSeparatorWithFeedback(t *testing.T) {
 func TestQuizNoSeparatorWithoutFeedback(t *testing.T) {
 	v := service.View{Screen: service.ScreenQuiz,
 		Quiz: &service.QuizView{Mode: "test", Base: "forbid"}}
-	text, _ := render(v)
+	text, _ := render(&v)
 	require.NotContains(t, text, "🆕 Новое задание")
 	require.NotContains(t, text, "➖")
 }

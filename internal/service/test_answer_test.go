@@ -9,7 +9,7 @@ import (
 )
 
 // allFormsAnswer builds the ordered "base past participle" answer for a verb.
-func allFormsAnswer(v Verb, variant string) string {
+func allFormsAnswer(v *Verb, variant string) string {
 	parts := []string{v.Base}
 	parts = append(parts, v.Past[variant]...)
 	parts = append(parts, v.Participle[variant]...)

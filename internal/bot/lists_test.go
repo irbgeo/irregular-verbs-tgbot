@@ -19,7 +19,7 @@ func TestRenderMyWordsButtons(t *testing.T) {
 		},
 		Pages: 1,
 	}}
-	text, k := render(v)
+	text, k := render(&v)
 	require.True(t, strings.HasPrefix(text, "📋 Мои слова"), "text = %q", text)
 	require.Equal(t, "tog:be", k.InlineKeyboard[0][0].CallbackData)
 	last := k.InlineKeyboard[len(k.InlineKeyboard)-1]
@@ -32,7 +32,7 @@ func TestRenderWordListHeaderAndNav(t *testing.T) {
 		Page: 0, Pages: 2, HasNext: true,
 		Items: []service.ListItem{{Base: "be", Status: service.StatusNew}},
 	}}
-	text, k := render(v)
+	text, k := render(&v)
 	require.Contains(t, text, "Elementary")
 	require.Contains(t, text, "стр. 1/2")
 	require.Equal(t, "tog:be", k.InlineKeyboard[0][0].CallbackData)
@@ -48,7 +48,7 @@ func TestRenderMyWordsControlRow(t *testing.T) {
 		Items: []service.ListItem{{Base: "go", Status: service.StatusStudy}},
 		Pages: 1, Dirty: true,
 	}}
-	_, k := render(v)
+	_, k := render(&v)
 	last := k.InlineKeyboard[len(k.InlineKeyboard)-1]
 	// dirty, single page: 🔙 ❌ ✅
 	require.Len(t, last, 3)
@@ -59,7 +59,7 @@ func TestRenderMyWordsControlRow(t *testing.T) {
 
 func TestRenderWordListLevels(t *testing.T) {
 	v := service.View{Screen: service.ScreenWordListLevels, Levels: service.Levels}
-	text, k := render(v)
+	text, k := render(&v)
 	require.NotEmpty(t, text)
 	require.Equal(t, "wl:elementary", k.InlineKeyboard[0][0].CallbackData)
 	// has «Все слова» and back
@@ -103,7 +103,7 @@ func TestWordButtonShowsThreeForms(t *testing.T) {
 		Kind: service.KindMyWords, Pages: 1,
 		Items: []service.ListItem{{Base: "be", Status: service.StatusStudy, Past: "was/were", Participle: "been", Translation: "быть, являться"}},
 	}}
-	_, k := render(v)
+	_, k := render(&v)
 	label := k.InlineKeyboard[0][0].Text
 	require.Equal(t, "📘 be - was/were - been", label)
 }
@@ -115,7 +115,7 @@ func TestListSelectedShowsInfoBlock(t *testing.T) {
 		Items:    []service.ListItem{{Base: "be", Status: service.StatusStudy, Past: "was/were", Participle: "been", Translation: "быть, являться"}},
 		Selected: sel,
 	}}
-	text, _ := render(v)
+	text, _ := render(&v)
 	want := "📋 Мои слова (стр. 1/1)\n\nbe - was/were - been\nбыть, являться"
 	require.Equal(t, want, text)
 }
@@ -125,7 +125,7 @@ func TestListNoSelectionNoInfoBlock(t *testing.T) {
 		Kind: service.KindWordList, Level: "elementary", Pages: 1,
 		Items: []service.ListItem{{Base: "be", Status: service.StatusNew, Past: "was/were", Participle: "been", Translation: "быть"}},
 	}}
-	text, _ := render(v)
+	text, _ := render(&v)
 	require.Equal(t, "📚 Список слов — Elementary (стр. 1/1)", text)
 }
 
@@ -134,7 +134,7 @@ func TestBackEmojiIsReturnArrow(t *testing.T) {
 		Kind: service.KindMyWords, Pages: 1,
 		Items: []service.ListItem{},
 	}}
-	_, k := render(v)
+	_, k := render(&v)
 	last := k.InlineKeyboard[len(k.InlineKeyboard)-1]
 	require.Equal(t, "↩️", last[0].Text)
 	require.Equal(t, "list:back", last[0].CallbackData)

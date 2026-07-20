@@ -16,7 +16,7 @@ func TestLearnCorrectShowsInfo(t *testing.T) {
 	require.NoError(t, err)
 	u, _ := repo.Get(ctx, 7)
 	v, _ := svc.verb("go")
-	ans := correctOption(v, u.State.Session.TargetKind, "gb")
+	ans := formValue(v, u.State.Session.TargetKind, "gb")
 	out, _ := svc.Answer(ctx, 7, ans)
 	require.Contains(t, out.Feedback, "✅ Верно!")
 	require.Contains(t, out.Feedback, "go - went - gone\nидти")
@@ -62,7 +62,7 @@ func TestLearnInputCorrectAdvancesAndLadders(t *testing.T) {
 	cur := u.State.Session.Base
 	v, _ := svc.verb(cur)
 	// answer the asked target correctly
-	out, err := svc.Answer(ctx, 7, correctOption(v, u.State.Session.TargetKind, "gb"))
+	out, err := svc.Answer(ctx, 7, formValue(v, u.State.Session.TargetKind, "gb"))
 	require.NoError(t, err)
 	require.Equal(t, ScreenQuiz, out.Screen, "should stay in quiz")
 	u, _ = repo.Get(ctx, 7)
@@ -106,7 +106,7 @@ func TestLearnChooseCorrect(t *testing.T) {
 	u, _ := repo.Get(ctx, 7)
 	sess := u.State.Session
 	v, _ := svc.verb(sess.Base)
-	correct := correctOption(v, sess.TargetKind, "gb")
+	correct := formValue(v, sess.TargetKind, "gb")
 	idx := -1
 	for i, o := range sess.Options {
 		if o == correct {

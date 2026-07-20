@@ -55,7 +55,7 @@ func (s *Worker) remindLoop(ctx context.Context) {
 				if !ok {
 					continue
 				}
-				if err := s.router.Deliver(ctx, id, v); err != nil {
+				if err := s.router.Deliver(ctx, id, &v); err != nil {
 					log.Printf("reminders: deliver %d: %v", id, err)
 				}
 			}

@@ -22,7 +22,7 @@ func learnBotCatalog() []service.Verb {
 }
 
 func TestRenderLearnEmpty(t *testing.T) {
-	text, k := render(service.View{Screen: service.ScreenLearnEmpty})
+	text, k := render(&service.View{Screen: service.ScreenLearnEmpty})
 	require.Contains(t, text, "Пока нечего учить", "text = %q", text)
 	require.Equal(t, "menu:test", k.InlineKeyboard[0][0].CallbackData, "first button = %+v", k.InlineKeyboard[0][0])
 }
@@ -32,7 +32,7 @@ func TestRenderLearnInputHasShowAndMenuOnly(t *testing.T) {
 		Mode: "learn", Format: "input", Base: "go",
 		AnchorKind: "past", AnchorValue: "went", TargetKind: "base",
 	}}
-	text, k := render(v)
+	text, k := render(&v)
 	require.Contains(t, text, "went", "text = %q", text)
 	require.NotContains(t, text, "(past)", "text = %q", text)
 	require.Contains(t, text, "Введите инфинитив", "text = %q", text)
@@ -48,7 +48,7 @@ func TestRenderLearnChoiceHasOptionButtons(t *testing.T) {
 		AnchorKind: "base", AnchorValue: "go", TargetKind: "past",
 		Options: []string{"went", "goed", "gone", "did"},
 	}}
-	text, k := render(v)
+	text, k := render(&v)
 	require.Contains(t, text, "Выберите past", "text = %q", text)
 	require.Equal(t, "lc:0", k.InlineKeyboard[0][0].CallbackData, "option callbacks = %+v", k.InlineKeyboard)
 	require.Equal(t, "lc:3", k.InlineKeyboard[3][0].CallbackData, "option callbacks = %+v", k.InlineKeyboard)

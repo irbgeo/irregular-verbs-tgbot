@@ -49,7 +49,7 @@ func TestCheckAllFormsOrdered(t *testing.T) {
 		{burn, "burn nope burnt", false},        // wrong past
 	}
 	for _, c := range cases {
-		got := s.checkAllFormsOrdered(c.v, c.in, "gb")
+		got := s.checkAllFormsOrdered(&c.v, c.in, "gb")
 		require.Equal(t, c.want, got, "checkAllFormsOrdered(%q)", c.in)
 	}
 }

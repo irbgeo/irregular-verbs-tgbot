@@ -10,7 +10,7 @@ func TestFormValueAndCorrectOption(t *testing.T) {
 	svc, _ := newLearnSvc()
 	v, _ := svc.verb("be")
 	require.Equal(t, "was/were", formValue(v, KindPast, "gb"))
-	require.Equal(t, "was/were", correctOption(v, KindPast, "gb"))
+	require.Equal(t, "was/were", formValue(v, KindPast, "gb"))
 }
 
 func TestCheckTarget(t *testing.T) {

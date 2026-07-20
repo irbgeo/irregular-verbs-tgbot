@@ -20,7 +20,7 @@ func TestCheckAnswerBaseAcceptsToPrefix(t *testing.T) {
 		{"to go", false},
 	}
 	for _, c := range cases {
-		got := s.checkTarget(v, KindBase, c.in, "gb")
+		got := s.checkTarget(&v, KindBase, c.in, "gb")
 		require.Equal(t, c.want, got, "checkTarget(base,%q)", c.in)
 	}
 }

@@ -27,7 +27,7 @@ func TestLearnStartsMode0WordAtMode1(t *testing.T) {
 	// A correct choice advances the box via the mode-1 ladder branch.
 	sess := u.State.Session
 	vb, _ := svc.verb("go")
-	correct := correctOption(vb, sess.TargetKind, "gb")
+	correct := formValue(vb, sess.TargetKind, "gb")
 	idx := -1
 	for i, o := range sess.Options {
 		if o == correct {

@@ -15,7 +15,7 @@ func TestDeliverSendsRenderedView(t *testing.T) {
 		Mode: "learn", Format: "input", Base: "go",
 		AnchorKind: "past", AnchorValue: "went", TargetKind: "base",
 	}}
-	require.NoError(t, r.Deliver(context.Background(), 42, v))
+	require.NoError(t, r.Deliver(context.Background(), 42, &v))
 	require.Len(t, sender.msgs, 1, "expected one fresh Send, got %+v", sender.msgs)
 	require.False(t, sender.last().edit, "expected one fresh Send, got %+v", sender.msgs)
 	require.Contains(t, sender.last().text, "went", "delivered text = %q", sender.last().text)
@@ -23,6 +23,6 @@ func TestDeliverSendsRenderedView(t *testing.T) {
 
 func TestDeliverEmptyViewSendsNothing(t *testing.T) {
 	r, _, sender := newRouter()
-	require.NoError(t, r.Deliver(context.Background(), 42, service.View{}))
+	require.NoError(t, r.Deliver(context.Background(), 42, &service.View{}))
 	require.Empty(t, sender.msgs, "empty view should send nothing, got %+v", sender.msgs)
 }
