@@ -8,6 +8,7 @@ import (
 	"time"
 
 	tgbot "github.com/irbgeo/go-tgbot"
+
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/bot"
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/config"
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/service"

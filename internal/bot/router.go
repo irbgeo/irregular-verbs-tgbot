@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	tgbot "github.com/irbgeo/go-tgbot"
+
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/service"
 )
 
