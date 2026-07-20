@@ -3,7 +3,7 @@ module github.com/irbgeo/irregular-verbs-tgbot
 go 1.26
 
 require (
-	github.com/irbgeo/go-tgbot v0.0.0-20260720205312-7d957060337b
+	github.com/irbgeo/go-tgbot v0.0.0-20260720220935-189393e786e7
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/stretchr/testify v1.11.1
 	go.mongodb.org/mongo-driver v1.17.9

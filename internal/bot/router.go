@@ -103,9 +103,9 @@ func (s *Router) handleCallback(ctx context.Context, cq *tgbot.CallbackQuery) er
 	if cq.Message == nil {
 		return s.sender.Answer(ctx, cq.ID)
 	}
-	chatID := cq.Message.Chat.ID
-	msgID := cq.Message.MessageID
-	userID := cq.From.ID
+	chatID := cq.ChatID()
+	msgID := cq.MessageID()
+	userID := cq.SenderID()
 
 	kind, value, _ := strings.Cut(cq.Data, ":")
 	view, err := s.dispatch(ctx, userID, kind, value)
