@@ -12,6 +12,7 @@ import (
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/config"
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/service"
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/store"
+	"github.com/irbgeo/irregular-verbs-tgbot/internal/worker"
 )
 
 func main() {
@@ -54,44 +55,11 @@ func run() error {
 	}
 	router := bot.New(svc, bot.TelegramSender{Client: client})
 
+	worker.New(svc, router).Start(ctx)
+
 	log.Println("bot started (long polling)")
-	go remindLoop(ctx, svc, router)
 	return client.Poll(ctx, tgbot.PollOptions{
 		Timeout: 10,
 		OnError: func(err error) { log.Printf("poll: %v", err) },
 	}, router.Handle)
-}
-
-// reminderTick is how often the scheduler scans for users due a reminder.
-const reminderTick = time.Hour
-
-// remindLoop periodically sends a learn task to users idle for over 24h.
-func remindLoop(ctx context.Context, svc *service.Service, router *bot.Router) {
-	t := time.NewTicker(reminderTick)
-	defer t.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-t.C:
-			ids, err := svc.DueReminders(ctx)
-			if err != nil {
-				log.Printf("reminders: due query: %v", err)
-				continue
-			}
-			for _, id := range ids {
-				v, ok, err := svc.Remind(ctx, id)
-				if err != nil {
-					log.Printf("reminders: build %d: %v", id, err)
-					continue
-				}
-				if !ok {
-					continue
-				}
-				if err := router.Deliver(ctx, id, v); err != nil {
-					log.Printf("reminders: deliver %d: %v", id, err)
-				}
-			}
-		}
-	}
 }
