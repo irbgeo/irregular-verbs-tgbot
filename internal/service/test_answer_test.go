@@ -16,7 +16,7 @@ func TestAnswerWrongAddsToStudyAndAdvances(t *testing.T) {
 	v, err := svc.Answer(ctx, 7, "definitely-wrong")
 	require.NoError(t, err)
 	require.Equal(t, ScreenQuiz, v.Screen, "view = %+v", v)
-	require.NotEmpty(t, v.Feedback, "view = %+v", v)
+	require.NotNil(t, v.Feedback, "view = %+v", v)
 	u, _ := repo.Get(ctx, 7)
 	w := u.Words[cur]
 	require.Equal(t, StatusStudy, w.Status, "word %s = %+v", cur, w)
@@ -36,10 +36,9 @@ func TestAnswerWrongOrderAddsToStudy(t *testing.T) {
 	wrong := v.Participle["gb"][0] + " " + v.Past["gb"][0] + " " + v.Base
 	out, err := svc.Answer(ctx, 7, wrong)
 	require.NoError(t, err)
-	require.NotEmpty(t, out.Feedback, "wrong order must be incorrect (feedback shown)")
-	require.True(t, strings.HasPrefix(out.Feedback, "❌ Неверно.\n"), "wrong feedback must start with newline after Неверно.: %q", out.Feedback)
-	require.NotContains(t, out.Feedback, "Правильно:", "wrong feedback must not contain Правильно: %q", out.Feedback)
-	require.Contains(t, out.Feedback, "➕ Добавлено в изучение", "wrong feedback must note the word was added: %q", out.Feedback)
+	require.NotNil(t, out.Feedback, "wrong order must be incorrect (feedback shown)")
+	require.Equal(t, AnswerIncorrect, out.Feedback.Result, "wrong order must be incorrect")
+	require.True(t, out.Feedback.AddedToStudy, "wrong feedback must note the word was added")
 	u, _ := repo.Get(ctx, 7)
 	require.Equal(t, StatusStudy, u.Words[cur].Status, "wrong answer should add %s to study", cur)
 }
@@ -52,8 +51,11 @@ func TestAnswerAllCorrectAsksResult(t *testing.T) {
 
 	out, _ := svc.Answer(ctx, 7, allFormsAnswer(v, "gb")) // all 3 forms in order
 	require.Equal(t, ScreenTestResult, out.Screen, "view = %+v", out)
-	require.Contains(t, out.Feedback, "✅ Верно!", "result feedback = %q", out.Feedback)
-	require.Contains(t, out.Feedback, "go - went - gone", "result feedback = %q", out.Feedback)
+	require.NotNil(t, out.Feedback)
+	require.Equal(t, AnswerCorrect, out.Feedback.Result)
+	require.Equal(t, "go", out.Feedback.Base)
+	require.Equal(t, []string{"went"}, out.Feedback.Past)
+	require.Equal(t, []string{"gone"}, out.Feedback.Participle)
 	// not yet written to study (decided by Keep/Drop)
 	u, _ := repo.Get(ctx, 7)
 	_, ok := u.Words[cur]
@@ -67,8 +69,9 @@ func TestHelpAddsToStudyAndAdvances(t *testing.T) {
 	out, err := svc.Help(ctx, 7)
 	require.NoError(t, err)
 	require.Equal(t, ScreenQuiz, out.Screen, "view = %+v", out)
-	require.NotEmpty(t, out.Feedback, "view = %+v", out)
-	require.Contains(t, out.Feedback, "➕ Добавлено в изучение", "help feedback must note the word was added: %q", out.Feedback)
+	require.NotNil(t, out.Feedback, "view = %+v", out)
+	require.Equal(t, AnswerHint, out.Feedback.Result, "help reveals the forms")
+	require.True(t, out.Feedback.AddedToStudy, "help feedback must note the word was added")
 	u, _ := repo.Get(ctx, 7)
 	require.Equal(t, StatusStudy, u.Words[cur].Status, "help should add %s to study", cur)
 	require.NotEqual(t, cur, u.State.Session.Base, "help should advance")

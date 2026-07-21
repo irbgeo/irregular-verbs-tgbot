@@ -18,8 +18,12 @@ func TestLearnCorrectShowsInfo(t *testing.T) {
 	v, _ := svc.verb("go")
 	ans := formValue(v, u.State.Session.TargetKind, "gb")
 	out, _ := svc.Answer(ctx, 7, ans)
-	require.Contains(t, out.Feedback, "✅ Верно!")
-	require.Contains(t, out.Feedback, "go - went - gone\nидти")
+	require.NotNil(t, out.Feedback)
+	require.Equal(t, AnswerCorrect, out.Feedback.Result)
+	require.Equal(t, "go", out.Feedback.Base)
+	require.Equal(t, []string{"went"}, out.Feedback.Past)
+	require.Equal(t, []string{"gone"}, out.Feedback.Participle)
+	require.Equal(t, []string{"идти"}, out.Feedback.Translations)
 }
 
 func TestStartLearnEmpty(t *testing.T) {
@@ -77,7 +81,7 @@ func TestLearnInputWrongShowsFeedbackAndZeroesBox(t *testing.T) {
 	_, err := svc.StartLearn(ctx, 7)
 	require.NoError(t, err)
 	out, _ := svc.Answer(ctx, 7, "definitely-wrong")
-	require.NotEmpty(t, out.Feedback, "wrong answer must show feedback")
+	require.NotNil(t, out.Feedback, "wrong answer must show feedback")
 	u, _ := repo.Get(ctx, 7)
 	require.Equal(t, 0, u.Words["go"].Box, "box should reset to 0")
 }
@@ -90,7 +94,7 @@ func TestLearnRevealIsFailure(t *testing.T) {
 	_, err := svc.StartLearn(ctx, 7)
 	require.NoError(t, err)
 	out, _ := svc.Help(ctx, 7)
-	require.NotEmpty(t, out.Feedback, "reveal must show forms")
+	require.NotNil(t, out.Feedback, "reveal must show forms")
 	u, _ := repo.Get(ctx, 7)
 	require.Equal(t, 0, u.Words["go"].Box, "reveal should zero the box")
 	require.Equal(t, StatusStudy, u.Words["go"].Status, "reveal should zero the box")

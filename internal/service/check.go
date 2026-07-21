@@ -126,11 +126,15 @@ func matchGroupsOrdered(groups [][]string, toks []string) bool {
 	return false
 }
 
-// correctText is the human "correct answer" block for feedback: the three
-// forms on the first line (separated by " - "), the translation on the next.
-func (s *Service) correctText(v *Verb, variant string) string {
-	return v.Base + " - " +
-		strings.Join(v.Past[variant], "/") + " - " +
-		strings.Join(v.Participle[variant], "/") + "\n" +
-		strings.Join(v.Translations, ", ")
+// feedbackFor builds the semantic answer result for a verb: the correct forms
+// (for the tutee's variant) plus the outcome. The bot renders the wording.
+func feedbackFor(v *Verb, variant string, result AnswerResult, addedToStudy bool) *Feedback {
+	return &Feedback{
+		Result:       result,
+		AddedToStudy: addedToStudy,
+		Base:         v.Base,
+		Past:         v.Past[variant],
+		Participle:   v.Participle[variant],
+		Translations: v.Translations,
+	}
 }

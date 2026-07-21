@@ -10,8 +10,9 @@ import (
 )
 
 func TestQuizSeparatorWithFeedback(t *testing.T) {
-	v := service.View{Screen: service.ScreenQuiz, Feedback: "✅ Верно!\ngo - went - gone\nидти\n\n",
-		Quiz: &service.QuizView{Mode: "test", Base: "forbid"}}
+	v := service.View{Screen: service.ScreenQuiz,
+		Feedback: &service.Feedback{Result: service.AnswerCorrect, Base: "go", Past: []string{"went"}, Participle: []string{"gone"}, Translations: []string{"идти"}},
+		Quiz:     &service.QuizView{Mode: "test", Base: "forbid"}}
 	text, _ := render(&v)
 	require.Contains(t, text, "🆕 Новое задание")
 	require.Contains(t, text, "➖")

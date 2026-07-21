@@ -309,15 +309,14 @@ func (s *Service) resolveLearn(ctx context.Context, u *User, ok, reveal bool) (V
 	s.markSolved(u)
 	s.learnLadder(u, sess.Base, ok)
 	out := s.advanceLearn(u)
-	info := s.correctText(v, u.Settings.Variant)
+	result := AnswerIncorrect
 	switch {
 	case ok:
-		out.Feedback = "✅ Верно!\n" + info + "\n\n"
+		result = AnswerCorrect
 	case reveal:
-		out.Feedback = "💡 " + info + "\n\n"
-	default:
-		out.Feedback = "❌ Неверно.\n" + info + "\n\n"
+		result = AnswerHint
 	}
+	out.Feedback = feedbackFor(v, u.Settings.Variant, result, false)
 	if err := s.save(ctx, u); err != nil {
 		return View{}, err
 	}

@@ -43,8 +43,12 @@ func TestCheckTargetBaseAcceptsToPrefix(t *testing.T) {
 	}
 }
 
-func TestCorrectTextNoToMarker(t *testing.T) {
+func TestCorrectFormsNoToMarker(t *testing.T) {
 	svc, _ := newLearnSvc()
 	v, _ := svc.verb("go")
-	require.Equal(t, "go - went - gone\nидти", svc.correctText(v, "gb"))
+	f := feedbackFor(v, "gb", AnswerCorrect, false)
+	require.Equal(t, "go", f.Base) // base has no "to " infinitive marker
+	require.Equal(t, []string{"went"}, f.Past)
+	require.Equal(t, []string{"gone"}, f.Participle)
+	require.Equal(t, []string{"идти"}, f.Translations)
 }

@@ -3,6 +3,7 @@ package bot
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	tgbot "github.com/irbgeo/go-tgbot"
 
@@ -51,9 +52,9 @@ func render(v *service.View) (string, *tgbot.InlineKeyboardMarkup) {
 				[]tgbot.InlineKeyboardButton{tgbot.Button("💡 Показать", "quiz:help")},
 				[]tgbot.InlineKeyboardButton{tgbot.Button("⬅️ Меню", "nav:menu")},
 			)
-			return withNewWord(v.Feedback, learnPrompt(v.Quiz)), tgbot.InlineKeyboard(rows...)
+			return withNewWord(renderFeedback(v.Feedback), learnPrompt(v.Quiz)), tgbot.InlineKeyboard(rows...)
 		}
-		return withNewWord(v.Feedback, quizPrompt(v.Quiz)), tgbot.InlineKeyboard(
+		return withNewWord(renderFeedback(v.Feedback), quizPrompt(v.Quiz)), tgbot.InlineKeyboard(
 			[]tgbot.InlineKeyboardButton{tgbot.Button("💡 Помощь", "quiz:help"), tgbot.Button("⏭️ Скип", "quiz:skip")},
 			[]tgbot.InlineKeyboardButton{tgbot.Button("⬅️ Меню", "nav:menu")},
 		)
@@ -62,7 +63,7 @@ func render(v *service.View) (string, *tgbot.InlineKeyboardMarkup) {
 			[]tgbot.InlineKeyboardButton{tgbot.Button("🧪 Тест", "menu:test"), tgbot.Button("⬅️ Меню", "nav:menu")},
 		)
 	case service.ScreenTestResult:
-		return v.Feedback + "Добавить слово в изучение?", tgbot.InlineKeyboard(
+		return renderFeedback(v.Feedback) + "Добавить слово в изучение?", tgbot.InlineKeyboard(
 			[]tgbot.InlineKeyboardButton{tgbot.Button("✅ В изучение", "res:keep"), tgbot.Button("⏭️ Скип", "res:drop")},
 		)
 	case service.ScreenTestDone:
@@ -97,6 +98,35 @@ func withNewWord(feedback, prompt string) string {
 		return prompt
 	}
 	return feedback + "➖➖➖➖➖➖➖➖\n🆕 Новое задание\n" + prompt
+}
+
+// studyAddedNote is appended to feedback when a word was auto-added to study.
+const studyAddedNote = "\n➕ Добавлено в изучение"
+
+// renderFeedback turns the service's semantic Feedback into the display block:
+// the outcome line, the correct forms, and the study-added note.
+func renderFeedback(f *service.Feedback) string {
+	if f == nil {
+		return ""
+	}
+	var head string
+	switch f.Result {
+	case service.AnswerCorrect:
+		head = "✅ Верно!\n"
+	case service.AnswerHint:
+		head = "💡 "
+	case service.AnswerIncorrect:
+		head = "❌ Неверно.\n"
+	}
+	forms := f.Base + " - " +
+		strings.Join(f.Past, "/") + " - " +
+		strings.Join(f.Participle, "/") + "\n" +
+		strings.Join(f.Translations, ", ")
+	out := head + forms
+	if f.AddedToStudy {
+		out += studyAddedNote
+	}
+	return out + "\n\n"
 }
 
 func statusIcon(status string) string {

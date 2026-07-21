@@ -119,14 +119,37 @@ type QuizView struct {
 	Repeat      bool     // learned word being repeated
 }
 
-// View is what a use-case returns; the bot renders it.
+// View is what a use-case returns; the bot renders it. It carries no
+// user-facing copy — the bot owns all wording, emoji and layout.
 type View struct {
 	Screen   Screen
 	Quiz     *QuizView
 	Levels   []string
 	List     *ListView
-	Notice   string // popup via answerCallbackQuery; screen unchanged
-	Feedback string // prepended to the rendered message (quiz feedback)
+	Notice   string    // popup via answerCallbackQuery; screen unchanged
+	Feedback *Feedback // semantic answer result, prepended to the quiz message
+}
+
+// AnswerResult is the outcome of answering a quiz question.
+type AnswerResult int
+
+const (
+	AnswerCorrect AnswerResult = iota
+	AnswerHint                 // forms revealed via "help"
+	AnswerIncorrect
+)
+
+// Feedback is the semantic result of the last answer. The bot turns it into the
+// "✅ Верно! / 💡 / ❌ Неверно." block with the correct forms; the service never
+// formats it.
+type Feedback struct {
+	Result       AnswerResult
+	AddedToStudy bool // the word was auto-added to study (Тест flow)
+	// Correct-answer forms, for the bot to display:
+	Base         string
+	Past         []string
+	Participle   []string
+	Translations []string
 }
 
 // List edit kinds.
