@@ -20,20 +20,20 @@ type UserRepo struct {
 
 // Get returns the user by id, or (nil, nil) if not found.
 func (s *UserRepo) Get(ctx context.Context, id int64) (*service.User, error) {
-	var u service.User
-	err := s.coll.FindOne(ctx, bson.M{"_id": id}).Decode(&u)
+	var d user
+	err := s.coll.FindOne(ctx, bson.M{"_id": id}).Decode(&d)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("store: get user %d: %w", id, err)
 	}
-	return &u, nil
+	return d.toService(), nil
 }
 
 // Save inserts or replaces the user document by id.
 func (s *UserRepo) Save(ctx context.Context, u *service.User) error {
-	_, err := s.coll.ReplaceOne(ctx, bson.M{"_id": u.ID}, u, options.Replace().SetUpsert(true))
+	_, err := s.coll.ReplaceOne(ctx, bson.M{"_id": u.ID}, userToStore(u), options.Replace().SetUpsert(true))
 	if err != nil {
 		return fmt.Errorf("store: save user %d: %w", u.ID, err)
 	}
@@ -53,9 +53,13 @@ func (s *UserRepo) DueForReminder(ctx context.Context, before time.Time) ([]*ser
 	if err != nil {
 		return nil, fmt.Errorf("store: due for reminder: %w", err)
 	}
-	var users []*service.User
-	if err := cur.All(ctx, &users); err != nil {
+	var docs []user
+	if err := cur.All(ctx, &docs); err != nil {
 		return nil, fmt.Errorf("store: decode reminder users: %w", err)
+	}
+	users := make([]*service.User, len(docs))
+	for i := range docs {
+		users[i] = docs[i].toService()
 	}
 	return users, nil
 }
