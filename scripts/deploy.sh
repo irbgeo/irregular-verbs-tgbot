@@ -4,7 +4,7 @@
 # container, and print HEAD, container status, and recent logs.
 #
 # Config via environment (defaults match the current stand):
-#   DEPLOY_SERVER    ssh target            (default: root@146.103.104.106)
+#   DEPLOY_SERVER    ssh target            (default: root@89.124.83.157)
 #   DEPLOY_DIR       app dir on server     (default: /opt/irregular-verbs-tgbot)
 #   DEPLOY_BRANCH    branch to deploy       (default: main)
 #   DEPLOY_PASSWORD  ssh password          (optional; needs `sshpass`. Read from
@@ -26,7 +26,7 @@ if [[ -z "${DEPLOY_PASSWORD:-}" && -f "$REPO_ROOT/.env" ]]; then
   DEPLOY_PASSWORD="$(grep -E '^DEPLOY_PASSWORD=' "$REPO_ROOT/.env" | tail -n1 | cut -d= -f2-)"
 fi
 
-SERVER="${DEPLOY_SERVER:-root@146.103.104.106}"
+SERVER="${DEPLOY_SERVER:-root@89.124.83.157}"
 APP_DIR="${DEPLOY_DIR:-/opt/irregular-verbs-tgbot}"
 BRANCH="${DEPLOY_BRANCH:-main}"
 
