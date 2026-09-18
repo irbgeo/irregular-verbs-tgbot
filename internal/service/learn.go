@@ -5,6 +5,51 @@ import (
 	"strings"
 )
 
+// StartLearn opens the training session, or the empty screen if nothing is
+// eligible.
+func (s *Service) StartLearn(ctx context.Context, userID int64) (View, error) {
+	u, err := s.load(ctx, userID)
+	if err != nil {
+		return View{}, err
+	}
+	v, ok := s.beginLearn(u)
+	if !ok {
+		u.State = State{Screen: string(ScreenLearnEmpty)}
+		v = View{Screen: ScreenLearnEmpty}
+	}
+	if err := s.save(ctx, u); err != nil {
+		return View{}, err
+	}
+	return v, nil
+}
+
+// LearnChoose handles a tapped option in learn mode (choice format only).
+func (s *Service) LearnChoose(ctx context.Context, p LearnChooseParams) (View, error) {
+	u, err := s.load(ctx, p.UserID)
+	if err != nil {
+		return View{}, err
+	}
+	if !s.inLearn(u) || s.wordFormat(u, u.State.Session.Base) != FormatChoice {
+		return View{}, nil
+	}
+	sess := u.State.Session
+	if p.Idx < 0 || p.Idx >= len(sess.Options) {
+		return View{}, nil
+	}
+	v, _ := s.verb(sess.Base)
+	// the tapped option is correct if it matches any variant of the target form
+	// (multi-variant forms are split across several buttons).
+	ok := s.checkTarget(v, checkTargetArgs{
+		Kind:    sess.TargetKind,
+		Input:   sess.Options[p.Idx],
+		Variant: u.Settings.Variant,
+	})
+	return s.resolveLearn(ctx, resolveLearnArgs{
+		U:  u,
+		OK: ok,
+	})
+}
+
 // learnPool returns study and learned bases in catalog order (deterministic).
 func (s *Service) learnPool(u *User) (study, learned []string) {
 	for _, b := range s.allBases {
@@ -77,39 +122,39 @@ func pushRecent(recent []string, base string) []string {
 	return recent
 }
 
-func formValue(v *Verb, kind, variant string) string {
-	switch kind {
+func formValue(v *Verb, args formArgs) string {
+	switch args.Kind {
 	case KindBase:
 		return v.Base
 	case KindPast:
-		return strings.Join(v.Past[variant], "/")
+		return strings.Join(v.Past[args.Variant], "/")
 	default: // KindParticiple
-		return strings.Join(v.Participle[variant], "/")
+		return strings.Join(v.Participle[args.Variant], "/")
 	}
 }
 
 // formVariants returns each variant of a form as its own string (base has one;
 // past/participle may have several, e.g. was/were → ["was", "were"]). Choice
 // buttons are built from these, one button per variant.
-func formVariants(v *Verb, kind, variant string) []string {
-	switch kind {
+func formVariants(v *Verb, args formArgs) []string {
+	switch args.Kind {
 	case KindBase:
 		return []string{v.Base}
 	case KindPast:
-		return v.Past[variant]
+		return v.Past[args.Variant]
 	default: // KindParticiple
-		return v.Participle[variant]
+		return v.Participle[args.Variant]
 	}
 }
 
-func (s *Service) checkTarget(v *Verb, kind, input, variant string) bool {
-	switch kind {
+func (s *Service) checkTarget(v *Verb, args checkTargetArgs) bool {
+	switch args.Kind {
 	case KindBase:
-		return normBase(input) == norm(v.Base)
+		return normBase(args.Input) == norm(v.Base)
 	case KindPast:
-		return matchForm(input, v.Past[variant])
+		return matchForm(args.Input, v.Past[args.Variant])
 	default: // KindParticiple
-		return matchForm(input, v.Participle[variant])
+		return matchForm(args.Input, v.Participle[args.Variant])
 	}
 }
 
@@ -119,7 +164,7 @@ func (s *Service) checkTarget(v *Verb, kind, input, variant string) bool {
 // was/were) contribute one button per variant. Duplicates (case-insensitive)
 // are dropped, so a verb whose forms coincide — or whose mistakes repeat a form
 // — yields fewer buttons.
-func (s *Service) formOptions(v *Verb, kind, variant string) []string {
+func (s *Service) formOptions(v *Verb, args formArgs) []string {
 	opts := []string{}
 	seen := map[string]bool{}
 	add := func(val string) {
@@ -131,14 +176,18 @@ func (s *Service) formOptions(v *Verb, kind, variant string) []string {
 		opts = append(opts, val)
 	}
 	// the correct form, one button per variant
-	for _, f := range formVariants(v, kind, variant) {
+	for _, f := range formVariants(v, args) {
 		add(f)
 	}
 	// the word's remaining forms (the two kinds other than the asked one),
 	// again one button per variant
 	for _, k := range []string{KindBase, KindPast, KindParticiple} {
-		if k != kind {
-			for _, f := range formVariants(v, k, variant) {
+		if k != args.Kind {
+			other := formArgs{
+				Kind:    k,
+				Variant: args.Variant,
+			}
+			for _, f := range formVariants(v, other) {
 				add(f)
 			}
 		}
@@ -191,19 +240,26 @@ func (s *Service) buildRound(u *User, sess *Session) {
 
 	sess.Options = nil
 	if s.wordFormat(u, sess.Base) == FormatChoice {
-		sess.Options = s.formOptions(v, sess.TargetKind, variant)
+		sess.Options = s.formOptions(v, formArgs{
+			Kind:    sess.TargetKind,
+			Variant: variant,
+		})
 	}
 }
 
 func (s *Service) learnQuestion(u *User, sess *Session) *QuizView {
 	v, _ := s.verb(sess.Base)
 	variant := u.Settings.Variant
+	anchorArgs := formArgs{
+		Kind:    sess.AnchorKind,
+		Variant: variant,
+	}
 	return &QuizView{
 		Base:        sess.Base,
 		Mode:        "learn",
 		Format:      s.wordFormat(u, sess.Base),
 		AnchorKind:  sess.AnchorKind,
-		AnchorValue: formValue(v, sess.AnchorKind, variant),
+		AnchorValue: formValue(v, anchorArgs),
 		TargetKind:  sess.TargetKind,
 		Options:     sess.Options,
 		Repeat:      u.Words[sess.Base].Status == StatusLearned,
@@ -211,11 +267,11 @@ func (s *Service) learnQuestion(u *User, sess *Session) *QuizView {
 }
 
 // learnLadder applies the Leitner transition for base after a round result.
-func (s *Service) learnLadder(u *User, base string, ok bool) {
-	w := u.Words[base]
+func (s *Service) learnLadder(u *User, args learnLadderArgs) {
+	w := u.Words[args.Base]
 	switch {
 	case w.Status == StatusStudy && w.Mode == 1:
-		if ok {
+		if args.OK {
 			w.Box++
 			if w.Box == BoxMax {
 				w.Mode = 2
@@ -225,7 +281,7 @@ func (s *Service) learnLadder(u *User, base string, ok bool) {
 			w.Box = 0
 		}
 	case w.Status == StatusStudy && w.Mode == 2:
-		if ok {
+		if args.OK {
 			w.Box++
 			if w.Box == BoxMax {
 				w.Status = StatusLearned
@@ -236,13 +292,13 @@ func (s *Service) learnLadder(u *User, base string, ok bool) {
 			w.Box = 0
 		}
 	case w.Status == StatusLearned:
-		if !ok {
+		if !args.OK {
 			w.Status = StatusStudy
 			w.Mode = 2
 			w.Box = 0
 		}
 	}
-	u.Words[base] = w
+	u.Words[args.Base] = w
 }
 
 func (s *Service) inLearn(u *User) bool {
@@ -250,24 +306,6 @@ func (s *Service) inLearn(u *User) bool {
 		u.State.Screen == string(ScreenQuiz) &&
 		u.State.Session != nil &&
 		u.State.Session.Mode == "learn"
-}
-
-// StartLearn opens the training session, or the empty screen if nothing is
-// eligible.
-func (s *Service) StartLearn(ctx context.Context, userID int64) (View, error) {
-	u, err := s.load(ctx, userID)
-	if err != nil {
-		return View{}, err
-	}
-	v, ok := s.beginLearn(u)
-	if !ok {
-		u.State = State{Screen: string(ScreenLearnEmpty)}
-		v = View{Screen: ScreenLearnEmpty}
-	}
-	if err := s.save(ctx, u); err != nil {
-		return View{}, err
-	}
-	return v, nil
 }
 
 // beginLearn sets up a learn session on u (mutating State) and returns the
@@ -278,11 +316,21 @@ func (s *Service) beginLearn(u *User) (View, bool) {
 	if !ok {
 		return View{}, false
 	}
-	sess := &Session{Mode: "learn", Base: base, Recent: []string{base}}
+	sess := &Session{
+		Mode:   "learn",
+		Base:   base,
+		Recent: []string{base},
+	}
 	s.startStudyWord(u, base)
 	s.buildRound(u, sess)
-	u.State = State{Screen: string(ScreenQuiz), Session: sess}
-	return View{Screen: ScreenQuiz, Quiz: s.learnQuestion(u, sess)}, true
+	u.State = State{
+		Screen:  string(ScreenQuiz),
+		Session: sess,
+	}
+	return View{
+		Screen: ScreenQuiz,
+		Quiz:   s.learnQuestion(u, sess),
+	}, true
 }
 
 // advanceLearn moves to the next word (mutating u); pool never empties mid-
@@ -298,25 +346,35 @@ func (s *Service) advanceLearn(u *User) View {
 	sess.Recent = pushRecent(sess.Recent, base)
 	s.startStudyWord(u, base)
 	s.buildRound(u, sess)
-	return View{Screen: ScreenQuiz, Quiz: s.learnQuestion(u, sess)}
+	return View{
+		Screen: ScreenQuiz,
+		Quiz:   s.learnQuestion(u, sess),
+	}
 }
 
 // resolveLearn applies the ladder, advances, and (on failure/reveal) attaches
 // the correct-forms feedback.
-func (s *Service) resolveLearn(ctx context.Context, u *User, ok, reveal bool) (View, error) {
+func (s *Service) resolveLearn(ctx context.Context, args resolveLearnArgs) (View, error) {
+	u := args.U
 	sess := u.State.Session
 	v, _ := s.verb(sess.Base)
 	s.markSolved(u)
-	s.learnLadder(u, sess.Base, ok)
+	s.learnLadder(u, learnLadderArgs{
+		Base: sess.Base,
+		OK:   args.OK,
+	})
 	out := s.advanceLearn(u)
 	result := AnswerIncorrect
 	switch {
-	case ok:
+	case args.OK:
 		result = AnswerCorrect
-	case reveal:
+	case args.Reveal:
 		result = AnswerHint
 	}
-	out.Feedback = feedbackFor(v, u.Settings.Variant, result, false)
+	out.Feedback = feedbackFor(v, feedbackForArgs{
+		Variant: u.Settings.Variant,
+		Result:  result,
+	})
 	if err := s.save(ctx, u); err != nil {
 		return View{}, err
 	}
@@ -324,32 +382,20 @@ func (s *Service) resolveLearn(ctx context.Context, u *User, ok, reveal bool) (V
 }
 
 // learnText handles a typed answer in learn mode (input format only).
-func (s *Service) learnText(ctx context.Context, u *User, text string) (View, error) {
+func (s *Service) learnText(ctx context.Context, args learnTextArgs) (View, error) {
+	u := args.U
 	sess := u.State.Session
 	if s.wordFormat(u, sess.Base) != FormatInput {
 		return View{}, nil // choice mode: ignore typed text
 	}
 	v, _ := s.verb(sess.Base)
-	ok := s.checkTarget(v, sess.TargetKind, text, u.Settings.Variant)
-	return s.resolveLearn(ctx, u, ok, false)
-}
-
-// LearnChoose handles a tapped option in learn mode (choice format only).
-func (s *Service) LearnChoose(ctx context.Context, userID int64, idx int) (View, error) {
-	u, err := s.load(ctx, userID)
-	if err != nil {
-		return View{}, err
-	}
-	if !s.inLearn(u) || s.wordFormat(u, u.State.Session.Base) != FormatChoice {
-		return View{}, nil
-	}
-	sess := u.State.Session
-	if idx < 0 || idx >= len(sess.Options) {
-		return View{}, nil
-	}
-	v, _ := s.verb(sess.Base)
-	// the tapped option is correct if it matches any variant of the target form
-	// (multi-variant forms are split across several buttons).
-	ok := s.checkTarget(v, sess.TargetKind, sess.Options[idx], u.Settings.Variant)
-	return s.resolveLearn(ctx, u, ok, false)
+	ok := s.checkTarget(v, checkTargetArgs{
+		Kind:    sess.TargetKind,
+		Input:   args.Text,
+		Variant: u.Settings.Variant,
+	})
+	return s.resolveLearn(ctx, resolveLearnArgs{
+		U:  u,
+		OK: ok,
+	})
 }

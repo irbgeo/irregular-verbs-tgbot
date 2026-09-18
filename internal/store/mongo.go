@@ -24,15 +24,15 @@ var (
 )
 
 // Connect dials MongoDB, verifies the connection, and builds repositories.
-func Connect(ctx context.Context, uri, dbName string) (*Store, error) {
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
+func Connect(ctx context.Context, p ConnectParams) (*Store, error) {
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(p.URI))
 	if err != nil {
 		return nil, fmt.Errorf("store: connect: %w", err)
 	}
 	if err := client.Ping(ctx, nil); err != nil {
 		return nil, fmt.Errorf("store: ping: %w", err)
 	}
-	db := client.Database(dbName)
+	db := client.Database(p.DBName)
 	return &Store{
 		client: client,
 		Users:  &UserRepo{coll: db.Collection("users")},

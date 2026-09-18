@@ -18,8 +18,14 @@ type Router struct {
 }
 
 // New creates a Router.
-func New(svc *service.Service, sender Sender) *Router {
-	return &Router{svc: svc, sender: sender}
+func New(
+	svc *service.Service,
+	sender Sender,
+) *Router {
+	return &Router{
+		svc:    svc,
+		sender: sender,
+	}
 }
 
 // Handle routes one update.
@@ -88,7 +94,10 @@ func (s *Router) handleText(ctx context.Context, m *tgbot.Message) error {
 	if m.From == nil {
 		return nil
 	}
-	view, err := s.svc.OnText(ctx, m.From.ID, m.Text)
+	view, err := s.svc.OnText(ctx, service.OnTextParams{
+		UserID: m.From.ID,
+		Text:   m.Text,
+	})
 	if err != nil {
 		return err
 	}
@@ -108,7 +117,11 @@ func (s *Router) handleCallback(ctx context.Context, cq *tgbot.CallbackQuery) er
 	userID := cq.SenderID()
 
 	kind, value, _ := strings.Cut(cq.Data, ":")
-	view, err := s.dispatch(ctx, userID, kind, value)
+	view, err := s.dispatch(ctx, dispatchArgs{
+		UserID: userID,
+		Kind:   kind,
+		Value:  value,
+	})
 	if err != nil {
 		// Unknown or invalid callback: acknowledge, leave the screen unchanged.
 		return s.sender.Answer(ctx, cq.ID)
@@ -131,10 +144,14 @@ func (s *Router) handleCallback(ctx context.Context, cq *tgbot.CallbackQuery) er
 	return s.sender.Answer(ctx, cq.ID)
 }
 
-func (s *Router) dispatch(ctx context.Context, userID int64, kind, value string) (service.View, error) {
+func (s *Router) dispatch(ctx context.Context, args dispatchArgs) (service.View, error) {
+	userID, kind, value := args.UserID, args.Kind, args.Value
 	switch kind {
 	case "variant":
-		return s.svc.SetVariant(ctx, userID, value)
+		return s.svc.SetVariant(ctx, service.SetVariantParams{
+			UserID:  userID,
+			Variant: value,
+		})
 	case "nav":
 		return s.svc.OpenMenu(ctx, userID)
 	case "menu":
@@ -153,9 +170,15 @@ func (s *Router) dispatch(ctx context.Context, userID int64, kind, value string)
 			return service.View{}, fmt.Errorf("bot: unknown menu value %q", value)
 		}
 	case "level":
-		return s.svc.StartTest(ctx, userID, value)
+		return s.svc.StartTest(ctx, service.StartTestParams{
+			UserID: userID,
+			Level:  value,
+		})
 	case "wl":
-		return s.svc.ChooseLevel(ctx, userID, value)
+		return s.svc.ChooseLevel(ctx, service.ChooseLevelParams{
+			UserID: userID,
+			Level:  value,
+		})
 	case "quiz":
 		switch value {
 		case "help":
@@ -179,15 +202,24 @@ func (s *Router) dispatch(ctx context.Context, userID int64, kind, value string)
 		if err != nil {
 			return service.View{}, fmt.Errorf("bot: bad choice %q", value)
 		}
-		return s.svc.LearnChoose(ctx, userID, idx)
+		return s.svc.LearnChoose(ctx, service.LearnChooseParams{
+			UserID: userID,
+			Idx:    idx,
+		})
 	case "lp":
 		page, err := strconv.Atoi(value)
 		if err != nil {
 			return service.View{}, fmt.Errorf("bot: bad page %q", value)
 		}
-		return s.svc.ListPage(ctx, userID, page)
+		return s.svc.ListPage(ctx, service.ListPageParams{
+			UserID: userID,
+			Page:   page,
+		})
 	case "tog":
-		return s.svc.ListToggle(ctx, userID, value)
+		return s.svc.ListToggle(ctx, service.ListToggleParams{
+			UserID: userID,
+			Base:   value,
+		})
 	case "list":
 		switch value {
 		case "ok":

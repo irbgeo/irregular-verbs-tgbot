@@ -33,7 +33,10 @@ func run() error {
 
 	connectCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	st, err := store.Connect(connectCtx, cfg.MongoURI, cfg.MongoDB)
+	st, err := store.Connect(connectCtx, store.ConnectParams{
+		URI:    cfg.MongoURI,
+		DBName: cfg.MongoDB,
+	})
 	if err != nil {
 		return err
 	}
@@ -43,7 +46,10 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	if err := service.SeedVerbs(ctx, st.Verbs, list); err != nil {
+	if err := service.SeedVerbs(ctx, service.SeedVerbsParams{
+		Repo:  st.Verbs,
+		Verbs: list,
+	}); err != nil {
 		return err
 	}
 	log.Printf("seeded %d verbs", len(list))

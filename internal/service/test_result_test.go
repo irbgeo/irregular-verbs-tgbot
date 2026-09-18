@@ -35,7 +35,7 @@ func toResult(t *testing.T, svc *Service, repo *fakeUserRepo) string {
 	cur := sess(t, repo).Base
 	v, _ := svc.verb(cur)
 	// one message with all three forms in order -> result
-	out, _ := svc.Answer(ctx, 7, allFormsAnswer(v, "gb"))
+	out, _ := svc.Answer(ctx, AnswerParams{UserID: 7, Text: allFormsAnswer(v, "gb")})
 	require.Equal(t, ScreenTestResult, out.Screen)
 	return cur
 }

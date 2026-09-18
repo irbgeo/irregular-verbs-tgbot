@@ -9,6 +9,12 @@ import (
 // This file is the storage boundary: MongoDB document types (with bson tags)
 // and converters to/from the tag-free domain types in internal/service.
 
+// ConnectParams bundles Connect's arguments beyond ctx.
+type ConnectParams struct {
+	URI    string
+	DBName string
+}
+
 // --- Verb ---
 
 type verb struct {
@@ -96,7 +102,11 @@ func userToStore(u *service.User) user {
 	if u.Words != nil {
 		d.Words = make(map[string]wordProgress, len(u.Words))
 		for k, w := range u.Words {
-			d.Words[k] = wordProgress{Status: w.Status, Mode: w.Mode, Box: w.Box}
+			d.Words[k] = wordProgress{
+				Status: w.Status,
+				Mode:   w.Mode,
+				Box:    w.Box,
+			}
 		}
 	}
 	return d
@@ -115,7 +125,11 @@ func (s *user) toService() *service.User {
 	if s.Words != nil {
 		u.Words = make(map[string]service.WordProgress, len(s.Words))
 		for k, w := range s.Words {
-			u.Words[k] = service.WordProgress{Status: w.Status, Mode: w.Mode, Box: w.Box}
+			u.Words[k] = service.WordProgress{
+				Status: w.Status,
+				Mode:   w.Mode,
+				Box:    w.Box,
+			}
 		}
 	}
 	return u
@@ -125,36 +139,52 @@ func stateToStore(s service.State) state {
 	d := state{Screen: s.Screen}
 	if s.Session != nil {
 		d.Session = &session{
-			Mode: s.Session.Mode, Level: s.Session.Level, Queue: s.Session.Queue,
-			Base: s.Session.Base, Step: s.Session.Step,
-			AnchorKind: s.Session.AnchorKind, TargetKind: s.Session.TargetKind,
-			Options: s.Session.Options, Recent: s.Session.Recent,
+			Mode:       s.Session.Mode,
+			Level:      s.Session.Level,
+			Queue:      s.Session.Queue,
+			Base:       s.Session.Base,
+			Step:       s.Session.Step,
+			AnchorKind: s.Session.AnchorKind,
+			TargetKind: s.Session.TargetKind,
+			Options:    s.Session.Options,
+			Recent:     s.Session.Recent,
 		}
 	}
 	if s.List != nil {
 		d.List = &listState{
-			Kind: s.List.Kind, Level: s.List.Level, Page: s.List.Page,
-			Draft: s.List.Draft, Query: s.List.Query,
+			Kind:  s.List.Kind,
+			Level: s.List.Level,
+			Page:  s.List.Page,
+			Draft: s.List.Draft,
+			Query: s.List.Query,
 		}
 	}
 	return d
 }
 
 func (s state) toService() service.State {
-	state := service.State{Screen: s.Screen}
+	st := service.State{Screen: s.Screen}
 	if s.Session != nil {
-		state.Session = &service.Session{
-			Mode: s.Session.Mode, Level: s.Session.Level, Queue: s.Session.Queue,
-			Base: s.Session.Base, Step: s.Session.Step,
-			AnchorKind: s.Session.AnchorKind, TargetKind: s.Session.TargetKind,
-			Options: s.Session.Options, Recent: s.Session.Recent,
+		st.Session = &service.Session{
+			Mode:       s.Session.Mode,
+			Level:      s.Session.Level,
+			Queue:      s.Session.Queue,
+			Base:       s.Session.Base,
+			Step:       s.Session.Step,
+			AnchorKind: s.Session.AnchorKind,
+			TargetKind: s.Session.TargetKind,
+			Options:    s.Session.Options,
+			Recent:     s.Session.Recent,
 		}
 	}
 	if s.List != nil {
-		state.List = &service.ListState{
-			Kind: s.List.Kind, Level: s.List.Level, Page: s.List.Page,
-			Draft: s.List.Draft, Query: s.List.Query,
+		st.List = &service.ListState{
+			Kind:  s.List.Kind,
+			Level: s.List.Level,
+			Page:  s.List.Page,
+			Draft: s.List.Draft,
+			Query: s.List.Query,
 		}
 	}
-	return state
+	return st
 }

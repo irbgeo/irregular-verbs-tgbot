@@ -23,8 +23,12 @@ type TelegramSender struct {
 
 var _ Sender = TelegramSender{}
 
-func NewTelegramSender(client *tgbot.Client) TelegramSender {
-	return TelegramSender{client: client}
+func NewTelegramSender(
+	client *tgbot.Client,
+) TelegramSender {
+	return TelegramSender{
+		client: client,
+	}
 }
 
 func (s TelegramSender) Send(ctx context.Context, chatID int64, text string, kb *tgbot.InlineKeyboardMarkup) error {

@@ -14,7 +14,7 @@ func TestTestAnswerMarksSolved(t *testing.T) {
 	svc.now = func() time.Time { return fixedNow }
 	cur := sess(t, repo).Base
 	v, _ := svc.verb(cur)
-	_, err := svc.Answer(ctx, 7, v.Base) // step 0: base, correct
+	_, err := svc.Answer(ctx, AnswerParams{UserID: 7, Text: v.Base}) // step 0: base, correct
 	require.NoError(t, err)
 	u, _ := repo.Get(ctx, 7)
 	require.True(t, u.LastSolvedAt.Equal(fixedNow), "LastSolvedAt = %v, want %v", u.LastSolvedAt, fixedNow)
@@ -80,7 +80,7 @@ func TestLearnAnswerMarksSolved(t *testing.T) {
 	_ = repo.Save(ctx, learnUser(map[string]WordProgress{"go": {Status: StatusStudy, Mode: 2}}))
 	_, err := svc.StartLearn(ctx, 7)
 	require.NoError(t, err)
-	_, err = svc.Answer(ctx, 7, "definitely-wrong") // attempt counts as solving
+	_, err = svc.Answer(ctx, AnswerParams{UserID: 7, Text: "definitely-wrong"}) // attempt counts as solving
 	require.NoError(t, err)
 	u, _ := repo.Get(ctx, 7)
 	require.True(t, u.LastSolvedAt.Equal(fixedNow), "LastSolvedAt = %v, want %v", u.LastSolvedAt, fixedNow)

@@ -22,8 +22,14 @@ type Worker struct {
 }
 
 // New creates a Worker.
-func New(svc *service.Service, router *bot.Router) *Worker {
-	return &Worker{svc: svc, router: router}
+func New(
+	svc *service.Service,
+	router *bot.Router,
+) *Worker {
+	return &Worker{
+		svc:    svc,
+		router: router,
+	}
 }
 
 // Start launches the background loops as goroutines; they stop when ctx is

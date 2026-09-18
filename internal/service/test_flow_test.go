@@ -21,7 +21,7 @@ func TestStartTestBuildsSession(t *testing.T) {
 	svc, repo := newSvc()
 	svc.rng = func(int) int { return 0 } // deterministic shuffle
 
-	v, err := svc.StartTest(ctx, 7, "elementary")
+	v, err := svc.StartTest(ctx, StartTestParams{UserID: 7, Level: "elementary"})
 	require.NoError(t, err)
 	require.Equal(t, ScreenQuiz, v.Screen, "view = %+v", v)
 	require.NotNil(t, v.Quiz, "view = %+v", v)
@@ -39,7 +39,7 @@ func TestStartTestIncludesEarlierLevels(t *testing.T) {
 	svc, repo := newSvc()
 	svc.rng = func(int) int { return 0 }
 
-	_, err := svc.StartTest(ctx, 7, "pre-intermediate")
+	_, err := svc.StartTest(ctx, StartTestParams{UserID: 7, Level: "pre-intermediate"})
 	require.NoError(t, err)
 	u, _ := repo.Get(ctx, 7)
 	sess := u.State.Session
@@ -58,6 +58,6 @@ func TestStartTestIncludesEarlierLevels(t *testing.T) {
 func TestStartTestRejectsUnknownLevel(t *testing.T) {
 	ctx := context.Background()
 	svc, _ := newSvc()
-	_, err := svc.StartTest(ctx, 7, "nope")
+	_, err := svc.StartTest(ctx, StartTestParams{UserID: 7, Level: "nope"})
 	require.Error(t, err, "want error for unknown level")
 }

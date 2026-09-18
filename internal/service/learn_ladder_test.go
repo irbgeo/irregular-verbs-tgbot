@@ -46,6 +46,6 @@ func ladderResult(t *testing.T, start WordProgress, ok bool) WordProgress {
 	t.Helper()
 	svc, _ := newLearnSvc()
 	u := learnUser(map[string]WordProgress{"go": start})
-	svc.learnLadder(u, "go", ok)
+	svc.learnLadder(u, learnLadderArgs{Base: "go", OK: ok})
 	return u.Words["go"]
 }

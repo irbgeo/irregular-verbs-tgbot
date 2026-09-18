@@ -92,13 +92,13 @@ func sameFormSet(got, want []string) bool {
 // base, then past, then participle — with an optional leading "to". Separators
 // are flexible; the order of the three groups matters, order within a
 // multi-variant group does not.
-func (s *Service) checkAllFormsOrdered(v *Verb, input, variant string) bool {
-	toks := tokensOf(input)
+func (s *Service) checkAllFormsOrdered(v *Verb, args checkAllFormsOrderedArgs) bool {
+	toks := tokensOf(args.Input)
 	i := 0
 	if i < len(toks) && toks[i] == "to" {
 		i++ // optional infinitive marker
 	}
-	groups := [][]string{{v.Base}, v.Past[variant], v.Participle[variant]}
+	groups := [][]string{{v.Base}, v.Past[args.Variant], v.Participle[args.Variant]}
 	return matchGroupsOrdered(groups, toks[i:])
 }
 
@@ -128,13 +128,13 @@ func matchGroupsOrdered(groups [][]string, toks []string) bool {
 
 // feedbackFor builds the semantic answer result for a verb: the correct forms
 // (for the tutee's variant) plus the outcome. The bot renders the wording.
-func feedbackFor(v *Verb, variant string, result AnswerResult, addedToStudy bool) *Feedback {
+func feedbackFor(v *Verb, args feedbackForArgs) *Feedback {
 	return &Feedback{
-		Result:       result,
-		AddedToStudy: addedToStudy,
+		Result:       args.Result,
+		AddedToStudy: args.AddedToStudy,
 		Base:         v.Base,
-		Past:         v.Past[variant],
-		Participle:   v.Participle[variant],
+		Past:         v.Past[args.Variant],
+		Participle:   v.Participle[args.Variant],
 		Translations: v.Translations,
 	}
 }

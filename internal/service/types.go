@@ -188,3 +188,121 @@ type ListView struct {
 	Dirty       bool      // draft non-empty (bot shows ✅/❌)
 	Selected    *ListItem // word just tapped: forms+translation shown in text (nil = no info block)
 }
+
+// ChooseLevelParams bundles ChooseLevel's arguments.
+type ChooseLevelParams struct {
+	UserID int64
+	Level  string
+}
+
+// StartTestParams bundles StartTest's arguments.
+type StartTestParams struct {
+	UserID int64
+	Level  string
+}
+
+// AnswerParams bundles Answer's arguments.
+type AnswerParams struct {
+	UserID int64
+	Text   string
+}
+
+// ListPageParams bundles ListPage's arguments.
+type ListPageParams struct {
+	UserID int64
+	Page   int
+}
+
+// ListToggleParams bundles ListToggle's arguments.
+type ListToggleParams struct {
+	UserID int64
+	Base   string
+}
+
+// SetVariantParams bundles SetVariant's arguments.
+type SetVariantParams struct {
+	UserID  int64
+	Variant string
+}
+
+// LearnChooseParams bundles LearnChoose's arguments.
+type LearnChooseParams struct {
+	UserID int64
+	Idx    int
+}
+
+// SearchParams bundles Search's arguments.
+type SearchParams struct {
+	UserID int64
+	Query  string
+}
+
+// OnTextParams bundles OnText's arguments.
+type OnTextParams struct {
+	UserID int64
+	Text   string
+}
+
+// formArgs bundles the kind+variant pair shared by formValue, formVariants and
+// formOptions.
+type formArgs struct {
+	Kind    string
+	Variant string
+}
+
+// checkTargetArgs bundles checkTarget's arguments beyond the verb.
+type checkTargetArgs struct {
+	Kind    string
+	Input   string
+	Variant string
+}
+
+// feedbackForArgs bundles feedbackFor's arguments beyond the verb.
+type feedbackForArgs struct {
+	Variant      string
+	Result       AnswerResult
+	AddedToStudy bool
+}
+
+// checkAllFormsOrderedArgs bundles checkAllFormsOrdered's arguments beyond the verb.
+type checkAllFormsOrderedArgs struct {
+	Input   string
+	Variant string
+}
+
+// buildWordListViewArgs bundles buildWordListView's arguments beyond the user.
+type buildWordListViewArgs struct {
+	Level string
+	Page  int
+}
+
+// buildSearchViewArgs bundles buildSearchView's arguments beyond the user.
+type buildSearchViewArgs struct {
+	Query string
+	Page  int
+}
+
+// learnLadderArgs bundles learnLadder's arguments beyond the user.
+type learnLadderArgs struct {
+	Base string
+	OK   bool
+}
+
+// resolveLearnArgs bundles resolveLearn's arguments.
+type resolveLearnArgs struct {
+	U      *User
+	OK     bool
+	Reveal bool
+}
+
+// learnTextArgs bundles learnText's arguments.
+type learnTextArgs struct {
+	U    *User
+	Text string
+}
+
+// SeedVerbsParams bundles SeedVerbs's arguments beyond ctx.
+type SeedVerbsParams struct {
+	Repo  VerbRepository
+	Verbs []Verb
+}

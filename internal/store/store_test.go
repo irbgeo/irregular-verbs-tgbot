@@ -58,7 +58,7 @@ func testStore(t *testing.T) *Store {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	s, err := Connect(ctx, uri, "irregular_verbs_test")
+	s, err := Connect(ctx, ConnectParams{URI: uri, DBName: "irregular_verbs_test"})
 	if err != nil {
 		t.Skipf("skipping: no MongoDB at %s: %v", uri, err)
 	}

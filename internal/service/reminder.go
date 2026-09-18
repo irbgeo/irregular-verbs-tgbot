@@ -9,10 +9,6 @@ import (
 // reminder fires; it also throttles reminders to at most one per this window.
 const reminderIdle = 24 * time.Hour
 
-// markSolved records that the user just engaged with a task (resets the
-// reminder timer).
-func (s *Service) markSolved(u *User) { u.LastSolvedAt = s.now() }
-
 // DueReminders returns the IDs of users who should get a reminder task now:
 // idle/un-reminded for reminderIdle and with a non-empty learn pool.
 func (s *Service) DueReminders(ctx context.Context) ([]int64, error) {
@@ -49,3 +45,7 @@ func (s *Service) Remind(ctx context.Context, userID int64) (View, bool, error) 
 	}
 	return v, true, nil
 }
+
+// markSolved records that the user just engaged with a task (resets the
+// reminder timer).
+func (s *Service) markSolved(u *User) { u.LastSolvedAt = s.now() }

@@ -37,7 +37,7 @@ func TestAllFormsMatch(t *testing.T) {
 func TestCheckTargetPastAcceptsOneOrBoth(t *testing.T) {
 	svc, _ := newLearnSvc()
 	v, _ := svc.verb("be") // past gb = [was, were]
-	require.True(t, svc.checkTarget(v, KindPast, "were was", "gb"), "'were was' (both) should be correct for past target")
-	require.True(t, svc.checkTarget(v, KindPast, "was", "gb"), "'was' alone should be accepted for a multi-variant past target")
-	require.True(t, svc.checkTarget(v, KindPast, "were", "gb"), "'were' alone should be accepted for a multi-variant past target")
+	require.True(t, svc.checkTarget(v, checkTargetArgs{Kind: KindPast, Input: "were was", Variant: "gb"}), "'were was' (both) should be correct for past target")
+	require.True(t, svc.checkTarget(v, checkTargetArgs{Kind: KindPast, Input: "was", Variant: "gb"}), "'was' alone should be accepted for a multi-variant past target")
+	require.True(t, svc.checkTarget(v, checkTargetArgs{Kind: KindPast, Input: "were", Variant: "gb"}), "'were' alone should be accepted for a multi-variant past target")
 }

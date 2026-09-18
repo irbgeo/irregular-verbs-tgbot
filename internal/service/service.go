@@ -17,7 +17,10 @@ type Service struct {
 }
 
 // New builds the in-memory verb catalog and returns a Service.
-func New(users UserRepository, verbs []Verb) *Service {
+func New(
+	users UserRepository,
+	verbs []Verb,
+) *Service {
 	s := &Service{
 		users:   users,
 		byBase:  make(map[string]Verb, len(verbs)),

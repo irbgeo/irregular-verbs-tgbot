@@ -14,7 +14,7 @@ func TestFormOptionsSplitsMultiVariantTarget(t *testing.T) {
 	svc, _ := newLearnSvc()
 	svc.rng = func(n int) int { return 0 } // deterministic shuffle
 	v, _ := svc.verb("be")
-	opts := svc.formOptions(v, KindPast, "gb")
+	opts := svc.formOptions(v, formArgs{Kind: KindPast, Variant: "gb"})
 	require.True(t, optsHas(opts, "was"), "multi-variant target must be split into was & were; got %v", opts)
 	require.True(t, optsHas(opts, "were"), "multi-variant target must be split into was & were; got %v", opts)
 	require.False(t, optsHas(opts, "was/were"), "must not show the joined form as one button; got %v", opts)
@@ -26,7 +26,7 @@ func TestFormOptionsSplitsMultiVariantDistractor(t *testing.T) {
 	svc, _ := newLearnSvc()
 	svc.rng = func(n int) int { return 0 }
 	v, _ := svc.verb("be")
-	opts := svc.formOptions(v, KindBase, "gb") // target base; past is a distractor
+	opts := svc.formOptions(v, formArgs{Kind: KindBase, Variant: "gb"}) // target base; past is a distractor
 	require.True(t, optsHas(opts, "was"), "multi-variant distractor must be split; got %v", opts)
 	require.True(t, optsHas(opts, "were"), "multi-variant distractor must be split; got %v", opts)
 	require.False(t, optsHas(opts, "was/were"), "multi-variant distractor must be split; got %v", opts)
@@ -53,7 +53,7 @@ func TestLearnChooseAcceptsAnyVariant(t *testing.T) {
 				idx = i
 			}
 		}
-		_, err := svc.LearnChoose(ctx, 7, idx)
+		_, err := svc.LearnChoose(ctx, LearnChooseParams{UserID: 7, Idx: idx})
 		require.NoError(t, err)
 		u, _ := repo.Get(ctx, 7)
 		require.Equal(t, 1, u.Words["be"].Box, "tapping %q must count as correct (box 0->1); got %+v", pick, u.Words["be"])

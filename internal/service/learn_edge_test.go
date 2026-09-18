@@ -17,7 +17,7 @@ func TestAdvanceSingleWordPool(t *testing.T) {
 	_, err := svc.StartLearn(ctx, 7)
 	require.NoError(t, err)
 	// answer wrong -> stays in quiz on the same (only) word
-	out, _ := svc.Answer(ctx, 7, "nope")
+	out, _ := svc.Answer(ctx, AnswerParams{UserID: 7, Text: "nope"})
 	require.Equal(t, ScreenQuiz, out.Screen)
 	require.NotNil(t, out.Quiz)
 	require.Equal(t, "go", out.Quiz.Base)
@@ -33,7 +33,7 @@ func TestPromotionKeepsSessionAlive(t *testing.T) {
 	require.NoError(t, err)
 	u, _ := repo.Get(ctx, 7)
 	v, _ := svc.verb("go")
-	out, _ := svc.Answer(ctx, 7, formValue(v, u.State.Session.TargetKind, "gb"))
+	out, _ := svc.Answer(ctx, AnswerParams{UserID: 7, Text: formValue(v, formArgs{Kind: u.State.Session.TargetKind, Variant: "gb"})})
 	require.Equal(t, ScreenQuiz, out.Screen, "after promotion to learned, repetition keeps quiz")
 	u, _ = repo.Get(ctx, 7)
 	require.Equal(t, StatusLearned, u.Words["go"].Status, "word should be learned")

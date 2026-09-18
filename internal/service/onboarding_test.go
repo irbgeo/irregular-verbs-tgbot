@@ -23,7 +23,7 @@ func TestSetVariantGoesToMenu(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := newSvc()
 	_, _ = svc.Start(ctx, 7)
-	v, err := svc.SetVariant(ctx, 7, "us")
+	v, err := svc.SetVariant(ctx, SetVariantParams{UserID: 7, Variant: "us"})
 	require.NoError(t, err)
 	require.Equal(t, ScreenMainMenu, v.Screen)
 	u, _ := repo.Get(ctx, 7)
@@ -33,7 +33,7 @@ func TestSetVariantGoesToMenu(t *testing.T) {
 func TestSetVariantRejectsUnknown(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := newSvc()
-	_, err := svc.SetVariant(ctx, 7, "xx")
+	_, err := svc.SetVariant(ctx, SetVariantParams{UserID: 7, Variant: "xx"})
 	require.Error(t, err, "want error")
 	u, _ := repo.Get(ctx, 7)
 	require.Nil(t, u, "must not create user on invalid variant")

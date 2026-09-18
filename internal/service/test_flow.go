@@ -5,44 +5,6 @@ import (
 	"fmt"
 )
 
-func validLevel(level string) bool {
-	for _, l := range Levels {
-		if l == level {
-			return true
-		}
-	}
-	return false
-}
-
-// levelsUpTo returns the level slugs from the first level through `level`
-// (inclusive), in study order. A test for a level is cumulative: it covers that
-// level and every earlier one.
-func levelsUpTo(level string) []string {
-	var out []string
-	for _, l := range Levels {
-		out = append(out, l)
-		if l == level {
-			break
-		}
-	}
-	return out
-}
-
-func (s *Service) shuffle(in []string) []string {
-	out := append([]string(nil), in...)
-	for i := len(out) - 1; i > 0; i-- {
-		j := s.rng(i + 1)
-		out[i], out[j] = out[j], out[i]
-	}
-	return out
-}
-
-// testQuestion builds the QuizView for a test word: the infinitive is shown
-// and the user enters all three forms in order in one message.
-func (s *Service) testQuestion(sess *Session) *QuizView {
-	return &QuizView{Base: sess.Base, Mode: "test"}
-}
-
 // OpenTest shows the level-choice screen.
 func (s *Service) OpenTest(ctx context.Context, userID int64) (View, error) {
 	u, err := s.load(ctx, userID)
@@ -53,71 +15,61 @@ func (s *Service) OpenTest(ctx context.Context, userID int64) (View, error) {
 	if err := s.save(ctx, u); err != nil {
 		return View{}, err
 	}
-	return View{Screen: ScreenTestLevel, Levels: Levels}, nil
+	return View{
+		Screen: ScreenTestLevel,
+		Levels: Levels,
+	}, nil
 }
 
 // StartTest builds a test session for the level and shows the first question.
-func (s *Service) StartTest(ctx context.Context, userID int64, level string) (View, error) {
-	if !validLevel(level) {
-		return View{}, fmt.Errorf("service: unknown level %q", level)
+func (s *Service) StartTest(ctx context.Context, p StartTestParams) (View, error) {
+	if !validLevel(p.Level) {
+		return View{}, fmt.Errorf("service: unknown level %q", p.Level)
 	}
-	u, err := s.load(ctx, userID)
+	u, err := s.load(ctx, p.UserID)
 	if err != nil {
 		return View{}, err
 	}
 	var bases []string
-	for _, l := range levelsUpTo(level) {
+	for _, l := range levelsUpTo(p.Level) {
 		for _, v := range s.levelWords(l) {
 			bases = append(bases, v.Base)
 		}
 	}
 	bases = s.shuffle(bases)
 	if len(bases) == 0 {
-		return View{}, fmt.Errorf("service: level %q has no words", level)
+		return View{}, fmt.Errorf("service: level %q has no words", p.Level)
 	}
-	sess := &Session{Mode: "test", Level: level, Base: bases[0], Queue: bases[1:]}
-	u.State = State{Screen: string(ScreenQuiz), Session: sess}
+	sess := &Session{
+		Mode:  "test",
+		Level: p.Level,
+		Base:  bases[0],
+		Queue: bases[1:],
+	}
+	u.State = State{
+		Screen:  string(ScreenQuiz),
+		Session: sess,
+	}
 	if err := s.save(ctx, u); err != nil {
 		return View{}, err
 	}
-	return View{Screen: ScreenQuiz, Quiz: s.testQuestion(sess)}, nil
-}
-
-func (s *Service) setStudy(u *User, base string) {
-	if u.Words == nil {
-		u.Words = map[string]WordProgress{}
-	}
-	u.Words[base] = WordProgress{Status: StatusStudy, Mode: 1, Box: 0}
-}
-
-// advance moves to the next queued word (or finishes), mutating u; returns the View.
-func (s *Service) advance(u *User) View {
-	sess := u.State.Session
-	if len(sess.Queue) == 0 {
-		u.State = State{Screen: string(ScreenTestDone)}
-		return View{Screen: ScreenTestDone}
-	}
-	sess.Base = sess.Queue[0]
-	sess.Queue = sess.Queue[1:]
-	return View{Screen: ScreenQuiz, Quiz: s.testQuestion(sess)}
-}
-
-func (s *Service) inQuiz(u *User) bool {
-	return u != nil && u.State.Screen == string(ScreenQuiz) && u.State.Session != nil
-}
-
-func (s *Service) inResult(u *User) bool {
-	return u != nil && u.State.Screen == string(ScreenTestResult) && u.State.Session != nil
+	return View{
+		Screen: ScreenQuiz,
+		Quiz:   s.testQuestion(sess),
+	}, nil
 }
 
 // Answer processes a typed answer to the current sub-question.
-func (s *Service) Answer(ctx context.Context, userID int64, text string) (View, error) {
-	u, err := s.load(ctx, userID)
+func (s *Service) Answer(ctx context.Context, p AnswerParams) (View, error) {
+	u, err := s.load(ctx, p.UserID)
 	if err != nil {
 		return View{}, err
 	}
 	if s.inLearn(u) {
-		return s.learnText(ctx, u, text)
+		return s.learnText(ctx, learnTextArgs{
+			U:    u,
+			Text: p.Text,
+		})
 	}
 	if !s.inQuiz(u) {
 		return View{}, nil // ignore stray text
@@ -125,10 +77,17 @@ func (s *Service) Answer(ctx context.Context, userID int64, text string) (View, 
 	s.markSolved(u)
 	sess := u.State.Session
 	v, _ := s.verb(sess.Base)
-	if !s.checkAllFormsOrdered(v, text, u.Settings.Variant) {
+	if !s.checkAllFormsOrdered(v, checkAllFormsOrderedArgs{
+		Input:   p.Text,
+		Variant: u.Settings.Variant,
+	}) {
 		s.setStudy(u, sess.Base)
 		out := s.advance(u)
-		out.Feedback = feedbackFor(v, u.Settings.Variant, AnswerIncorrect, true)
+		out.Feedback = feedbackFor(v, feedbackForArgs{
+			Variant:      u.Settings.Variant,
+			Result:       AnswerIncorrect,
+			AddedToStudy: true,
+		})
 		if err := s.save(ctx, u); err != nil {
 			return View{}, err
 		}
@@ -139,7 +98,13 @@ func (s *Service) Answer(ctx context.Context, userID int64, text string) (View, 
 	if err := s.save(ctx, u); err != nil {
 		return View{}, err
 	}
-	return View{Screen: ScreenTestResult, Feedback: feedbackFor(v, u.Settings.Variant, AnswerCorrect, false)}, nil
+	return View{
+		Screen: ScreenTestResult,
+		Feedback: feedbackFor(v, feedbackForArgs{
+			Variant: u.Settings.Variant,
+			Result:  AnswerCorrect,
+		}),
+	}, nil
 }
 
 // Help reveals the forms, marks the word for study, and advances.
@@ -149,7 +114,10 @@ func (s *Service) Help(ctx context.Context, userID int64) (View, error) {
 		return View{}, err
 	}
 	if s.inLearn(u) {
-		return s.resolveLearn(ctx, u, false, true)
+		return s.resolveLearn(ctx, resolveLearnArgs{
+			U:      u,
+			Reveal: true,
+		})
 	}
 	if !s.inQuiz(u) {
 		return View{}, nil
@@ -158,7 +126,11 @@ func (s *Service) Help(ctx context.Context, userID int64) (View, error) {
 	v, _ := s.verb(u.State.Session.Base)
 	s.setStudy(u, u.State.Session.Base)
 	out := s.advance(u)
-	out.Feedback = feedbackFor(v, u.Settings.Variant, AnswerHint, true)
+	out.Feedback = feedbackFor(v, feedbackForArgs{
+		Variant:      u.Settings.Variant,
+		Result:       AnswerHint,
+		AddedToStudy: true,
+	})
 	if err := s.save(ctx, u); err != nil {
 		return View{}, err
 	}
@@ -182,13 +154,6 @@ func (s *Service) Skip(ctx context.Context, userID int64) (View, error) {
 		return View{}, err
 	}
 	return out, nil
-}
-
-func (s *Service) setSkipped(u *User, base string) {
-	if u.Words == nil {
-		u.Words = map[string]WordProgress{}
-	}
-	u.Words[base] = WordProgress{Status: StatusSkipped}
 }
 
 // Keep adds the just-answered word to study and advances.
@@ -225,4 +190,86 @@ func (s *Service) Drop(ctx context.Context, userID int64) (View, error) {
 		return View{}, err
 	}
 	return out, nil
+}
+
+func validLevel(level string) bool {
+	for _, l := range Levels {
+		if l == level {
+			return true
+		}
+	}
+	return false
+}
+
+// levelsUpTo returns the level slugs from the first level through `level`
+// (inclusive), in study order. A test for a level is cumulative: it covers that
+// level and every earlier one.
+func levelsUpTo(level string) []string {
+	var out []string
+	for _, l := range Levels {
+		out = append(out, l)
+		if l == level {
+			break
+		}
+	}
+	return out
+}
+
+func (s *Service) shuffle(in []string) []string {
+	out := append([]string(nil), in...)
+	for i := len(out) - 1; i > 0; i-- {
+		j := s.rng(i + 1)
+		out[i], out[j] = out[j], out[i]
+	}
+	return out
+}
+
+// testQuestion builds the QuizView for a test word: the infinitive is shown
+// and the user enters all three forms in order in one message.
+func (s *Service) testQuestion(sess *Session) *QuizView {
+	return &QuizView{
+		Base: sess.Base,
+		Mode: "test",
+	}
+}
+
+func (s *Service) setStudy(u *User, base string) {
+	if u.Words == nil {
+		u.Words = map[string]WordProgress{}
+	}
+	u.Words[base] = WordProgress{
+		Status: StatusStudy,
+		Mode:   1,
+		Box:    0,
+	}
+}
+
+// advance moves to the next queued word (or finishes), mutating u; returns the View.
+func (s *Service) advance(u *User) View {
+	sess := u.State.Session
+	if len(sess.Queue) == 0 {
+		u.State = State{Screen: string(ScreenTestDone)}
+		return View{Screen: ScreenTestDone}
+	}
+	sess.Base = sess.Queue[0]
+	sess.Queue = sess.Queue[1:]
+	return View{
+		Screen: ScreenQuiz,
+		Quiz:   s.testQuestion(sess),
+	}
+}
+
+func (s *Service) inQuiz(u *User) bool {
+	return u != nil && u.State.Screen == string(ScreenQuiz) && u.State.Session != nil
+}
+
+func (s *Service) inResult(u *User) bool {
+	return u != nil && u.State.Screen == string(ScreenTestResult) && u.State.Session != nil
+}
+
+func (s *Service) setSkipped(u *User, base string) {
+	if u.Words == nil {
+		u.Words = map[string]WordProgress{}
+	}
+	u.Words[base] = WordProgress{Status: StatusSkipped}
 }

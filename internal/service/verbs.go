@@ -30,9 +30,9 @@ func LoadVerbs(path string) ([]Verb, error) {
 }
 
 // SeedVerbs upserts all verbs through the verb repository.
-func SeedVerbs(ctx context.Context, repo VerbRepository, verbs []Verb) error {
-	for i := range verbs {
-		if err := repo.Upsert(ctx, &verbs[i]); err != nil {
+func SeedVerbs(ctx context.Context, p SeedVerbsParams) error {
+	for i := range p.Verbs {
+		if err := p.Repo.Upsert(ctx, &p.Verbs[i]); err != nil {
 			return err
 		}
 	}

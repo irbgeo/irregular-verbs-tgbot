@@ -27,7 +27,7 @@ func TestListItemsCarryForms(t *testing.T) {
 	require.Equal(t, "been", be.Participle)
 
 	// word_list elementary pool likewise
-	wv := svc.buildWordListView(mustUser(t, repo), "elementary", 0)
+	wv := svc.buildWordListView(mustUser(t, repo), buildWordListViewArgs{Level: "elementary", Page: 0})
 	for _, it := range wv.Items {
 		if it.Base == "be" {
 			require.Equal(t, "was/were", it.Past)

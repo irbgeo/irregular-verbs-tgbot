@@ -16,8 +16,8 @@ func TestLearnCorrectShowsInfo(t *testing.T) {
 	require.NoError(t, err)
 	u, _ := repo.Get(ctx, 7)
 	v, _ := svc.verb("go")
-	ans := formValue(v, u.State.Session.TargetKind, "gb")
-	out, _ := svc.Answer(ctx, 7, ans)
+	ans := formValue(v, formArgs{Kind: u.State.Session.TargetKind, Variant: "gb"})
+	out, _ := svc.Answer(ctx, AnswerParams{UserID: 7, Text: ans})
 	require.NotNil(t, out.Feedback)
 	require.Equal(t, AnswerCorrect, out.Feedback.Result)
 	require.Equal(t, "go", out.Feedback.Base)
@@ -66,7 +66,7 @@ func TestLearnInputCorrectAdvancesAndLadders(t *testing.T) {
 	cur := u.State.Session.Base
 	v, _ := svc.verb(cur)
 	// answer the asked target correctly
-	out, err := svc.Answer(ctx, 7, formValue(v, u.State.Session.TargetKind, "gb"))
+	out, err := svc.Answer(ctx, AnswerParams{UserID: 7, Text: formValue(v, formArgs{Kind: u.State.Session.TargetKind, Variant: "gb"})})
 	require.NoError(t, err)
 	require.Equal(t, ScreenQuiz, out.Screen, "should stay in quiz")
 	u, _ = repo.Get(ctx, 7)
@@ -80,7 +80,7 @@ func TestLearnInputWrongShowsFeedbackAndZeroesBox(t *testing.T) {
 	_ = repo.Save(ctx, learnUser(map[string]WordProgress{"go": {Status: StatusStudy, Mode: 2, Box: 3}}))
 	_, err := svc.StartLearn(ctx, 7)
 	require.NoError(t, err)
-	out, _ := svc.Answer(ctx, 7, "definitely-wrong")
+	out, _ := svc.Answer(ctx, AnswerParams{UserID: 7, Text: "definitely-wrong"})
 	require.NotNil(t, out.Feedback, "wrong answer must show feedback")
 	u, _ := repo.Get(ctx, 7)
 	require.Equal(t, 0, u.Words["go"].Box, "box should reset to 0")
@@ -110,7 +110,7 @@ func TestLearnChooseCorrect(t *testing.T) {
 	u, _ := repo.Get(ctx, 7)
 	sess := u.State.Session
 	v, _ := svc.verb(sess.Base)
-	correct := formValue(v, sess.TargetKind, "gb")
+	correct := formValue(v, formArgs{Kind: sess.TargetKind, Variant: "gb"})
 	idx := -1
 	for i, o := range sess.Options {
 		if o == correct {
@@ -118,7 +118,7 @@ func TestLearnChooseCorrect(t *testing.T) {
 		}
 	}
 	require.GreaterOrEqual(t, idx, 0, "correct not in options")
-	_, err = svc.LearnChoose(ctx, 7, idx)
+	_, err = svc.LearnChoose(ctx, LearnChooseParams{UserID: 7, Idx: idx})
 	require.NoError(t, err)
 	u, _ = repo.Get(ctx, 7)
 	require.Equal(t, 2, u.Words["go"].Box, "choice success should bump box to 2")
@@ -131,7 +131,7 @@ func TestLearnChoiceIgnoresTypedText(t *testing.T) {
 	_ = repo.Save(ctx, learnUser(map[string]WordProgress{"go": {Status: StatusStudy, Mode: 1, Box: 1}}))
 	_, err := svc.StartLearn(ctx, 7)
 	require.NoError(t, err)
-	out, _ := svc.Answer(ctx, 7, "whatever")
+	out, _ := svc.Answer(ctx, AnswerParams{UserID: 7, Text: "whatever"})
 	require.Equal(t, ScreenNone, out.Screen, "typed text in choice mode must be ignored")
 	u, _ := repo.Get(ctx, 7)
 	require.Equal(t, 1, u.Words["go"].Box, "box must be unchanged")

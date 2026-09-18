@@ -13,16 +13,16 @@ func TestToggleMyWordsCycles(t *testing.T) {
 	_, _ = svc.OpenMyWords(ctx, 7)
 
 	// go is study. tap -> learned (draft only, words unchanged)
-	_, _ = svc.ListToggle(ctx, 7, "go")
+	_, _ = svc.ListToggle(ctx, ListToggleParams{UserID: 7, Base: "go"})
 	u, _ := repo.Get(ctx, 7)
 	require.Equal(t, StatusLearned, u.State.List.Draft["go"])
 	require.Equal(t, StatusStudy, u.Words["go"].Status, "words must not change before commit")
 	// tap -> skipped
-	_, _ = svc.ListToggle(ctx, 7, "go")
+	_, _ = svc.ListToggle(ctx, ListToggleParams{UserID: 7, Base: "go"})
 	u, _ = repo.Get(ctx, 7)
 	require.Equal(t, StatusSkipped, u.State.List.Draft["go"])
 	// tap -> back to stored study -> draft entry removed
-	_, _ = svc.ListToggle(ctx, 7, "go")
+	_, _ = svc.ListToggle(ctx, ListToggleParams{UserID: 7, Base: "go"})
 	u, _ = repo.Get(ctx, 7)
 	require.NotContains(t, u.State.List.Draft, "go", "after 3 taps draft should be cleared")
 }
@@ -31,22 +31,22 @@ func TestToggleWordListStudy(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := navSvc(t)
 	_, _ = svc.OpenWordList(ctx, 7)
-	_, _ = svc.ChooseLevel(ctx, 7, "all")
+	_, _ = svc.ChooseLevel(ctx, ChooseLevelParams{UserID: 7, Level: "all"})
 
 	// be is learned (effective != study) -> tap sets study
-	_, _ = svc.ListToggle(ctx, 7, "be")
+	_, _ = svc.ListToggle(ctx, ListToggleParams{UserID: 7, Base: "be"})
 	u, _ := repo.Get(ctx, 7)
 	require.Equal(t, StatusStudy, u.State.List.Draft["be"])
 	// "build" is new -> tap -> study; tap again -> new -> draft cleared
-	_, _ = svc.ListToggle(ctx, 7, "build")
+	_, _ = svc.ListToggle(ctx, ListToggleParams{UserID: 7, Base: "build"})
 	u, _ = repo.Get(ctx, 7)
 	require.Equal(t, StatusStudy, u.State.List.Draft["build"])
-	_, _ = svc.ListToggle(ctx, 7, "build")
+	_, _ = svc.ListToggle(ctx, ListToggleParams{UserID: 7, Base: "build"})
 	u, _ = repo.Get(ctx, 7)
 	require.NotContains(t, u.State.List.Draft, "build", "build draft should clear")
 	// go is study -> tap study; tap again -> back to study (stored), draft cleared
-	_, _ = svc.ListToggle(ctx, 7, "go")
-	_, _ = svc.ListToggle(ctx, 7, "go")
+	_, _ = svc.ListToggle(ctx, ListToggleParams{UserID: 7, Base: "go"})
+	_, _ = svc.ListToggle(ctx, ListToggleParams{UserID: 7, Base: "go"})
 	u, _ = repo.Get(ctx, 7)
 	require.NotContains(t, u.State.List.Draft, "go", "go draft should clear")
 }
@@ -56,7 +56,7 @@ func TestToggleSetsSelectedInfoAndNavClears(t *testing.T) {
 	svc, _ := navSvc(t)
 	_, _ = svc.OpenMyWords(ctx, 7)
 
-	v, err := svc.ListToggle(ctx, 7, "go")
+	v, err := svc.ListToggle(ctx, ListToggleParams{UserID: 7, Base: "go"})
 	require.NoError(t, err)
 	require.NotNil(t, v.List)
 	require.NotNil(t, v.List.Selected, "toggle must set Selected")
@@ -67,7 +67,7 @@ func TestToggleSetsSelectedInfoAndNavClears(t *testing.T) {
 	require.Equal(t, "идти", s.Translation)
 
 	// navigation must clear the info block
-	v2, err := svc.ListPage(ctx, 7, 0)
+	v2, err := svc.ListPage(ctx, ListPageParams{UserID: 7, Page: 0})
 	require.NoError(t, err)
 	require.Nil(t, v2.List.Selected, "page nav must clear Selected")
 }
@@ -76,7 +76,7 @@ func TestToggleUnknownBaseNoSelected(t *testing.T) {
 	ctx := context.Background()
 	svc, _ := navSvc(t)
 	_, _ = svc.OpenMyWords(ctx, 7)
-	v, err := svc.ListToggle(ctx, 7, "nope")
+	v, err := svc.ListToggle(ctx, ListToggleParams{UserID: 7, Base: "nope"})
 	require.NoError(t, err)
 	if v.List != nil {
 		require.Nil(t, v.List.Selected, "unknown base must not set Selected")
@@ -87,9 +87,9 @@ func TestCommitAppliesDraft(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := navSvc(t)
 	_, _ = svc.OpenWordList(ctx, 7)
-	_, _ = svc.ChooseLevel(ctx, 7, "all")
-	_, _ = svc.ListToggle(ctx, 7, "build") // new -> study
-	_, _ = svc.ListToggle(ctx, 7, "go")    // study -> new
+	_, _ = svc.ChooseLevel(ctx, ChooseLevelParams{UserID: 7, Level: "all"})
+	_, _ = svc.ListToggle(ctx, ListToggleParams{UserID: 7, Base: "build"}) // new -> study
+	_, _ = svc.ListToggle(ctx, ListToggleParams{UserID: 7, Base: "go"})    // study -> new
 
 	v, err := svc.CommitList(ctx, 7)
 	require.NoError(t, err)
@@ -107,8 +107,8 @@ func TestCommitNewDeletes(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := navSvc(t)
 	_, _ = svc.OpenWordList(ctx, 7)
-	_, _ = svc.ChooseLevel(ctx, 7, "all")
-	_, _ = svc.ListToggle(ctx, 7, "go") // study -> new (toggle off)
+	_, _ = svc.ChooseLevel(ctx, ChooseLevelParams{UserID: 7, Level: "all"})
+	_, _ = svc.ListToggle(ctx, ListToggleParams{UserID: 7, Base: "go"}) // study -> new (toggle off)
 	_, _ = svc.CommitList(ctx, 7)
 	u, _ := repo.Get(ctx, 7)
 	require.NotContains(t, u.Words, "go", "go should be deleted")
@@ -118,7 +118,7 @@ func TestCancelDiscards(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := navSvc(t)
 	_, _ = svc.OpenMyWords(ctx, 7)
-	_, _ = svc.ListToggle(ctx, 7, "go")
+	_, _ = svc.ListToggle(ctx, ListToggleParams{UserID: 7, Base: "go"})
 	v, _ := svc.CancelList(ctx, 7)
 	require.Equal(t, ScreenMyWords, v.Screen)
 	u, _ := repo.Get(ctx, 7)
@@ -141,15 +141,15 @@ func TestToggleWordListSkippedRoundTrip(t *testing.T) {
 
 	// open word list (catalog view)
 	_, _ = svc.OpenWordList(ctx, 7)
-	_, _ = svc.ChooseLevel(ctx, 7, "all")
+	_, _ = svc.ChooseLevel(ctx, ChooseLevelParams{UserID: 7, Level: "all"})
 
 	// build is skipped -> tap -> study (draft)
-	_, _ = svc.ListToggle(ctx, 7, "build")
+	_, _ = svc.ListToggle(ctx, ListToggleParams{UserID: 7, Base: "build"})
 	u, _ := repo.Get(ctx, 7)
 	require.Equal(t, StatusStudy, u.State.List.Draft["build"])
 
 	// tap again -> back to stored skipped, draft entry removed
-	_, _ = svc.ListToggle(ctx, 7, "build")
+	_, _ = svc.ListToggle(ctx, ListToggleParams{UserID: 7, Base: "build"})
 	u, _ = repo.Get(ctx, 7)
 	require.NotContains(t, u.State.List.Draft, "build", "build draft should be cleared")
 }
@@ -170,8 +170,8 @@ func TestCommitSkippedWritesSkipped(t *testing.T) {
 	_, _ = svc.OpenMyWords(ctx, 7)
 
 	// go is study -> tap (learned) -> tap (skipped) in the draft
-	_, _ = svc.ListToggle(ctx, 7, "go")
-	_, _ = svc.ListToggle(ctx, 7, "go")
+	_, _ = svc.ListToggle(ctx, ListToggleParams{UserID: 7, Base: "go"})
+	_, _ = svc.ListToggle(ctx, ListToggleParams{UserID: 7, Base: "go"})
 	u, _ := repo.Get(ctx, 7)
 	require.Equal(t, StatusSkipped, u.State.List.Draft["go"])
 
@@ -195,7 +195,7 @@ func TestCommitLearnedWritesLearned(t *testing.T) {
 	svc := New(repo, testCatalog())
 
 	_, _ = svc.OpenMyWords(ctx, 7)
-	_, _ = svc.ListToggle(ctx, 7, "go") // study -> learned (draft)
+	_, _ = svc.ListToggle(ctx, ListToggleParams{UserID: 7, Base: "go"}) // study -> learned (draft)
 	u, _ := repo.Get(ctx, 7)
 	require.Equal(t, StatusLearned, u.State.List.Draft["go"])
 
@@ -220,8 +220,8 @@ func TestMyWordsSkipDraftStaysVisibleUntilCommit(t *testing.T) {
 
 	_, _ = svc.OpenMyWords(ctx, 7)
 	// study -> learned -> skipped (draft)
-	_, _ = svc.ListToggle(ctx, 7, "go")
-	v, _ := svc.ListToggle(ctx, 7, "go")
+	_, _ = svc.ListToggle(ctx, ListToggleParams{UserID: 7, Base: "go"})
+	v, _ := svc.ListToggle(ctx, ListToggleParams{UserID: 7, Base: "go"})
 	// still visible with the skipped icon, because membership uses stored status
 	require.Len(t, v.List.Items, 1, "drafted-skip word must stay visible")
 	require.Equal(t, "go", v.List.Items[0].Base)
