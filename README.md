@@ -168,13 +168,11 @@ cp .env.example .env   # затем впиши токен и креды Mongo
 docker compose up -d --build
 ```
 
-**MongoDB с паролем.** Mongo поднимается с аутентификацией (root-пользователь из
-`MONGO_USERNAME`/`MONGO_PASSWORD`), порт наружу **не публикуется** — база
-доступна только боту внутри compose-сети. Бот подключается строкой
-`mongodb://USER:PASS@mongo:27017/?authSource=admin`.
-
-> Аутентификация включается только на **чистом** томе: при первом запуске с auth
-> на уже существующих данных выполни `docker compose down -v && docker compose up -d`.
+**MongoDB общая.** Бот не поднимает свою Mongo. Он подключается к общей Mongo
+из проекта `server-infra` по сети `geoirb_network` (имя хоста `mongo`).
+`MONGO_USERNAME`/`MONGO_PASSWORD` — пользователь бота с правами только на базу
+`irregular_verbs` (создаётся скриптом `server-infra/scripts/remote-provision-user.sh`).
+Бот подключается строкой `mongodb://USER:PASS@mongo:27017/?authSource=irregular_verbs`.
 
 Конфигурация — через переменные окружения (`envconfig`, см. `internal/config`):
 `BOT_TOKEN` (обязателен), `MONGO_URI`, `MONGO_DB`, `VERBS_PATH`.

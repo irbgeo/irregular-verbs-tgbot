@@ -1,44 +1,20 @@
 services:
-  mongo:
-    image: mongo:7
-    restart: unless-stopped
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:?set MONGO_USERNAME in the environment or a .env file}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?set MONGO_PASSWORD in the environment or a .env file}
-    # WARNING: Mongo is published to the public internet (0.0.0.0). Only the
-    # root password protects it. Acceptable only because auth is enabled; close
-    # this port or switch to an SSH tunnel if exposure is no longer needed.
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
-    networks:
-      - geoirb_network
-    healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   bot:
     build: .
     restart: unless-stopped
-    depends_on:
-      mongo:
-        condition: service_healthy
     environment:
       BOT_TOKEN: ${BOT_TOKEN:?set BOT_TOKEN in the environment or a .env file}
-      MONGO_URI: mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongo:27017/?authSource=admin
+      # Connects to server-infra's shared MongoDB (service alias "mongo" on
+      # geoirb_network), not a bot-owned instance. MONGO_USERNAME/PASSWORD are
+      # the least-privilege bot user server-infra provisioned, scoped to (and
+      # living under) the irregular_verbs database.
+      MONGO_URI: mongodb://${MONGO_USERNAME:?set MONGO_USERNAME in .env}:${MONGO_PASSWORD:?set MONGO_PASSWORD in .env}@mongo:27017/?authSource=irregular_verbs
       MONGO_DB: irregular_verbs
     networks:
       - geoirb_network
 
-volumes:
-  mongo-data:
-
 networks:
-  # Shared network created outside Compose (once, on the server):
-  #   docker network create geoirb_network
-  # bot and mongo talk over it by service name; other projects can join it too.
+  # Created once outside Compose by server-infra; its mongo service is
+  # reachable here as "mongo".
   geoirb_network:
     external: true
