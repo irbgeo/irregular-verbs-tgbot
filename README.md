@@ -171,7 +171,7 @@ docker compose up -d --build
 **MongoDB общая.** Бот не поднимает свою Mongo. Он подключается к общей Mongo
 из проекта `server-infra` по сети `geoirb_network` (имя хоста `mongo`).
 `MONGO_USERNAME`/`MONGO_PASSWORD` — пользователь бота с правами только на базу
-`irregular_verbs` (создаётся скриптом `server-infra/scripts/remote-provision-user.sh`).
+`irregular_verbs` (создаётся скриптом `server-infra/scripts/add-user.sh`).
 Бот подключается строкой `mongodb://USER:PASS@mongo:27017/?authSource=irregular_verbs`.
 
 Конфигурация — через переменные окружения (`envconfig`, см. `internal/config`):
