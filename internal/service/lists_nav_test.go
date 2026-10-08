@@ -36,7 +36,10 @@ func TestChooseLevelOpensPool(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := navSvc(t)
 	_, _ = svc.OpenWordList(ctx, 7)
-	v, err := svc.ChooseLevel(ctx, ChooseLevelParams{UserID: 7, Level: "elementary"})
+	v, err := svc.ChooseLevel(ctx, ChooseLevelParams{
+		UserID: 7,
+		Level:  "elementary",
+	})
 	require.NoError(t, err)
 	require.Equal(t, ScreenWordList, v.Screen)
 	require.NotNil(t, v.List)
@@ -52,7 +55,10 @@ func TestChooseLevelAll(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := navSvc(t)
 	_, _ = svc.OpenWordList(ctx, 7)
-	v, _ := svc.ChooseLevel(ctx, ChooseLevelParams{UserID: 7, Level: "all"})
+	v, _ := svc.ChooseLevel(ctx, ChooseLevelParams{
+		UserID: 7,
+		Level:  "all",
+	})
 	require.NotNil(t, v.List)
 	require.Len(t, v.List.Items, 3) // be, go, build
 	u, _ := repo.Get(ctx, 7)
@@ -64,7 +70,10 @@ func TestListBackSteps(t *testing.T) {
 	svc, repo := navSvc(t)
 	// word_list -> picker
 	_, _ = svc.OpenWordList(ctx, 7)
-	_, _ = svc.ChooseLevel(ctx, ChooseLevelParams{UserID: 7, Level: "elementary"})
+	_, _ = svc.ChooseLevel(ctx, ChooseLevelParams{
+		UserID: 7,
+		Level:  "elementary",
+	})
 	v, _ := svc.ListBack(ctx, 7)
 	require.Equal(t, ScreenWordListLevels, v.Screen)
 	// picker -> menu
@@ -82,8 +91,14 @@ func TestListPageClamps(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := navSvc(t)
 	_, _ = svc.OpenWordList(ctx, 7)
-	_, _ = svc.ChooseLevel(ctx, ChooseLevelParams{UserID: 7, Level: "all"})
-	v, _ := svc.ListPage(ctx, ListPageParams{UserID: 7, Page: 99}) // only 1 page (3 words)
+	_, _ = svc.ChooseLevel(ctx, ChooseLevelParams{
+		UserID: 7,
+		Level:  "all",
+	})
+	v, _ := svc.ListPage(ctx, ListPageParams{
+		UserID: 7,
+		Page:   99,
+	}) // only 1 page (3 words)
 	require.Zero(t, v.List.Page, "want clamped 0")
 	u, _ := repo.Get(ctx, 7)
 	require.Zero(t, u.State.List.Page)
@@ -93,7 +108,10 @@ func TestListNavNoStateIgnored(t *testing.T) {
 	ctx := context.Background()
 	svc, _ := navSvc(t)
 	// no OpenMyWords/OpenWordList first -> List is nil
-	v, _ := svc.ListPage(ctx, ListPageParams{UserID: 7, Page: 1})
+	v, _ := svc.ListPage(ctx, ListPageParams{
+		UserID: 7,
+		Page:   1,
+	})
 	require.Equal(t, ScreenNone, v.Screen, "expected empty view")
 }
 
@@ -101,10 +119,20 @@ func navSvc(t *testing.T) (*Service, *fakeUserRepo) {
 	t.Helper()
 	repo := newFakeUserRepo()
 	_ = repo.Save(context.Background(), &User{
-		ID:       7,
-		Settings: Settings{Variant: "gb"},
+		ID: 7,
+		Settings: Settings{
+			Variant: "gb",
+		},
 		Words: map[string]WordProgress{
-			"go": {Status: StatusStudy}, "be": {Status: StatusLearned}, "do": {Status: StatusSkipped},
+			"go": {
+				Status: StatusStudy,
+			},
+			"be": {
+				Status: StatusLearned,
+			},
+			"do": {
+				Status: StatusSkipped,
+			},
 		},
 	})
 	return New(repo, testCatalog()), repo

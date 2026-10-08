@@ -3,7 +3,6 @@ package service
 import (
 	"math/rand"
 	"sort"
-	"time"
 )
 
 // Service holds all business logic and depends only on repository ports.
@@ -12,7 +11,6 @@ type Service struct {
 	byBase   map[string]Verb
 	byLevel  map[string][]Verb
 	allBases []string
-	now      func() time.Time
 	rng      func(n int) int // returns [0,n)
 }
 
@@ -25,7 +23,6 @@ func New(
 		users:   users,
 		byBase:  make(map[string]Verb, len(verbs)),
 		byLevel: make(map[string][]Verb),
-		now:     time.Now,
 		rng: func(n int) int {
 			if n <= 0 {
 				return 0

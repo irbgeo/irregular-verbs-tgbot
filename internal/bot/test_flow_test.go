@@ -17,7 +17,15 @@ func TestRouterFullTestFlow(t *testing.T) {
 	senderMock, sender := newSender(t)
 	r := New(svc, senderMock)
 
-	_ = repo.Save(ctx, &service.User{ID: 7, Settings: service.Settings{Variant: "gb"}, State: service.State{Screen: string(service.ScreenMainMenu)}})
+	_ = repo.Save(ctx, &service.User{
+		ID: 7,
+		Settings: service.Settings{
+			Variant: "gb",
+		},
+		State: service.State{
+			Screen: string(service.ScreenMainMenu),
+		},
+	})
 
 	_ = r.Handle(ctx, cbUpdate(7, "menu:test"))        // -> test_level
 	_ = r.Handle(ctx, cbUpdate(7, "level:elementary")) // -> quiz (first word)
@@ -40,7 +48,15 @@ func TestRouterHelpThenMenu(t *testing.T) {
 	svc := service.New(repo, catalog())
 	senderMock, _ := newSender(t)
 	r := New(svc, senderMock)
-	_ = repo.Save(ctx, &service.User{ID: 7, Settings: service.Settings{Variant: "gb"}, State: service.State{Screen: string(service.ScreenMainMenu)}})
+	_ = repo.Save(ctx, &service.User{
+		ID: 7,
+		Settings: service.Settings{
+			Variant: "gb",
+		},
+		State: service.State{
+			Screen: string(service.ScreenMainMenu),
+		},
+	})
 
 	_ = r.Handle(ctx, cbUpdate(7, "menu:test"))
 	_ = r.Handle(ctx, cbUpdate(7, "level:elementary"))
@@ -55,11 +71,65 @@ func TestRouterHelpThenMenu(t *testing.T) {
 
 func catalog() []service.Verb {
 	return []service.Verb{
-		{Base: "go", Level: "elementary", Past: map[string][]string{"gb": {"went"}, "us": {"went"}}, Participle: map[string][]string{"gb": {"gone"}, "us": {"gone"}}, Translations: []string{"идти"}},
-		{Base: "be", Level: "elementary", Past: map[string][]string{"gb": {"was", "were"}, "us": {"was", "were"}}, Participle: map[string][]string{"gb": {"been"}, "us": {"been"}}, Translations: []string{"быть"}},
+		{
+			Base:  "go",
+			Level: "elementary",
+			Past: map[string][]string{
+				"gb": {
+					"went",
+				},
+				"us": {
+					"went",
+				},
+			},
+			Participle: map[string][]string{
+				"gb": {
+					"gone",
+				},
+				"us": {
+					"gone",
+				},
+			},
+			Translations: []string{
+				"идти",
+			},
+		},
+		{
+			Base:  "be",
+			Level: "elementary",
+			Past: map[string][]string{
+				"gb": {
+					"was",
+					"were",
+				},
+				"us": {
+					"was",
+					"were",
+				},
+			},
+			Participle: map[string][]string{
+				"gb": {
+					"been",
+				},
+				"us": {
+					"been",
+				},
+			},
+			Translations: []string{
+				"быть",
+			},
+		},
 	}
 }
 
 func textUpdate(id int64, text string) tgbot.Update {
-	return tgbot.Update{Message: &tgbot.Message{Text: text, Chat: tgbot.Chat{ID: id}, From: &tgbot.User{ID: id}}}
+	return tgbot.Update{
+		Message: &tgbot.Message{
+			Text: text,
+			Chat: tgbot.Chat{
+				ID: id,
+			},
+			From: &tgbot.User{ID: id},
+		},
+	}
 }

@@ -17,7 +17,8 @@ func (s *Service) StartLearn(ctx context.Context, userID int64) (View, error) {
 		u.State = State{Screen: string(ScreenLearnEmpty)}
 		v = View{Screen: ScreenLearnEmpty}
 	}
-	if err := s.save(ctx, u); err != nil {
+	err = s.save(ctx, u)
+	if err != nil {
 		return View{}, err
 	}
 	return v, nil
@@ -39,32 +40,44 @@ func (s *Service) LearnChoose(ctx context.Context, p LearnChooseParams) (View, e
 	v, _ := s.verb(sess.Base)
 	// the tapped option is correct if it matches any variant of the target form
 	// (multi-variant forms are split across several buttons).
-	ok := s.checkTarget(v, checkTargetArgs{
+	checkTargetArgs := checkTargetArgs{
 		Kind:    sess.TargetKind,
 		Input:   sess.Options[p.Idx],
 		Variant: u.Settings.Variant,
-	})
-	return s.resolveLearn(ctx, resolveLearnArgs{
+	}
+	ok := s.checkTarget(v, checkTargetArgs)
+	resolveLearnArgs := resolveLearnArgs{
 		U:  u,
 		OK: ok,
-	})
+	}
+	return s.resolveLearn(ctx, resolveLearnArgs)
 }
 
-// learnPool returns study and learned bases in catalog order (deterministic).
-func (s *Service) learnPool(u *User) (study, learned []string) {
-	for _, b := range s.allBases {
-		w, ok := u.Words[b]
-		if !ok {
-			continue
-		}
-		switch w.Status {
-		case StatusStudy:
-			study = append(study, b)
-		case StatusLearned:
-			learned = append(learned, b)
-		}
+// beginLearn sets up a learn session on u (mutating State) and returns the
+// quiz View. ok is false and u is left unchanged when there is nothing to
+// learn (caller decides what to show).
+func (s *Service) beginLearn(u *User) (View, bool) {
+	base, ok := s.pickLearnWord(u, nil)
+	if !ok {
+		return View{}, false
 	}
-	return study, learned
+	sess := &Session{
+		Mode: "learn",
+		Base: base,
+		Recent: []string{
+			base,
+		},
+	}
+	s.startStudyWord(u, base)
+	s.buildRound(u, sess)
+	u.State = State{
+		Screen:  string(ScreenQuiz),
+		Session: sess,
+	}
+	return View{
+		Screen: ScreenQuiz,
+		Quiz:   s.learnQuestion(u, sess),
+	}, true
 }
 
 // pickLearnWord chooses the next word: 90% study / 10% learned, empty group
@@ -97,6 +110,23 @@ func (s *Service) pickLearnWord(u *User, recent []string) (string, bool) {
 	return cand[s.rng(len(cand))], true
 }
 
+// learnPool returns study and learned bases in catalog order (deterministic).
+func (s *Service) learnPool(u *User) (study, learned []string) {
+	for _, b := range s.allBases {
+		w, ok := u.Words[b]
+		if !ok {
+			continue
+		}
+		switch w.Status {
+		case StatusStudy:
+			study = append(study, b)
+		case StatusLearned:
+			learned = append(learned, b)
+		}
+	}
+	return study, learned
+}
+
 func excluding(items, exclude []string) []string {
 	if len(exclude) == 0 {
 		return items
@@ -114,48 +144,48 @@ func excluding(items, exclude []string) []string {
 	return out
 }
 
-func pushRecent(recent []string, base string) []string {
-	recent = append(recent, base)
-	if len(recent) > 5 {
-		recent = recent[len(recent)-5:]
-	}
-	return recent
-}
-
-func formValue(v *Verb, args formArgs) string {
-	switch args.Kind {
-	case KindBase:
-		return v.Base
-	case KindPast:
-		return strings.Join(v.Past[args.Variant], "/")
-	default: // KindParticiple
-		return strings.Join(v.Participle[args.Variant], "/")
+// startStudyWord initializes a study word's mode to 1 the first time «Учить»
+// trains it. Lists add words as study/mode0; Учить owns the mode and starts
+// them at mode 1 (choice). Words from Тест are already mode 1; mode 2 and
+// learned are left untouched.
+func (s *Service) startStudyWord(u *User, base string) {
+	w := u.Words[base]
+	if w.Status == StatusStudy && w.Mode == 0 {
+		w.Mode = 1
+		u.Words[base] = w
 	}
 }
 
-// formVariants returns each variant of a form as its own string (base has one;
-// past/participle may have several, e.g. was/were → ["was", "were"]). Choice
-// buttons are built from these, one button per variant.
-func formVariants(v *Verb, args formArgs) []string {
-	switch args.Kind {
-	case KindBase:
-		return []string{v.Base}
-	case KindPast:
-		return v.Past[args.Variant]
-	default: // KindParticiple
-		return v.Participle[args.Variant]
+// buildRound picks the anchor and target kinds for sess.Base and, for choice
+// format, fills sess.Options.
+func (s *Service) buildRound(u *User, sess *Session) {
+	v, _ := s.verb(sess.Base)
+	variant := u.Settings.Variant
+
+	kinds := []string{
+		KindBase,
+		KindPast,
+		KindParticiple,
+	}
+	sess.AnchorKind = kinds[s.rng(len(kinds))]
+	sess.TargetKind = kinds[s.rng(len(kinds))]
+
+	sess.Options = nil
+	if s.wordFormat(u, sess.Base) == FormatChoice {
+		formArgs := formArgs{
+			Kind:    sess.TargetKind,
+			Variant: variant,
+		}
+		sess.Options = s.formOptions(v, formArgs)
 	}
 }
 
-func (s *Service) checkTarget(v *Verb, args checkTargetArgs) bool {
-	switch args.Kind {
-	case KindBase:
-		return normBase(args.Input) == norm(v.Base)
-	case KindPast:
-		return matchForm(args.Input, v.Past[args.Variant])
-	default: // KindParticiple
-		return matchForm(args.Input, v.Participle[args.Variant])
+func (s *Service) wordFormat(u *User, base string) string {
+	w := u.Words[base]
+	if w.Status == StatusStudy && w.Mode == 1 {
+		return FormatChoice
 	}
+	return FormatInput
 }
 
 // formOptions returns the choice buttons for a form target, shuffled: every
@@ -181,7 +211,11 @@ func (s *Service) formOptions(v *Verb, args formArgs) []string {
 	}
 	// the word's remaining forms (the two kinds other than the asked one),
 	// again one button per variant
-	for _, k := range []string{KindBase, KindPast, KindParticiple} {
+	for _, k := range []string{
+		KindBase,
+		KindPast,
+		KindParticiple,
+	} {
 		if k != args.Kind {
 			other := formArgs{
 				Kind:    k,
@@ -208,42 +242,17 @@ func (s *Service) formOptions(v *Verb, args formArgs) []string {
 	return s.shuffle(opts)
 }
 
-// startStudyWord initializes a study word's mode to 1 the first time «Учить»
-// trains it. Lists add words as study/mode0; Учить owns the mode and starts
-// them at mode 1 (choice). Words from Тест are already mode 1; mode 2 and
-// learned are left untouched.
-func (s *Service) startStudyWord(u *User, base string) {
-	w := u.Words[base]
-	if w.Status == StatusStudy && w.Mode == 0 {
-		w.Mode = 1
-		u.Words[base] = w
-	}
-}
-
-func (s *Service) wordFormat(u *User, base string) string {
-	w := u.Words[base]
-	if w.Status == StatusStudy && w.Mode == 1 {
-		return FormatChoice
-	}
-	return FormatInput
-}
-
-// buildRound picks the anchor and target kinds for sess.Base and, for choice
-// format, fills sess.Options.
-func (s *Service) buildRound(u *User, sess *Session) {
-	v, _ := s.verb(sess.Base)
-	variant := u.Settings.Variant
-
-	kinds := []string{KindBase, KindPast, KindParticiple}
-	sess.AnchorKind = kinds[s.rng(len(kinds))]
-	sess.TargetKind = kinds[s.rng(len(kinds))]
-
-	sess.Options = nil
-	if s.wordFormat(u, sess.Base) == FormatChoice {
-		sess.Options = s.formOptions(v, formArgs{
-			Kind:    sess.TargetKind,
-			Variant: variant,
-		})
+// formVariants returns each variant of a form as its own string (base has one;
+// past/participle may have several, e.g. was/were → ["was", "were"]). Choice
+// buttons are built from these, one button per variant.
+func formVariants(v *Verb, args formArgs) []string {
+	switch args.Kind {
+	case KindBase:
+		return []string{v.Base}
+	case KindPast:
+		return v.Past[args.Variant]
+	default: // KindParticiple
+		return v.Participle[args.Variant]
 	}
 }
 
@@ -264,6 +273,67 @@ func (s *Service) learnQuestion(u *User, sess *Session) *QuizView {
 		Options:     sess.Options,
 		Repeat:      u.Words[sess.Base].Status == StatusLearned,
 	}
+}
+
+func formValue(v *Verb, args formArgs) string {
+	switch args.Kind {
+	case KindBase:
+		return v.Base
+	case KindPast:
+		return strings.Join(v.Past[args.Variant], "/")
+	default: // KindParticiple
+		return strings.Join(v.Participle[args.Variant], "/")
+	}
+}
+
+func (s *Service) inLearn(u *User) bool {
+	return u != nil &&
+		u.State.Screen == string(ScreenQuiz) &&
+		u.State.Session != nil &&
+		u.State.Session.Mode == "learn"
+}
+
+func (s *Service) checkTarget(v *Verb, args checkTargetArgs) bool {
+	switch args.Kind {
+	case KindBase:
+		return normBase(args.Input) == norm(v.Base)
+	case KindPast:
+		return matchForm(args.Input, v.Past[args.Variant])
+	default: // KindParticiple
+		return matchForm(args.Input, v.Participle[args.Variant])
+	}
+}
+
+// resolveLearn applies the ladder, advances, and (on failure/reveal) attaches
+// the correct-forms feedback.
+func (s *Service) resolveLearn(ctx context.Context, args resolveLearnArgs) (View, error) {
+	u := args.U
+	sess := u.State.Session
+	v, _ := s.verb(sess.Base)
+	s.markSolved(u)
+	learnLadderArgs := learnLadderArgs{
+		Base: sess.Base,
+		OK:   args.OK,
+	}
+	s.learnLadder(u, learnLadderArgs)
+	out := s.advanceLearn(u)
+	result := AnswerIncorrect
+	switch {
+	case args.OK:
+		result = AnswerCorrect
+	case args.Reveal:
+		result = AnswerHint
+	}
+	feedbackForArgs := feedbackForArgs{
+		Variant: u.Settings.Variant,
+		Result:  result,
+	}
+	out.Feedback = feedbackFor(v, feedbackForArgs)
+	err := s.save(ctx, u)
+	if err != nil {
+		return View{}, err
+	}
+	return out, nil
 }
 
 // learnLadder applies the Leitner transition for base after a round result.
@@ -301,38 +371,6 @@ func (s *Service) learnLadder(u *User, args learnLadderArgs) {
 	u.Words[args.Base] = w
 }
 
-func (s *Service) inLearn(u *User) bool {
-	return u != nil &&
-		u.State.Screen == string(ScreenQuiz) &&
-		u.State.Session != nil &&
-		u.State.Session.Mode == "learn"
-}
-
-// beginLearn sets up a learn session on u (mutating State) and returns the
-// quiz View. ok is false and u is left unchanged when there is nothing to
-// learn (caller decides what to show).
-func (s *Service) beginLearn(u *User) (View, bool) {
-	base, ok := s.pickLearnWord(u, nil)
-	if !ok {
-		return View{}, false
-	}
-	sess := &Session{
-		Mode:   "learn",
-		Base:   base,
-		Recent: []string{base},
-	}
-	s.startStudyWord(u, base)
-	s.buildRound(u, sess)
-	u.State = State{
-		Screen:  string(ScreenQuiz),
-		Session: sess,
-	}
-	return View{
-		Screen: ScreenQuiz,
-		Quiz:   s.learnQuestion(u, sess),
-	}, true
-}
-
 // advanceLearn moves to the next word (mutating u); pool never empties mid-
 // session, but the empty screen is returned defensively.
 func (s *Service) advanceLearn(u *User) View {
@@ -352,33 +390,12 @@ func (s *Service) advanceLearn(u *User) View {
 	}
 }
 
-// resolveLearn applies the ladder, advances, and (on failure/reveal) attaches
-// the correct-forms feedback.
-func (s *Service) resolveLearn(ctx context.Context, args resolveLearnArgs) (View, error) {
-	u := args.U
-	sess := u.State.Session
-	v, _ := s.verb(sess.Base)
-	s.markSolved(u)
-	s.learnLadder(u, learnLadderArgs{
-		Base: sess.Base,
-		OK:   args.OK,
-	})
-	out := s.advanceLearn(u)
-	result := AnswerIncorrect
-	switch {
-	case args.OK:
-		result = AnswerCorrect
-	case args.Reveal:
-		result = AnswerHint
+func pushRecent(recent []string, base string) []string {
+	recent = append(recent, base)
+	if len(recent) > 5 {
+		recent = recent[len(recent)-5:]
 	}
-	out.Feedback = feedbackFor(v, feedbackForArgs{
-		Variant: u.Settings.Variant,
-		Result:  result,
-	})
-	if err := s.save(ctx, u); err != nil {
-		return View{}, err
-	}
-	return out, nil
+	return recent
 }
 
 // learnText handles a typed answer in learn mode (input format only).
@@ -389,13 +406,15 @@ func (s *Service) learnText(ctx context.Context, args learnTextArgs) (View, erro
 		return View{}, nil // choice mode: ignore typed text
 	}
 	v, _ := s.verb(sess.Base)
-	ok := s.checkTarget(v, checkTargetArgs{
+	checkTargetArgs := checkTargetArgs{
 		Kind:    sess.TargetKind,
 		Input:   args.Text,
 		Variant: u.Settings.Variant,
-	})
-	return s.resolveLearn(ctx, resolveLearnArgs{
+	}
+	ok := s.checkTarget(v, checkTargetArgs)
+	resolveLearnArgs := resolveLearnArgs{
 		U:  u,
 		OK: ok,
-	})
+	}
+	return s.resolveLearn(ctx, resolveLearnArgs)
 }

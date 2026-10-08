@@ -13,10 +13,29 @@ func (s *Service) OpenSearch(ctx context.Context, userID int64) (View, error) {
 		return View{}, err
 	}
 	u.State = State{Screen: string(ScreenSearch)}
-	if err := s.save(ctx, u); err != nil {
+	err = s.save(ctx, u)
+	if err != nil {
 		return View{}, err
 	}
 	return View{Screen: ScreenSearch}, nil
+}
+
+// OnText is the single text-input entry point: on the search screen the text is
+// a search query; otherwise it is a quiz answer.
+func (s *Service) OnText(ctx context.Context, p OnTextParams) (View, error) {
+	u, err := s.load(ctx, p.UserID)
+	if err != nil {
+		return View{}, err
+	}
+	if u.State.Screen == string(ScreenSearch) {
+		searchParams := SearchParams{
+			UserID: p.UserID,
+			Query:  p.Text,
+		}
+		return s.Search(ctx, searchParams)
+	}
+	answerParams := AnswerParams(p)
+	return s.Answer(ctx, answerParams)
 }
 
 // Search runs the query and shows the results list (draft/commit reused).
@@ -35,29 +54,30 @@ func (s *Service) Search(ctx context.Context, p SearchParams) (View, error) {
 		},
 	}
 	v := s.listView(u)
-	if err := s.save(ctx, u); err != nil {
+	err = s.save(ctx, u)
+	if err != nil {
 		return View{}, err
 	}
 	return v, nil
 }
 
-// OnText is the single text-input entry point: on the search screen the text is
-// a search query; otherwise it is a quiz answer.
-func (s *Service) OnText(ctx context.Context, p OnTextParams) (View, error) {
-	u, err := s.load(ctx, p.UserID)
-	if err != nil {
-		return View{}, err
+// buildSearchView builds the «Поиск» results list for the query and page.
+func (s *Service) buildSearchView(u *User, args buildSearchViewArgs) ListView {
+	bases := s.searchVerbs(args.Query)
+	start, end, pages, clamped := pageBounds(len(bases), args.Page)
+	items := make([]ListItem, 0, end-start)
+	for _, b := range bases[start:end] {
+		items = append(items, s.listItem(u, b))
 	}
-	if u.State.Screen == string(ScreenSearch) {
-		return s.Search(ctx, SearchParams{
-			UserID: p.UserID,
-			Query:  p.Text,
-		})
+	return ListView{
+		Kind:    KindSearch,
+		Page:    clamped,
+		Pages:   pages,
+		HasPrev: clamped > 0,
+		HasNext: clamped < pages-1,
+		Items:   items,
+		Dirty:   draftDirty(u),
 	}
-	return s.Answer(ctx, AnswerParams{
-		UserID: p.UserID,
-		Text:   p.Text,
-	})
 }
 
 // searchVerbs returns the bases of verbs matching the query, sorted
@@ -101,7 +121,10 @@ func verbMatchesAny(v *Verb, tokens []string) bool {
 // variants) used for exact matching.
 func formSet(v *Verb) map[string]bool {
 	set := map[string]bool{norm(v.Base): true}
-	for _, variant := range []string{"gb", "us"} {
+	for _, variant := range []string{
+		"gb",
+		"us",
+	} {
 		for _, f := range v.Past[variant] {
 			set[norm(f)] = true
 		}
@@ -110,30 +133,4 @@ func formSet(v *Verb) map[string]bool {
 		}
 	}
 	return set
-}
-
-// buildSearchView builds the «Поиск» results list for the query and page.
-func (s *Service) buildSearchView(u *User, args buildSearchViewArgs) ListView {
-	bases := s.searchVerbs(args.Query)
-	start, end, pages, clamped := pageBounds(len(bases), args.Page)
-	items := make([]ListItem, 0, end-start)
-	for _, b := range bases[start:end] {
-		past, part, tr := s.itemForms(u, b)
-		items = append(items, ListItem{
-			Base:        b,
-			Status:      effectiveStatus(u, b),
-			Past:        past,
-			Participle:  part,
-			Translation: tr,
-		})
-	}
-	return ListView{
-		Kind:    KindSearch,
-		Page:    clamped,
-		Pages:   pages,
-		HasPrev: clamped > 0,
-		HasNext: clamped < pages-1,
-		Items:   items,
-		Dirty:   draftDirty(u),
-	}
 }

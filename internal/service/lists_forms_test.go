@@ -10,8 +10,17 @@ import (
 func TestListItemsCarryForms(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeUserRepo()
-	_ = repo.Save(ctx, &User{ID: 7, Settings: Settings{Variant: "gb"},
-		Words: map[string]WordProgress{"be": {Status: StatusStudy}}})
+	_ = repo.Save(ctx, &User{
+		ID: 7,
+		Settings: Settings{
+			Variant: "gb",
+		},
+		Words: map[string]WordProgress{
+			"be": {
+				Status: StatusStudy,
+			},
+		},
+	})
 	svc := New(repo, testCatalog())
 
 	// my_words list contains "be" with its forms
@@ -27,7 +36,10 @@ func TestListItemsCarryForms(t *testing.T) {
 	require.Equal(t, "been", be.Participle)
 
 	// word_list elementary pool likewise
-	wv := svc.buildWordListView(mustUser(t, repo), buildWordListViewArgs{Level: "elementary", Page: 0})
+	wv := svc.buildWordListView(mustUser(t, repo), buildWordListViewArgs{
+		Level: "elementary",
+		Page:  0,
+	})
 	for _, it := range wv.Items {
 		if it.Base == "be" {
 			require.Equal(t, "was/were", it.Past)

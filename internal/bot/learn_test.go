@@ -16,10 +16,17 @@ func TestRenderLearnEmpty(t *testing.T) {
 }
 
 func TestRenderLearnInputHasShowAndMenuOnly(t *testing.T) {
-	v := service.View{Screen: service.ScreenQuiz, Quiz: &service.QuizView{
-		Mode: "learn", Format: "input", Base: "go",
-		AnchorKind: "past", AnchorValue: "went", TargetKind: "base",
-	}}
+	v := service.View{
+		Screen: service.ScreenQuiz,
+		Quiz: &service.QuizView{
+			Mode:        "learn",
+			Format:      "input",
+			Base:        "go",
+			AnchorKind:  "past",
+			AnchorValue: "went",
+			TargetKind:  "base",
+		},
+	}
 	text, k := render(&v)
 	require.Contains(t, text, "went", "text = %q", text)
 	require.NotContains(t, text, "(past)", "text = %q", text)
@@ -31,11 +38,23 @@ func TestRenderLearnInputHasShowAndMenuOnly(t *testing.T) {
 }
 
 func TestRenderLearnChoiceHasOptionButtons(t *testing.T) {
-	v := service.View{Screen: service.ScreenQuiz, Quiz: &service.QuizView{
-		Mode: "learn", Format: "choice", Base: "go",
-		AnchorKind: "base", AnchorValue: "go", TargetKind: "past",
-		Options: []string{"went", "goed", "gone", "did"},
-	}}
+	v := service.View{
+		Screen: service.ScreenQuiz,
+		Quiz: &service.QuizView{
+			Mode:        "learn",
+			Format:      "choice",
+			Base:        "go",
+			AnchorKind:  "base",
+			AnchorValue: "go",
+			TargetKind:  "past",
+			Options: []string{
+				"went",
+				"goed",
+				"gone",
+				"did",
+			},
+		},
+	}
 	text, k := render(&v)
 	require.Contains(t, text, "Выберите past", "text = %q", text)
 	require.Equal(t, "lc:0", k.InlineKeyboard[0][0].CallbackData, "option callbacks = %+v", k.InlineKeyboard)
@@ -48,9 +67,21 @@ func TestRouterMenuLearnStartsSession(t *testing.T) {
 	svc := service.New(repo, learnBotCatalog())
 	senderMock, _ := newSender(t)
 	r := New(svc, senderMock)
-	_ = repo.Save(ctx, &service.User{ID: 7, Settings: service.Settings{Variant: "gb"},
-		State: service.State{Screen: string(service.ScreenMainMenu)},
-		Words: map[string]service.WordProgress{"go": {Status: service.StatusStudy, Mode: 2}}})
+	_ = repo.Save(ctx, &service.User{
+		ID: 7,
+		Settings: service.Settings{
+			Variant: "gb",
+		},
+		State: service.State{
+			Screen: string(service.ScreenMainMenu),
+		},
+		Words: map[string]service.WordProgress{
+			"go": {
+				Status: service.StatusStudy,
+				Mode:   2,
+			},
+		},
+	})
 
 	require.NoError(t, r.Handle(ctx, cbUpdate(7, "menu:learn")))
 	u, _ := repo.Get(ctx, 7)
@@ -65,21 +96,25 @@ func TestRouterMenuLearnEmpty(t *testing.T) {
 	svc := service.New(repo, learnBotCatalog())
 	senderMock, sender := newSender(t)
 	r := New(svc, senderMock)
-	_ = repo.Save(ctx, &service.User{ID: 7, Settings: service.Settings{Variant: "gb"},
-		State: service.State{Screen: string(service.ScreenMainMenu)}})
+	_ = repo.Save(ctx, &service.User{
+		ID: 7,
+		Settings: service.Settings{
+			Variant: "gb",
+		},
+		State: service.State{
+			Screen: string(service.ScreenMainMenu),
+		},
+	})
 
 	require.NoError(t, r.Handle(ctx, cbUpdate(7, "menu:learn")))
 	require.Contains(t, sender.last().text, "Пока нечего учить", "text = %q", sender.last().text)
 }
 
-// learnBotCatalog mirrors the service learn catalog (enough verbs for choices).
+// learnBotCatalog loads the service learn catalog (enough verbs for choices).
 func learnBotCatalog() []service.Verb {
-	return []service.Verb{
-		{Base: "go", Level: "elementary", Past: map[string][]string{"gb": {"went"}, "us": {"went"}}, Participle: map[string][]string{"gb": {"gone"}, "us": {"gone"}}, Translations: []string{"идти"}, CommonMistakes: []string{"goed", "wented"}},
-		{Base: "be", Level: "elementary", Past: map[string][]string{"gb": {"was", "were"}, "us": {"was", "were"}}, Participle: map[string][]string{"gb": {"been"}, "us": {"been"}}, Translations: []string{"быть"}, CommonMistakes: []string{"beed", "are"}},
-		{Base: "do", Level: "elementary", Past: map[string][]string{"gb": {"did"}, "us": {"did"}}, Participle: map[string][]string{"gb": {"done"}, "us": {"done"}}, Translations: []string{"делать"}, CommonMistakes: []string{"doed", "done"}},
-		{Base: "make", Level: "elementary", Past: map[string][]string{"gb": {"made"}, "us": {"made"}}, Participle: map[string][]string{"gb": {"made"}, "us": {"made"}}, Translations: []string{"создавать"}, CommonMistakes: []string{"marked", "maded"}},
-		{Base: "see", Level: "elementary", Past: map[string][]string{"gb": {"saw"}, "us": {"saw"}}, Participle: map[string][]string{"gb": {"seen"}, "us": {"seen"}}, Translations: []string{"видеть"}, CommonMistakes: []string{"seed", "sawed"}},
-		{Base: "take", Level: "elementary", Past: map[string][]string{"gb": {"took"}, "us": {"took"}}, Participle: map[string][]string{"gb": {"taken"}, "us": {"taken"}}, Translations: []string{"брать"}, CommonMistakes: []string{"taked", "tooked"}},
+	verbs, err := service.LoadVerbs("../service/testdata/learn_catalog.json")
+	if err != nil {
+		panic(err)
 	}
+	return verbs
 }

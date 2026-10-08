@@ -12,7 +12,7 @@ const reminderIdle = 24 * time.Hour
 // DueReminders returns the IDs of users who should get a reminder task now:
 // idle/un-reminded for reminderIdle and with a non-empty learn pool.
 func (s *Service) DueReminders(ctx context.Context) ([]int64, error) {
-	before := s.now().Add(-reminderIdle)
+	before := time.Now().Add(-reminderIdle)
 	users, err := s.users.DueForReminder(ctx, before)
 	if err != nil {
 		return nil, err
@@ -39,8 +39,9 @@ func (s *Service) Remind(ctx context.Context, userID int64) (View, bool, error) 
 	if !ok {
 		return View{}, false, nil
 	}
-	u.LastRemindedAt = s.now()
-	if err := s.save(ctx, u); err != nil {
+	u.LastRemindedAt = time.Now()
+	err = s.save(ctx, u)
+	if err != nil {
 		return View{}, false, err
 	}
 	return v, true, nil
@@ -48,4 +49,4 @@ func (s *Service) Remind(ctx context.Context, userID int64) (View, bool, error) 
 
 // markSolved records that the user just engaged with a task (resets the
 // reminder timer).
-func (s *Service) markSolved(u *User) { u.LastSolvedAt = s.now() }
+func (s *Service) markSolved(u *User) { u.LastSolvedAt = time.Now() }

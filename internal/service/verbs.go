@@ -20,7 +20,8 @@ func LoadVerbs(path string) ([]Verb, error) {
 		return nil, fmt.Errorf("service: read %s: %w", path, err)
 	}
 	var ds dataset
-	if err := json.Unmarshal(raw, &ds); err != nil {
+	err = json.Unmarshal(raw, &ds)
+	if err != nil {
 		return nil, fmt.Errorf("service: parse %s: %w", path, err)
 	}
 	if len(ds.Verbs) == 0 {
@@ -32,7 +33,8 @@ func LoadVerbs(path string) ([]Verb, error) {
 // SeedVerbs upserts all verbs through the verb repository.
 func SeedVerbs(ctx context.Context, p SeedVerbsParams) error {
 	for i := range p.Verbs {
-		if err := p.Repo.Upsert(ctx, &p.Verbs[i]); err != nil {
+		err := p.Repo.Upsert(ctx, &p.Verbs[i])
+		if err != nil {
 			return err
 		}
 	}

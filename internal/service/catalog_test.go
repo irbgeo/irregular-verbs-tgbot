@@ -21,15 +21,86 @@ func TestCatalogByBaseAndLevel(t *testing.T) {
 	for _, v := range el {
 		got = append(got, v.Base)
 	}
-	want := []string{"be", "go"} // sorted by base
+	want := []string{
+		"be",
+		"go",
+	} // sorted by base
 	require.True(t, sort.StringsAreSorted(got), "levelWords(elementary) = %v", got)
 	require.Equal(t, want, got)
 }
 
 func testCatalog() []Verb {
 	return []Verb{
-		{Base: "go", Level: "elementary", Past: map[string][]string{"gb": {"went"}, "us": {"went"}}, Participle: map[string][]string{"gb": {"gone"}, "us": {"gone"}}, Translations: []string{"идти"}},
-		{Base: "be", Level: "elementary", Past: map[string][]string{"gb": {"was", "were"}, "us": {"was", "were"}}, Participle: map[string][]string{"gb": {"been"}, "us": {"been"}}, Translations: []string{"быть"}},
-		{Base: "build", Level: "pre-intermediate", Past: map[string][]string{"gb": {"built"}, "us": {"built"}}, Participle: map[string][]string{"gb": {"built"}, "us": {"built"}}, Translations: []string{"строить"}},
+		{
+			Base:  "go",
+			Level: "elementary",
+			Past: map[string][]string{
+				"gb": {
+					"went",
+				},
+				"us": {
+					"went",
+				},
+			},
+			Participle: map[string][]string{
+				"gb": {
+					"gone",
+				},
+				"us": {
+					"gone",
+				},
+			},
+			Translations: []string{
+				"идти",
+			},
+		},
+		{
+			Base:  "be",
+			Level: "elementary",
+			Past: map[string][]string{
+				"gb": {
+					"was",
+					"were",
+				},
+				"us": {
+					"was",
+					"were",
+				},
+			},
+			Participle: map[string][]string{
+				"gb": {
+					"been",
+				},
+				"us": {
+					"been",
+				},
+			},
+			Translations: []string{
+				"быть",
+			},
+		},
+		{
+			Base:  "build",
+			Level: "pre-intermediate",
+			Past: map[string][]string{
+				"gb": {
+					"built",
+				},
+				"us": {
+					"built",
+				},
+			},
+			Participle: map[string][]string{
+				"gb": {
+					"built",
+				},
+				"us": {
+					"built",
+				},
+			},
+			Translations: []string{
+				"строить",
+			},
+		},
 	}
 }

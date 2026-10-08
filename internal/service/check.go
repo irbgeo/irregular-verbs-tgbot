@@ -5,57 +5,24 @@ import (
 	"unicode"
 )
 
-func norm(s string) string { return strings.ToLower(strings.TrimSpace(s)) }
-
-// normBase normalizes a base-form answer, accepting an optional "to " prefix.
-func normBase(s string) string { return strings.TrimPrefix(norm(s), "to ") }
-
-// isFormSep treats any non-letter rune as a separator between forms, so users
-// may divide answers with spaces, "/", ",", "-", "|", "." or anything else.
-func isFormSep(r rune) bool { return !unicode.IsLetter(r) }
-
-func anyEqual(input string, options []string) bool {
-	in := norm(input)
-	for _, o := range options {
-		if in == norm(o) {
-			return true
-		}
+// checkAllFormsOrdered reports whether input lists all three forms in order —
+// base, then past, then participle — with an optional leading "to". Separators
+// are flexible; the order of the three groups matters, order within a
+// multi-variant group does not.
+func (s *Service) checkAllFormsOrdered(v *Verb, args checkAllFormsOrderedArgs) bool {
+	toks := tokensOf(args.Input)
+	i := 0
+	if i < len(toks) && toks[i] == "to" {
+		i++ // optional infinitive marker
 	}
-	return false
-}
-
-// matchForm reports whether input correctly answers a form. For a multi-variant
-// form (e.g. was/were, burnt/burned) any single variant OR all of them together
-// is accepted.
-func matchForm(input string, forms []string) bool {
-	return anyEqual(input, forms) || allFormsMatch(input, forms)
-}
-
-// allFormsMatch reports whether input lists exactly the set of options
-// (every form present, none extra), splitting on spaces, "/" and ",".
-func allFormsMatch(input string, options []string) bool {
-	if len(options) == 0 {
-		return false
+	groups := [][]string{
+		{
+			v.Base,
+		},
+		v.Past[args.Variant],
+		v.Participle[args.Variant],
 	}
-	got := map[string]bool{}
-	for _, tok := range strings.FieldsFunc(input, isFormSep) {
-		if n := norm(tok); n != "" {
-			got[n] = true
-		}
-	}
-	want := map[string]bool{}
-	for _, o := range options {
-		want[norm(o)] = true
-	}
-	if len(got) != len(want) {
-		return false
-	}
-	for w := range want {
-		if !got[w] {
-			return false
-		}
-	}
-	return true
+	return matchGroupsOrdered(groups, toks[i:])
 }
 
 // tokensOf splits input on any non-letter separator and
@@ -69,38 +36,11 @@ func tokensOf(s string) []string {
 	return out
 }
 
-// sameFormSet reports whether got and want hold the same forms (as a multiset,
-// order within the group does not matter).
-func sameFormSet(got, want []string) bool {
-	if len(got) != len(want) {
-		return false
-	}
-	counts := map[string]int{}
-	for _, w := range want {
-		counts[norm(w)]++
-	}
-	for _, g := range got {
-		if counts[g] == 0 {
-			return false
-		}
-		counts[g]--
-	}
-	return true
-}
+// isFormSep treats any non-letter rune as a separator between forms, so users
+// may divide answers with spaces, "/", ",", "-", "|", "." or anything else.
+func isFormSep(r rune) bool { return !unicode.IsLetter(r) }
 
-// checkAllFormsOrdered reports whether input lists all three forms in order —
-// base, then past, then participle — with an optional leading "to". Separators
-// are flexible; the order of the three groups matters, order within a
-// multi-variant group does not.
-func (s *Service) checkAllFormsOrdered(v *Verb, args checkAllFormsOrderedArgs) bool {
-	toks := tokensOf(args.Input)
-	i := 0
-	if i < len(toks) && toks[i] == "to" {
-		i++ // optional infinitive marker
-	}
-	groups := [][]string{{v.Base}, v.Past[args.Variant], v.Participle[args.Variant]}
-	return matchGroupsOrdered(groups, toks[i:])
-}
+func norm(s string) string { return strings.ToLower(strings.TrimSpace(s)) }
 
 // matchGroupsOrdered reports whether toks answers the ordered groups. Each
 // multi-variant group accepts either one variant (consumes one token) or all of
@@ -125,6 +65,73 @@ func matchGroupsOrdered(groups [][]string, toks []string) bool {
 	}
 	return false
 }
+
+func anyEqual(input string, options []string) bool {
+	in := norm(input)
+	for _, o := range options {
+		if in == norm(o) {
+			return true
+		}
+	}
+	return false
+}
+
+// sameFormSet reports whether got and want hold the same forms (as a multiset,
+// order within the group does not matter).
+func sameFormSet(got, want []string) bool {
+	if len(got) != len(want) {
+		return false
+	}
+	counts := map[string]int{}
+	for _, w := range want {
+		counts[norm(w)]++
+	}
+	for _, g := range got {
+		if counts[g] == 0 {
+			return false
+		}
+		counts[g]--
+	}
+	return true
+}
+
+// matchForm reports whether input correctly answers a form. For a multi-variant
+// form (e.g. was/were, burnt/burned) any single variant OR all of them together
+// is accepted.
+func matchForm(input string, forms []string) bool {
+	return anyEqual(input, forms) || allFormsMatch(input, forms)
+}
+
+// allFormsMatch reports whether input lists exactly the set of options
+// (every form present, none extra), splitting on spaces, "/" and ",".
+func allFormsMatch(input string, options []string) bool {
+	if len(options) == 0 {
+		return false
+	}
+	got := map[string]bool{}
+	for _, tok := range strings.FieldsFunc(input, isFormSep) {
+		n := norm(tok)
+		if n != "" {
+			got[n] = true
+		}
+	}
+	want := map[string]bool{}
+	for _, o := range options {
+		want[norm(o)] = true
+	}
+	if len(got) != len(want) {
+		return false
+	}
+	for w := range want {
+		if !got[w] {
+			return false
+		}
+	}
+	return true
+}
+
+// normBase normalizes a base-form answer, accepting an optional "to " prefix.
+func normBase(s string) string { return strings.TrimPrefix(norm(s), "to ") }
 
 // feedbackFor builds the semantic answer result for a verb: the correct forms
 // (for the tutee's variant) plus the outcome. The bot renders the wording.

@@ -13,14 +13,33 @@ func TestCheckAnswerBaseAcceptsToPrefix(t *testing.T) {
 		in   string
 		want bool
 	}{
-		{"be", true},
-		{"to be", true},
-		{" To Be ", true},
-		{"tobe", false},
-		{"to go", false},
+		{
+			"be",
+			true,
+		},
+		{
+			"to be",
+			true,
+		},
+		{
+			" To Be ",
+			true,
+		},
+		{
+			"tobe",
+			false,
+		},
+		{
+			"to go",
+			false,
+		},
 	}
 	for _, c := range cases {
-		got := s.checkTarget(&v, checkTargetArgs{Kind: KindBase, Input: c.in, Variant: "gb"})
+		got := s.checkTarget(&v, checkTargetArgs{
+			Kind:    KindBase,
+			Input:   c.in,
+			Variant: "gb",
+		})
 		require.Equal(t, c.want, got, "checkTarget(base,%q)", c.in)
 	}
 }
@@ -32,13 +51,29 @@ func TestCheckTargetBaseAcceptsToPrefix(t *testing.T) {
 		in   string
 		want bool
 	}{
-		{"go", true},
-		{"to go", true},
-		{"togo", false},
-		{"to went", false},
+		{
+			"go",
+			true,
+		},
+		{
+			"to go",
+			true,
+		},
+		{
+			"togo",
+			false,
+		},
+		{
+			"to went",
+			false,
+		},
 	}
 	for _, c := range cases {
-		got := svc.checkTarget(v, checkTargetArgs{Kind: KindBase, Input: c.in, Variant: "gb"})
+		got := svc.checkTarget(v, checkTargetArgs{
+			Kind:    KindBase,
+			Input:   c.in,
+			Variant: "gb",
+		})
 		require.Equal(t, c.want, got, "checkTarget(base,%q)", c.in)
 	}
 }
@@ -46,7 +81,10 @@ func TestCheckTargetBaseAcceptsToPrefix(t *testing.T) {
 func TestCorrectFormsNoToMarker(t *testing.T) {
 	svc, _ := newLearnSvc()
 	v, _ := svc.verb("go")
-	f := feedbackFor(v, feedbackForArgs{Variant: "gb", Result: AnswerCorrect})
+	f := feedbackFor(v, feedbackForArgs{
+		Variant: "gb",
+		Result:  AnswerCorrect,
+	})
 	require.Equal(t, "go", f.Base) // base has no "to " infinitive marker
 	require.Equal(t, []string{"went"}, f.Past)
 	require.Equal(t, []string{"gone"}, f.Participle)

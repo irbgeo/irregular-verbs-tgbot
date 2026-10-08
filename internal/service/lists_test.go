@@ -9,10 +9,21 @@ import (
 func TestEffectiveStatus(t *testing.T) {
 	u := &User{
 		Words: map[string]WordProgress{
-			"go": {Status: StatusStudy},
-			"be": {Status: StatusSkipped},
+			"go": {
+				Status: StatusStudy,
+			},
+			"be": {
+				Status: StatusSkipped,
+			},
 		},
-		State: State{List: &ListState{Draft: map[string]string{"be": StatusStudy, "do": StatusStudy}}},
+		State: State{
+			List: &ListState{
+				Draft: map[string]string{
+					"be": StatusStudy,
+					"do": StatusStudy,
+				},
+			},
+		},
 	}
 	cases := map[string]string{
 		"go": StatusStudy, // from words, no draft
@@ -24,7 +35,13 @@ func TestEffectiveStatus(t *testing.T) {
 		require.Equal(t, want, effectiveStatus(u, base), "effectiveStatus(%q)", base)
 	}
 
-	noDraft := &User{Words: map[string]WordProgress{"go": {Status: StatusLearned}}}
+	noDraft := &User{
+		Words: map[string]WordProgress{
+			"go": {
+				Status: StatusLearned,
+			},
+		},
+	}
 	require.Equal(t, StatusLearned, effectiveStatus(noDraft, "go"), "no-draft effectiveStatus")
 }
 

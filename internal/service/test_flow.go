@@ -12,7 +12,8 @@ func (s *Service) OpenTest(ctx context.Context, userID int64) (View, error) {
 		return View{}, err
 	}
 	u.State = State{Screen: string(ScreenTestLevel)}
-	if err := s.save(ctx, u); err != nil {
+	err = s.save(ctx, u)
+	if err != nil {
 		return View{}, err
 	}
 	return View{
@@ -50,7 +51,8 @@ func (s *Service) StartTest(ctx context.Context, p StartTestParams) (View, error
 		Screen:  string(ScreenQuiz),
 		Session: sess,
 	}
-	if err := s.save(ctx, u); err != nil {
+	err = s.save(ctx, u)
+	if err != nil {
 		return View{}, err
 	}
 	return View{
@@ -66,10 +68,11 @@ func (s *Service) Answer(ctx context.Context, p AnswerParams) (View, error) {
 		return View{}, err
 	}
 	if s.inLearn(u) {
-		return s.learnText(ctx, learnTextArgs{
+		learnTextArgs := learnTextArgs{
 			U:    u,
 			Text: p.Text,
-		})
+		}
+		return s.learnText(ctx, learnTextArgs)
 	}
 	if !s.inQuiz(u) {
 		return View{}, nil // ignore stray text
@@ -77,33 +80,38 @@ func (s *Service) Answer(ctx context.Context, p AnswerParams) (View, error) {
 	s.markSolved(u)
 	sess := u.State.Session
 	v, _ := s.verb(sess.Base)
-	if !s.checkAllFormsOrdered(v, checkAllFormsOrderedArgs{
+	checkAllFormsOrderedArgs := checkAllFormsOrderedArgs{
 		Input:   p.Text,
 		Variant: u.Settings.Variant,
-	}) {
+	}
+	if !s.checkAllFormsOrdered(v, checkAllFormsOrderedArgs) {
 		s.setStudy(u, sess.Base)
 		out := s.advance(u)
-		out.Feedback = feedbackFor(v, feedbackForArgs{
+		feedbackForArgs := feedbackForArgs{
 			Variant:      u.Settings.Variant,
 			Result:       AnswerIncorrect,
 			AddedToStudy: true,
-		})
-		if err := s.save(ctx, u); err != nil {
+		}
+		out.Feedback = feedbackFor(v, feedbackForArgs)
+		err = s.save(ctx, u)
+		if err != nil {
 			return View{}, err
 		}
 		return out, nil
 	}
 	// all three forms correct, no help -> ask keep/skip
 	u.State.Screen = string(ScreenTestResult)
-	if err := s.save(ctx, u); err != nil {
+	err = s.save(ctx, u)
+	if err != nil {
 		return View{}, err
 	}
+	feedbackForArgs := feedbackForArgs{
+		Variant: u.Settings.Variant,
+		Result:  AnswerCorrect,
+	}
 	return View{
-		Screen: ScreenTestResult,
-		Feedback: feedbackFor(v, feedbackForArgs{
-			Variant: u.Settings.Variant,
-			Result:  AnswerCorrect,
-		}),
+		Screen:   ScreenTestResult,
+		Feedback: feedbackFor(v, feedbackForArgs),
 	}, nil
 }
 
@@ -114,10 +122,11 @@ func (s *Service) Help(ctx context.Context, userID int64) (View, error) {
 		return View{}, err
 	}
 	if s.inLearn(u) {
-		return s.resolveLearn(ctx, resolveLearnArgs{
+		resolveLearnArgs := resolveLearnArgs{
 			U:      u,
 			Reveal: true,
-		})
+		}
+		return s.resolveLearn(ctx, resolveLearnArgs)
 	}
 	if !s.inQuiz(u) {
 		return View{}, nil
@@ -126,12 +135,14 @@ func (s *Service) Help(ctx context.Context, userID int64) (View, error) {
 	v, _ := s.verb(u.State.Session.Base)
 	s.setStudy(u, u.State.Session.Base)
 	out := s.advance(u)
-	out.Feedback = feedbackFor(v, feedbackForArgs{
+	feedbackForArgs := feedbackForArgs{
 		Variant:      u.Settings.Variant,
 		Result:       AnswerHint,
 		AddedToStudy: true,
-	})
-	if err := s.save(ctx, u); err != nil {
+	}
+	out.Feedback = feedbackFor(v, feedbackForArgs)
+	err = s.save(ctx, u)
+	if err != nil {
 		return View{}, err
 	}
 	return out, nil
@@ -150,7 +161,8 @@ func (s *Service) Skip(ctx context.Context, userID int64) (View, error) {
 		return View{}, nil
 	}
 	out := s.advance(u)
-	if err := s.save(ctx, u); err != nil {
+	err = s.save(ctx, u)
+	if err != nil {
 		return View{}, err
 	}
 	return out, nil
@@ -168,7 +180,8 @@ func (s *Service) Keep(ctx context.Context, userID int64) (View, error) {
 	s.setStudy(u, u.State.Session.Base)
 	u.State.Screen = string(ScreenQuiz)
 	out := s.advance(u)
-	if err := s.save(ctx, u); err != nil {
+	err = s.save(ctx, u)
+	if err != nil {
 		return View{}, err
 	}
 	return out, nil
@@ -186,7 +199,8 @@ func (s *Service) Drop(ctx context.Context, userID int64) (View, error) {
 	s.setSkipped(u, u.State.Session.Base)
 	u.State.Screen = string(ScreenQuiz)
 	out := s.advance(u)
-	if err := s.save(ctx, u); err != nil {
+	err = s.save(ctx, u)
+	if err != nil {
 		return View{}, err
 	}
 	return out, nil
@@ -233,6 +247,10 @@ func (s *Service) testQuestion(sess *Session) *QuizView {
 	}
 }
 
+func (s *Service) inQuiz(u *User) bool {
+	return u != nil && u.State.Screen == string(ScreenQuiz) && u.State.Session != nil
+}
+
 func (s *Service) setStudy(u *User, base string) {
 	if u.Words == nil {
 		u.Words = map[string]WordProgress{}
@@ -257,10 +275,6 @@ func (s *Service) advance(u *User) View {
 		Screen: ScreenQuiz,
 		Quiz:   s.testQuestion(sess),
 	}
-}
-
-func (s *Service) inQuiz(u *User) bool {
-	return u != nil && u.State.Screen == string(ScreenQuiz) && u.State.Session != nil
 }
 
 func (s *Service) inResult(u *User) bool {

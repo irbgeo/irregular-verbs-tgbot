@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	mocks "github.com/irbgeo/irregular-verbs-tgbot/internal/bot/mocks"
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/service"
 )
 
@@ -26,10 +25,14 @@ func TestRouterStartAndVariant(t *testing.T) {
 
 type fakeUserRepo struct{ m map[int64]*service.User }
 
-func newFakeUserRepo() *fakeUserRepo { return &fakeUserRepo{m: map[int64]*service.User{}} }
+func newFakeUserRepo() *fakeUserRepo {
+	return &fakeUserRepo{
+		m: map[int64]*service.User{},
+	}
+}
 
-func (f *fakeUserRepo) Get(_ context.Context, id int64) (*service.User, error) {
-	u, ok := f.m[id]
+func (s *fakeUserRepo) Get(_ context.Context, id int64) (*service.User, error) {
+	u, ok := s.m[id]
 	if !ok {
 		return nil, nil
 	}
@@ -37,13 +40,13 @@ func (f *fakeUserRepo) Get(_ context.Context, id int64) (*service.User, error) {
 	return &cp, nil
 }
 
-func (f *fakeUserRepo) Save(_ context.Context, u *service.User) error {
+func (s *fakeUserRepo) Save(_ context.Context, u *service.User) error {
 	cp := *u
-	f.m[u.ID] = &cp
+	s.m[u.ID] = &cp
 	return nil
 }
 
-func (f *fakeUserRepo) DueForReminder(_ context.Context, _ time.Time) ([]*service.User, error) {
+func (s *fakeUserRepo) DueForReminder(_ context.Context, _ time.Time) ([]*service.User, error) {
 	return nil, nil // bot tests don't exercise reminders
 }
 
@@ -59,21 +62,27 @@ type senderLog struct {
 	answers []string
 }
 
-func (l *senderLog) last() sentMsg { return l.msgs[len(l.msgs)-1] }
+func (s *senderLog) last() sentMsg { return s.msgs[len(s.msgs)-1] }
 
 // newSender returns a MockSender that records every Send/Edit/Answer/AnswerText
 // into the returned log. All calls are optional (Maybe).
-func newSender(t *testing.T) (*mocks.MockSender, *senderLog) {
+func newSender(t *testing.T) (*MockSender, *senderLog) {
 	log := &senderLog{}
-	s := mocks.NewMockSender(t)
-	s.EXPECT().Send(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		RunAndReturn(func(_ context.Context, _ int64, text string, _ *tgbot.InlineKeyboardMarkup) error {
-			log.msgs = append(log.msgs, sentMsg{text, false})
+	s := NewMockSender(t)
+	s.EXPECT().Send(mock.Anything, mock.Anything).
+		RunAndReturn(func(_ context.Context, p SendParams) error {
+			log.msgs = append(log.msgs, sentMsg{
+				text: p.Text,
+				edit: false,
+			})
 			return nil
 		}).Maybe()
-	s.EXPECT().Edit(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		RunAndReturn(func(_ context.Context, _, _ int64, text string, _ *tgbot.InlineKeyboardMarkup) error {
-			log.msgs = append(log.msgs, sentMsg{text, true})
+	s.EXPECT().Edit(mock.Anything, mock.Anything).
+		RunAndReturn(func(_ context.Context, p EditParams) error {
+			log.msgs = append(log.msgs, sentMsg{
+				text: p.Text,
+				edit: true,
+			})
 			return nil
 		}).Maybe()
 	s.EXPECT().Answer(mock.Anything, mock.Anything).
@@ -81,9 +90,9 @@ func newSender(t *testing.T) (*mocks.MockSender, *senderLog) {
 			log.answers = append(log.answers, "")
 			return nil
 		}).Maybe()
-	s.EXPECT().AnswerText(mock.Anything, mock.Anything, mock.Anything).
-		RunAndReturn(func(_ context.Context, _, text string) error {
-			log.answers = append(log.answers, text)
+	s.EXPECT().AnswerText(mock.Anything, mock.Anything).
+		RunAndReturn(func(_ context.Context, p AnswerTextParams) error {
+			log.answers = append(log.answers, p.Text)
 			return nil
 		}).Maybe()
 	return s, log
@@ -91,7 +100,7 @@ func newSender(t *testing.T) (*mocks.MockSender, *senderLog) {
 
 // mockSender returns just the MockSender, for tests that don't assert on what
 // was sent.
-func mockSender(t *testing.T) *mocks.MockSender {
+func mockSender(t *testing.T) *MockSender {
 	s, _ := newSender(t)
 	return s
 }
@@ -104,8 +113,30 @@ func newRouter(t *testing.T) (*Router, *fakeUserRepo, *senderLog) {
 }
 
 func startUpdate(id int64) tgbot.Update {
-	return tgbot.Update{Message: &tgbot.Message{Text: "/start", Chat: tgbot.Chat{ID: id}, From: &tgbot.User{ID: id}}}
+	return tgbot.Update{
+		Message: &tgbot.Message{
+			Text: "/start",
+			Chat: tgbot.Chat{
+				ID: id,
+			},
+			From: &tgbot.User{ID: id},
+		},
+	}
 }
 func cbUpdate(id int64, data string) tgbot.Update {
-	return tgbot.Update{CallbackQuery: &tgbot.CallbackQuery{ID: "cb", From: tgbot.User{ID: id}, Data: data, Message: &tgbot.Message{MessageID: 100, Chat: tgbot.Chat{ID: id}}}}
+	return tgbot.Update{
+		CallbackQuery: &tgbot.CallbackQuery{
+			ID: "cb",
+			From: tgbot.User{
+				ID: id,
+			},
+			Data: data,
+			Message: &tgbot.Message{
+				MessageID: 100,
+				Chat: tgbot.Chat{
+					ID: id,
+				},
+			},
+		},
+	}
 }

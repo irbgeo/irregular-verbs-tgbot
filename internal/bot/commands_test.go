@@ -15,8 +15,15 @@ func TestRouterMenuCommand(t *testing.T) {
 	svc := service.New(repo, catalog())
 	senderMock, sender := newSender(t)
 	r := New(svc, senderMock)
-	_ = repo.Save(ctx, &service.User{ID: 7, Settings: service.Settings{Variant: "gb"},
-		State: service.State{Screen: string(service.ScreenQuiz)}})
+	_ = repo.Save(ctx, &service.User{
+		ID: 7,
+		Settings: service.Settings{
+			Variant: "gb",
+		},
+		State: service.State{
+			Screen: string(service.ScreenQuiz),
+		},
+	})
 
 	require.NoError(t, r.Handle(ctx, textUpdate(7, "/menu")))
 	require.Equal(t, "Главное меню:", sender.last().text, "menu text = %q", sender.last().text)

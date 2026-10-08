@@ -6,22 +6,29 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/service"
 )
 
-// UserRepo stores users in MongoDB.
-type UserRepo struct {
+// userRepo stores users in MongoDB.
+type userRepo struct {
 	coll *mongo.Collection
 }
 
+// newUserRepo creates a userRepo over the users collection.
+func newUserRepo(
+	coll *mongo.Collection,
+) *userRepo {
+	return &userRepo{
+		coll: coll,
+	}
+}
+
 // Get returns the user by id, or (nil, nil) if not found.
-func (s *UserRepo) Get(ctx context.Context, id int64) (*service.User, error) {
+func (s *userRepo) Get(ctx context.Context, id int64) (*service.User, error) {
 	var d user
-	err := s.coll.FindOne(ctx, bson.M{"_id": id}).Decode(&d)
+	err := s.coll.FindOne(ctx, byID(id)).Decode(&d)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	}
@@ -32,8 +39,8 @@ func (s *UserRepo) Get(ctx context.Context, id int64) (*service.User, error) {
 }
 
 // Save inserts or replaces the user document by id.
-func (s *UserRepo) Save(ctx context.Context, u *service.User) error {
-	_, err := s.coll.ReplaceOne(ctx, bson.M{"_id": u.ID}, userToStore(u), options.Replace().SetUpsert(true))
+func (s *userRepo) Save(ctx context.Context, u *service.User) error {
+	_, err := s.coll.ReplaceOne(ctx, byID(u.ID), userToStore(u), upsert())
 	if err != nil {
 		return fmt.Errorf("store: save user %d: %w", u.ID, err)
 	}
@@ -42,19 +49,14 @@ func (s *UserRepo) Save(ctx context.Context, u *service.User) error {
 
 // DueForReminder returns users whose created_at, last_solved_at and
 // last_reminded_at are all <= before, and who hold a non-empty words map.
-func (s *UserRepo) DueForReminder(ctx context.Context, before time.Time) ([]*service.User, error) {
-	filter := bson.M{
-		"created_at":       bson.M{"$lte": before},
-		"last_solved_at":   bson.M{"$lte": before},
-		"last_reminded_at": bson.M{"$lte": before},
-		"words":            bson.M{"$exists": true, "$ne": bson.M{}},
-	}
-	cur, err := s.coll.Find(ctx, filter)
+func (s *userRepo) DueForReminder(ctx context.Context, before time.Time) ([]*service.User, error) {
+	cur, err := s.coll.Find(ctx, dueForReminder(before))
 	if err != nil {
 		return nil, fmt.Errorf("store: due for reminder: %w", err)
 	}
 	var docs []user
-	if err := cur.All(ctx, &docs); err != nil {
+	err = cur.All(ctx, &docs)
+	if err != nil {
 		return nil, fmt.Errorf("store: decode reminder users: %w", err)
 	}
 	users := make([]*service.User, len(docs))

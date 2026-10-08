@@ -20,7 +20,10 @@ func TestLoadVerbsParsesAll(t *testing.T) {
 	}
 	require.Equal(t, "elementary", be.Level)
 	got := be.Past["gb"]
-	require.Equal(t, []string{"was", "were"}, got)
+	require.Equal(t, []string{
+		"was",
+		"were",
+	}, got)
 }
 
 // TestVerbsDatasetInvariants guards the dataset against malformed entries: each
@@ -41,7 +44,10 @@ func TestVerbsDatasetInvariants(t *testing.T) {
 		seen[v.Base] = true
 
 		require.True(t, known[v.Level], "%s: unknown level %q", v.Base, v.Level)
-		for _, variant := range []string{"gb", "us"} {
+		for _, variant := range []string{
+			"gb",
+			"us",
+		} {
 			require.NotEmpty(t, v.Past[variant], "%s: empty past[%s]", v.Base, variant)
 			require.NotEmpty(t, v.Participle[variant], "%s: empty participle[%s]", v.Base, variant)
 		}
@@ -70,7 +76,10 @@ func TestCommonMistakesAreCleanDistractors(t *testing.T) {
 	}
 	for _, v := range vs {
 		forms := map[string]bool{norm(v.Base): true}
-		for _, variant := range []string{"gb", "us"} {
+		for _, variant := range []string{
+			"gb",
+			"us",
+		} {
 			for _, f := range v.Past[variant] {
 				forms[norm(f)] = true
 			}

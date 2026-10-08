@@ -19,6 +19,13 @@ linters:
     - nilerr
     - bodyclose
     - prealloc
+  exclusions:
+    rules:
+      # main holds all wiring and stops with log.Fatalf, skipping defers on purpose.
+      - path: ^cmd/
+        linters:
+          - gocritic
+        text: exitAfterDefer
   settings:
     govet:
       disable:

@@ -10,10 +10,13 @@ import (
 func TestKeepWritesStudyAndAdvances(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := startedTest(t)
-	cur := toResult(t, svc, repo)
+	cur := toResult(t, svc)
 	out, err := svc.Keep(ctx, 7)
 	require.NoError(t, err)
-	require.Contains(t, []Screen{ScreenQuiz, ScreenTestDone}, out.Screen, "view = %+v", out)
+	require.Contains(t, []Screen{
+		ScreenQuiz,
+		ScreenTestDone,
+	}, out.Screen, "view = %+v", out)
 	u, _ := repo.Get(ctx, 7)
 	require.Equal(t, StatusStudy, u.Words[cur].Status, "keep should mark %s study, got %+v", cur, u.Words[cur])
 }
@@ -21,7 +24,7 @@ func TestKeepWritesStudyAndAdvances(t *testing.T) {
 func TestDropWritesSkippedAndAdvances(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := startedTest(t)
-	cur := toResult(t, svc, repo)
+	cur := toResult(t, svc)
 	_, err := svc.Drop(ctx, 7)
 	require.NoError(t, err)
 	u, _ := repo.Get(ctx, 7)
@@ -29,13 +32,17 @@ func TestDropWritesSkippedAndAdvances(t *testing.T) {
 }
 
 // drive the current word to the test_result screen (all 3 correct).
-func toResult(t *testing.T, svc *Service, repo *fakeUserRepo) string {
+func toResult(t *testing.T, svc *Service) string {
 	t.Helper()
+	repo := svc.users.(*fakeUserRepo)
 	ctx := context.Background()
 	cur := sess(t, repo).Base
 	v, _ := svc.verb(cur)
 	// one message with all three forms in order -> result
-	out, _ := svc.Answer(ctx, AnswerParams{UserID: 7, Text: allFormsAnswer(v, "gb")})
+	out, _ := svc.Answer(ctx, AnswerParams{
+		UserID: 7,
+		Text:   allFormsAnswer(v, "gb"),
+	})
 	require.Equal(t, ScreenTestResult, out.Screen)
 	return cur
 }

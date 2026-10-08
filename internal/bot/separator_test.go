@@ -10,9 +10,26 @@ import (
 )
 
 func TestQuizSeparatorWithFeedback(t *testing.T) {
-	v := service.View{Screen: service.ScreenQuiz,
-		Feedback: &service.Feedback{Result: service.AnswerCorrect, Base: "go", Past: []string{"went"}, Participle: []string{"gone"}, Translations: []string{"идти"}},
-		Quiz:     &service.QuizView{Mode: "test", Base: "forbid"}}
+	v := service.View{
+		Screen: service.ScreenQuiz,
+		Feedback: &service.Feedback{
+			Result: service.AnswerCorrect,
+			Base:   "go",
+			Past: []string{
+				"went",
+			},
+			Participle: []string{
+				"gone",
+			},
+			Translations: []string{
+				"идти",
+			},
+		},
+		Quiz: &service.QuizView{
+			Mode: "test",
+			Base: "forbid",
+		},
+	}
 	text, _ := render(&v)
 	require.Contains(t, text, "🆕 Новое задание")
 	require.Contains(t, text, "➖")
@@ -23,8 +40,13 @@ func TestQuizSeparatorWithFeedback(t *testing.T) {
 }
 
 func TestQuizNoSeparatorWithoutFeedback(t *testing.T) {
-	v := service.View{Screen: service.ScreenQuiz,
-		Quiz: &service.QuizView{Mode: "test", Base: "forbid"}}
+	v := service.View{
+		Screen: service.ScreenQuiz,
+		Quiz: &service.QuizView{
+			Mode: "test",
+			Base: "forbid",
+		},
+	}
 	text, _ := render(&v)
 	require.NotContains(t, text, "🆕 Новое задание")
 	require.NotContains(t, text, "➖")

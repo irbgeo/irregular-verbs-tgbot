@@ -17,19 +17,37 @@ func TestRenderSearchPrompt(t *testing.T) {
 }
 
 func TestRenderSearchResults(t *testing.T) {
-	v := service.View{Screen: service.ScreenSearch, List: &service.ListView{
-		Kind: service.KindSearch, Page: 0, Pages: 1,
-		Items: []service.ListItem{{Base: "go", Status: service.StatusNew, Past: "went", Participle: "gone"}},
-	}}
+	v := service.View{
+		Screen: service.ScreenSearch,
+		List: &service.ListView{
+			Kind:  service.KindSearch,
+			Page:  0,
+			Pages: 1,
+			Items: []service.ListItem{
+				{
+					Base:       "go",
+					Status:     service.StatusNew,
+					Past:       "went",
+					Participle: "gone",
+				},
+			},
+		},
+	}
 	text, k := render(&v)
 	require.Contains(t, text, "🔎 Поиск")
 	require.Equal(t, "tog:go", k.InlineKeyboard[0][0].CallbackData)
 }
 
 func TestRenderSearchEmpty(t *testing.T) {
-	v := service.View{Screen: service.ScreenSearch, List: &service.ListView{
-		Kind: service.KindSearch, Page: 0, Pages: 1, Items: []service.ListItem{},
-	}}
+	v := service.View{
+		Screen: service.ScreenSearch,
+		List: &service.ListView{
+			Kind:  service.KindSearch,
+			Page:  0,
+			Pages: 1,
+			Items: []service.ListItem{},
+		},
+	}
 	text, _ := render(&v)
 	require.Contains(t, text, "ничего не найдено")
 }
@@ -38,7 +56,15 @@ func TestRouterSearchFlow(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeUserRepo()
 	svc := service.New(repo, catalog())
-	_ = repo.Save(ctx, &service.User{ID: 7, Settings: service.Settings{Variant: "gb"}, State: service.State{Screen: string(service.ScreenMainMenu)}})
+	_ = repo.Save(ctx, &service.User{
+		ID: 7,
+		Settings: service.Settings{
+			Variant: "gb",
+		},
+		State: service.State{
+			Screen: string(service.ScreenMainMenu),
+		},
+	})
 	r := New(svc, mockSender(t))
 
 	require.NoError(t, r.Handle(ctx, cbUpdate(7, "menu:search"))) // -> prompt

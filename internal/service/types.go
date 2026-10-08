@@ -179,14 +179,15 @@ type ListItem struct {
 
 // ListView is the data the bot renders for a list screen.
 type ListView struct {
-	Kind        string
-	Level       string // word_list pool: a level slug or "all"
-	Page, Pages int
-	HasPrev     bool
-	HasNext     bool
-	Items       []ListItem
-	Dirty       bool      // draft non-empty (bot shows ✅/❌)
-	Selected    *ListItem // word just tapped: forms+translation shown in text (nil = no info block)
+	Kind     string
+	Level    string // word_list pool: a level slug or "all"
+	Page     int
+	Pages    int
+	HasPrev  bool
+	HasNext  bool
+	Items    []ListItem
+	Dirty    bool      // draft non-empty (bot shows ✅/❌)
+	Selected *ListItem // word just tapped: forms+translation shown in text (nil = no info block)
 }
 
 // ChooseLevelParams bundles ChooseLevel's arguments.

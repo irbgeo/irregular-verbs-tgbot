@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/irbgeo/irregular-verbs-tgbot/internal/config"
 	"github.com/irbgeo/irregular-verbs-tgbot/internal/service"
 )
 
@@ -22,9 +23,13 @@ func TestUserRoundTrip(t *testing.T) {
 	require.Nil(t, u)
 
 	in := &service.User{
-		ID:       42,
-		Settings: service.Settings{Variant: "gb"},
-		State:    service.State{Screen: "main_menu"},
+		ID: 42,
+		Settings: service.Settings{
+			Variant: "gb",
+		},
+		State: service.State{
+			Screen: "main_menu",
+		},
 	}
 	require.NoError(t, s.Users.Save(ctx, in))
 
@@ -41,16 +46,19 @@ func TestVerbUpsertIdempotent(t *testing.T) {
 	defer s.Disconnect(ctx)
 	_ = s.Verbs.coll.Drop(ctx)
 
-	v := service.Verb{Base: "go", Level: "elementary"}
+	v := service.Verb{
+		Base:  "go",
+		Level: "elementary",
+	}
 	require.NoError(t, s.Verbs.Upsert(ctx, &v))
 	require.NoError(t, s.Verbs.Upsert(ctx, &v))
 
-	n, err := s.Verbs.coll.CountDocuments(ctx, map[string]any{"_id": "go"})
+	n, err := s.Verbs.coll.CountDocuments(ctx, byID("go"))
 	require.NoError(t, err)
 	require.Equal(t, int64(1), n, "upsert must not duplicate")
 }
 
-func testStore(t *testing.T) *Store {
+func testStore(t *testing.T) *store {
 	t.Helper()
 	uri := os.Getenv("MONGO_URI")
 	if uri == "" {
@@ -58,7 +66,10 @@ func testStore(t *testing.T) *Store {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	s, err := Connect(ctx, ConnectParams{URI: uri, DBName: "irregular_verbs_test"})
+	s, err := Connect(ctx, &config.Config{
+		MongoURI: uri,
+		MongoDB:  "irregular_verbs_test",
+	})
 	if err != nil {
 		t.Skipf("skipping: no MongoDB at %s: %v", uri, err)
 	}

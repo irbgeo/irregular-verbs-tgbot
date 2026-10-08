@@ -21,7 +21,10 @@ func TestStartTestBuildsSession(t *testing.T) {
 	svc, repo := newSvc()
 	svc.rng = func(int) int { return 0 } // deterministic shuffle
 
-	v, err := svc.StartTest(ctx, StartTestParams{UserID: 7, Level: "elementary"})
+	v, err := svc.StartTest(ctx, StartTestParams{
+		UserID: 7,
+		Level:  "elementary",
+	})
 	require.NoError(t, err)
 	require.Equal(t, ScreenQuiz, v.Screen, "view = %+v", v)
 	require.NotNil(t, v.Quiz, "view = %+v", v)
@@ -39,7 +42,10 @@ func TestStartTestIncludesEarlierLevels(t *testing.T) {
 	svc, repo := newSvc()
 	svc.rng = func(int) int { return 0 }
 
-	_, err := svc.StartTest(ctx, StartTestParams{UserID: 7, Level: "pre-intermediate"})
+	_, err := svc.StartTest(ctx, StartTestParams{
+		UserID: 7,
+		Level:  "pre-intermediate",
+	})
 	require.NoError(t, err)
 	u, _ := repo.Get(ctx, 7)
 	sess := u.State.Session
@@ -50,7 +56,11 @@ func TestStartTestIncludesEarlierLevels(t *testing.T) {
 	for _, b := range got {
 		set[b] = true
 	}
-	for _, want := range []string{"be", "go", "build"} {
+	for _, want := range []string{
+		"be",
+		"go",
+		"build",
+	} {
 		require.True(t, set[want], "missing %q in %v", want, got)
 	}
 }
@@ -58,6 +68,9 @@ func TestStartTestIncludesEarlierLevels(t *testing.T) {
 func TestStartTestRejectsUnknownLevel(t *testing.T) {
 	ctx := context.Background()
 	svc, _ := newSvc()
-	_, err := svc.StartTest(ctx, StartTestParams{UserID: 7, Level: "nope"})
+	_, err := svc.StartTest(ctx, StartTestParams{
+		UserID: 7,
+		Level:  "nope",
+	})
 	require.Error(t, err, "want error for unknown level")
 }

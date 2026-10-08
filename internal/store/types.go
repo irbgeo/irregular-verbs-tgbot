@@ -9,12 +9,6 @@ import (
 // This file is the storage boundary: MongoDB document types (with bson tags)
 // and converters to/from the tag-free domain types in internal/service.
 
-// ConnectParams bundles Connect's arguments beyond ctx.
-type ConnectParams struct {
-	URI    string
-	DBName string
-}
-
 // --- Verb ---
 
 type verb struct {
@@ -91,8 +85,10 @@ type user struct {
 
 func userToStore(u *service.User) user {
 	d := user{
-		ID:             u.ID,
-		Settings:       settings{Variant: u.Settings.Variant},
+		ID: u.ID,
+		Settings: settings{
+			Variant: u.Settings.Variant,
+		},
 		State:          stateToStore(u.State),
 		CreatedAt:      u.CreatedAt,
 		LastActiveAt:   u.LastActiveAt,
@@ -110,29 +106,6 @@ func userToStore(u *service.User) user {
 		}
 	}
 	return d
-}
-
-func (s *user) toService() *service.User {
-	u := &service.User{
-		ID:             s.ID,
-		Settings:       service.Settings{Variant: s.Settings.Variant},
-		State:          s.State.toService(),
-		CreatedAt:      s.CreatedAt,
-		LastActiveAt:   s.LastActiveAt,
-		LastSolvedAt:   s.LastSolvedAt,
-		LastRemindedAt: s.LastRemindedAt,
-	}
-	if s.Words != nil {
-		u.Words = make(map[string]service.WordProgress, len(s.Words))
-		for k, w := range s.Words {
-			u.Words[k] = service.WordProgress{
-				Status: w.Status,
-				Mode:   w.Mode,
-				Box:    w.Box,
-			}
-		}
-	}
-	return u
 }
 
 func stateToStore(s service.State) state {
@@ -160,6 +133,31 @@ func stateToStore(s service.State) state {
 		}
 	}
 	return d
+}
+
+func (s *user) toService() *service.User {
+	u := &service.User{
+		ID: s.ID,
+		Settings: service.Settings{
+			Variant: s.Settings.Variant,
+		},
+		State:          s.State.toService(),
+		CreatedAt:      s.CreatedAt,
+		LastActiveAt:   s.LastActiveAt,
+		LastSolvedAt:   s.LastSolvedAt,
+		LastRemindedAt: s.LastRemindedAt,
+	}
+	if s.Words != nil {
+		u.Words = make(map[string]service.WordProgress, len(s.Words))
+		for k, w := range s.Words {
+			u.Words[k] = service.WordProgress{
+				Status: w.Status,
+				Mode:   w.Mode,
+				Box:    w.Box,
+			}
+		}
+	}
+	return u
 }
 
 func (s state) toService() service.State {

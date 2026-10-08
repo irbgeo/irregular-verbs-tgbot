@@ -13,7 +13,8 @@ type Config struct {
 // Load reads configuration from environment variables.
 func Load() (Config, error) {
 	var c Config
-	if err := envconfig.Process("", &c); err != nil {
+	err := envconfig.Process("", &c)
+	if err != nil {
 		return Config{}, err
 	}
 	return c, nil

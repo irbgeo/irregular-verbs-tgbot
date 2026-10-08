@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "levels": [
+    "elementary"
+  ],
+  "verbs": [
+    {
+      "base": "go",
+      "level": "elementary",
+      "past": {
+        "gb": [
+          "went"
+        ],
+        "us": [
+          "went"
+        ]
+      },
+      "participle": {
+        "gb": [
+          "gone"
+        ],
+        "us": [
+          "gone"
+        ]
+      },
+      "translations": [
+        "идти"
+      ],
+      "common_mistakes": [
+        "goed",
+        "wented"
+      ]
+    },
+    {
+      "base": "be",
+      "level": "elementary",
+      "past": {
+        "gb": [
+          "was",
+          "were"
+        ],
+        "us": [
+          "was",
+          "were"
+        ]
+      },
+      "participle": {
+        "gb": [
+          "been"
+        ],
+        "us": [
+          "been"
+        ]
+      },
+      "translations": [
+        "быть"
+      ],
+      "common_mistakes": [
+        "beed",
+        "are"
+      ]
+    },
+    {
+      "base": "do",
+      "level": "elementary",
+      "past": {
+        "gb": [
+          "did"
+        ],
+        "us": [
+          "did"
+        ]
+      },
+      "participle": {
+        "gb": [
+          "done"
+        ],
+        "us": [
+          "done"
+        ]
+      },
+      "translations": [
+        "делать"
+      ],
+      "common_mistakes": [
+        "doed",
+        "done"
+      ]
+    },
+    {
+      "base": "make",
+      "level": "elementary",
+      "past": {
+        "gb": [
+          "made"
+        ],
+        "us": [
+          "made"
+        ]
+      },
+      "participle": {
+        "gb": [
+          "made"
+        ],
+        "us": [
+          "made"
+        ]
+      },
+      "translations": [
+        "создавать"
+      ],
+      "common_mistakes": [
+        "marked",
+        "maded"
+      ]
+    },
+    {
+      "base": "see",
+      "level": "elementary",
+      "past": {
+        "gb": [
+          "saw"
+        ],
+        "us": [
+          "saw"
+        ]
+      },
+      "participle": {
+        "gb": [
+          "seen"
+        ],
+        "us": [
+          "seen"
+        ]
+      },
+      "translations": [
+        "видеть"
+      ],
+      "common_mistakes": [
+        "seed",
+        "sawed"
+      ]
+    },
+    {
+      "base": "take",
+      "level": "elementary",
+      "past": {
+        "gb": [
+          "took"
+        ],
+        "us": [
+          "took"
+        ]
+      },
+      "participle": {
+        "gb": [
+          "taken"
+        ],
+        "us": [
+          "taken"
+        ]
+      },
+      "translations": [
+        "брать"
+      ],
+      "common_mistakes": [
+        "taked",
+        "tooked"
+      ]
+    }
+  ]
+}

@@ -13,7 +13,10 @@ func TestAnswerWrongAddsToStudyAndAdvances(t *testing.T) {
 	svc, repo := startedTest(t)
 	cur := sess(t, repo).Base
 
-	v, err := svc.Answer(ctx, AnswerParams{UserID: 7, Text: "definitely-wrong"})
+	v, err := svc.Answer(ctx, AnswerParams{
+		UserID: 7,
+		Text:   "definitely-wrong",
+	})
 	require.NoError(t, err)
 	require.Equal(t, ScreenQuiz, v.Screen, "view = %+v", v)
 	require.NotNil(t, v.Feedback, "view = %+v", v)
@@ -34,7 +37,10 @@ func TestAnswerWrongOrderAddsToStudy(t *testing.T) {
 
 	// all three forms but in the wrong order -> incorrect
 	wrong := v.Participle["gb"][0] + " " + v.Past["gb"][0] + " " + v.Base
-	out, err := svc.Answer(ctx, AnswerParams{UserID: 7, Text: wrong})
+	out, err := svc.Answer(ctx, AnswerParams{
+		UserID: 7,
+		Text:   wrong,
+	})
 	require.NoError(t, err)
 	require.NotNil(t, out.Feedback, "wrong order must be incorrect (feedback shown)")
 	require.Equal(t, AnswerIncorrect, out.Feedback.Result, "wrong order must be incorrect")
@@ -49,7 +55,10 @@ func TestAnswerAllCorrectAsksResult(t *testing.T) {
 	cur := sess(t, repo).Base
 	v, _ := svc.verb(cur)
 
-	out, _ := svc.Answer(ctx, AnswerParams{UserID: 7, Text: allFormsAnswer(v, "gb")}) // all 3 forms in order
+	out, _ := svc.Answer(ctx, AnswerParams{
+		UserID: 7,
+		Text:   allFormsAnswer(v, "gb"),
+	}) // all 3 forms in order
 	require.Equal(t, ScreenTestResult, out.Screen, "view = %+v", out)
 	require.NotNil(t, out.Feedback)
 	require.Equal(t, AnswerCorrect, out.Feedback.Result)
@@ -112,9 +121,15 @@ func startedTest(t *testing.T) (*Service, *fakeUserRepo) {
 	t.Helper()
 	svc, repo := newSvc()
 	svc.rng = func(int) int { return 0 }
-	_, err := svc.SetVariant(context.Background(), SetVariantParams{UserID: 7, Variant: "gb"})
+	_, err := svc.SetVariant(context.Background(), SetVariantParams{
+		UserID:  7,
+		Variant: "gb",
+	})
 	require.NoError(t, err)
-	_, err = svc.StartTest(context.Background(), StartTestParams{UserID: 7, Level: "elementary"})
+	_, err = svc.StartTest(context.Background(), StartTestParams{
+		UserID: 7,
+		Level:  "elementary",
+	})
 	require.NoError(t, err)
 	return svc, repo
 }

@@ -10,7 +10,8 @@ import (
 // unsetEnv removes key for the duration of the test, restoring it afterwards.
 func unsetEnv(t *testing.T, key string) {
 	t.Helper()
-	if orig, ok := os.LookupEnv(key); ok {
+	orig, ok := os.LookupEnv(key)
+	if ok {
 		t.Cleanup(func() { os.Setenv(key, orig) })
 	}
 	os.Unsetenv(key)

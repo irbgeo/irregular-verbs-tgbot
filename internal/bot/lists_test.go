@@ -11,14 +11,27 @@ import (
 )
 
 func TestRenderMyWordsButtons(t *testing.T) {
-	v := service.View{Screen: service.ScreenMyWords, List: &service.ListView{
-		Kind: service.KindMyWords,
-		Items: []service.ListItem{
-			{Base: "be", Status: service.StatusLearned, Past: "was/were", Participle: "been"},
-			{Base: "go", Status: service.StatusStudy, Past: "went", Participle: "gone"},
+	v := service.View{
+		Screen: service.ScreenMyWords,
+		List: &service.ListView{
+			Kind: service.KindMyWords,
+			Items: []service.ListItem{
+				{
+					Base:       "be",
+					Status:     service.StatusLearned,
+					Past:       "was/were",
+					Participle: "been",
+				},
+				{
+					Base:       "go",
+					Status:     service.StatusStudy,
+					Past:       "went",
+					Participle: "gone",
+				},
+			},
+			Pages: 1,
 		},
-		Pages: 1,
-	}}
+	}
 	text, k := render(&v)
 	require.True(t, strings.HasPrefix(text, "📋 Мои слова"), "text = %q", text)
 	require.Equal(t, "tog:be", k.InlineKeyboard[0][0].CallbackData)
@@ -27,11 +40,22 @@ func TestRenderMyWordsButtons(t *testing.T) {
 }
 
 func TestRenderWordListHeaderAndNav(t *testing.T) {
-	v := service.View{Screen: service.ScreenWordList, List: &service.ListView{
-		Kind: service.KindWordList, Level: "elementary",
-		Page: 0, Pages: 2, HasNext: true,
-		Items: []service.ListItem{{Base: "be", Status: service.StatusNew}},
-	}}
+	v := service.View{
+		Screen: service.ScreenWordList,
+		List: &service.ListView{
+			Kind:    service.KindWordList,
+			Level:   "elementary",
+			Page:    0,
+			Pages:   2,
+			HasNext: true,
+			Items: []service.ListItem{
+				{
+					Base:   "be",
+					Status: service.StatusNew,
+				},
+			},
+		},
+	}
 	text, k := render(&v)
 	require.Contains(t, text, "Elementary")
 	require.Contains(t, text, "стр. 1/2")
@@ -43,11 +67,20 @@ func TestRenderWordListHeaderAndNav(t *testing.T) {
 }
 
 func TestRenderMyWordsControlRow(t *testing.T) {
-	v := service.View{Screen: service.ScreenMyWords, List: &service.ListView{
-		Kind:  service.KindMyWords,
-		Items: []service.ListItem{{Base: "go", Status: service.StatusStudy}},
-		Pages: 1, Dirty: true,
-	}}
+	v := service.View{
+		Screen: service.ScreenMyWords,
+		List: &service.ListView{
+			Kind: service.KindMyWords,
+			Items: []service.ListItem{
+				{
+					Base:   "go",
+					Status: service.StatusStudy,
+				},
+			},
+			Pages: 1,
+			Dirty: true,
+		},
+	}
 	_, k := render(&v)
 	last := k.InlineKeyboard[len(k.InlineKeyboard)-1]
 	// dirty, single page: 🔙 ❌ ✅
@@ -58,7 +91,10 @@ func TestRenderMyWordsControlRow(t *testing.T) {
 }
 
 func TestRenderWordListLevels(t *testing.T) {
-	v := service.View{Screen: service.ScreenWordListLevels, Levels: service.Levels}
+	v := service.View{
+		Screen: service.ScreenWordListLevels,
+		Levels: service.Levels,
+	}
 	text, k := render(&v)
 	require.NotEmpty(t, text)
 	require.Equal(t, "wl:elementary", k.InlineKeyboard[0][0].CallbackData)
@@ -82,7 +118,15 @@ func TestRouterWordListPickerFlow(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeUserRepo()
 	svc := service.New(repo, catalog())
-	_ = repo.Save(ctx, &service.User{ID: 7, Settings: service.Settings{Variant: "gb"}, State: service.State{Screen: string(service.ScreenMainMenu)}})
+	_ = repo.Save(ctx, &service.User{
+		ID: 7,
+		Settings: service.Settings{
+			Variant: "gb",
+		},
+		State: service.State{
+			Screen: string(service.ScreenMainMenu),
+		},
+	})
 	r := New(svc, mockSender(t))
 
 	_ = r.Handle(ctx, cbUpdate(7, "menu:list")) // -> picker
@@ -99,41 +143,87 @@ func TestRouterWordListPickerFlow(t *testing.T) {
 }
 
 func TestWordButtonShowsThreeForms(t *testing.T) {
-	v := service.View{Screen: service.ScreenMyWords, List: &service.ListView{
-		Kind: service.KindMyWords, Pages: 1,
-		Items: []service.ListItem{{Base: "be", Status: service.StatusStudy, Past: "was/were", Participle: "been", Translation: "быть, являться"}},
-	}}
+	v := service.View{
+		Screen: service.ScreenMyWords,
+		List: &service.ListView{
+			Kind:  service.KindMyWords,
+			Pages: 1,
+			Items: []service.ListItem{
+				{
+					Base:        "be",
+					Status:      service.StatusStudy,
+					Past:        "was/were",
+					Participle:  "been",
+					Translation: "быть, являться",
+				},
+			},
+		},
+	}
 	_, k := render(&v)
 	label := k.InlineKeyboard[0][0].Text
 	require.Equal(t, "📘 be - was/were - been", label)
 }
 
 func TestListSelectedShowsInfoBlock(t *testing.T) {
-	sel := &service.ListItem{Base: "be", Past: "was/were", Participle: "been", Translation: "быть, являться"}
-	v := service.View{Screen: service.ScreenMyWords, List: &service.ListView{
-		Kind: service.KindMyWords, Pages: 1,
-		Items:    []service.ListItem{{Base: "be", Status: service.StatusStudy, Past: "was/were", Participle: "been", Translation: "быть, являться"}},
-		Selected: sel,
-	}}
+	sel := &service.ListItem{
+		Base:        "be",
+		Past:        "was/were",
+		Participle:  "been",
+		Translation: "быть, являться",
+	}
+	v := service.View{
+		Screen: service.ScreenMyWords,
+		List: &service.ListView{
+			Kind:  service.KindMyWords,
+			Pages: 1,
+			Items: []service.ListItem{
+				{
+					Base:        "be",
+					Status:      service.StatusStudy,
+					Past:        "was/were",
+					Participle:  "been",
+					Translation: "быть, являться",
+				},
+			},
+			Selected: sel,
+		},
+	}
 	text, _ := render(&v)
 	want := "📋 Мои слова (стр. 1/1)\n\nbe - was/were - been\nбыть, являться"
 	require.Equal(t, want, text)
 }
 
 func TestListNoSelectionNoInfoBlock(t *testing.T) {
-	v := service.View{Screen: service.ScreenWordList, List: &service.ListView{
-		Kind: service.KindWordList, Level: "elementary", Pages: 1,
-		Items: []service.ListItem{{Base: "be", Status: service.StatusNew, Past: "was/were", Participle: "been", Translation: "быть"}},
-	}}
+	v := service.View{
+		Screen: service.ScreenWordList,
+		List: &service.ListView{
+			Kind:  service.KindWordList,
+			Level: "elementary",
+			Pages: 1,
+			Items: []service.ListItem{
+				{
+					Base:        "be",
+					Status:      service.StatusNew,
+					Past:        "was/were",
+					Participle:  "been",
+					Translation: "быть",
+				},
+			},
+		},
+	}
 	text, _ := render(&v)
 	require.Equal(t, "📚 Список слов — Elementary (стр. 1/1)", text)
 }
 
 func TestBackEmojiIsReturnArrow(t *testing.T) {
-	v := service.View{Screen: service.ScreenMyWords, List: &service.ListView{
-		Kind: service.KindMyWords, Pages: 1,
-		Items: []service.ListItem{},
-	}}
+	v := service.View{
+		Screen: service.ScreenMyWords,
+		List: &service.ListView{
+			Kind:  service.KindMyWords,
+			Pages: 1,
+			Items: []service.ListItem{},
+		},
+	}
 	_, k := render(&v)
 	last := k.InlineKeyboard[len(k.InlineKeyboard)-1]
 	require.Equal(t, "↩️", last[0].Text)
@@ -145,9 +235,18 @@ func TestRouterMyWordsToggleCommit(t *testing.T) {
 	repo := newFakeUserRepo()
 	svc := service.New(repo, catalog())
 	_ = repo.Save(ctx, &service.User{
-		ID: 7, Settings: service.Settings{Variant: "gb"},
-		State: service.State{Screen: string(service.ScreenMainMenu)},
-		Words: map[string]service.WordProgress{"go": {Status: service.StatusStudy}},
+		ID: 7,
+		Settings: service.Settings{
+			Variant: "gb",
+		},
+		State: service.State{
+			Screen: string(service.ScreenMainMenu),
+		},
+		Words: map[string]service.WordProgress{
+			"go": {
+				Status: service.StatusStudy,
+			},
+		},
 	})
 	r := New(svc, mockSender(t))
 

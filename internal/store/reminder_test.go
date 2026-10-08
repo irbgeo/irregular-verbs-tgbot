@@ -19,18 +19,43 @@ func TestDueForReminder(t *testing.T) {
 	now := time.Date(2026, 6, 29, 12, 0, 0, 0, time.UTC)
 	before := now.Add(-24 * time.Hour)
 	old := now.Add(-48 * time.Hour)
-	words := map[string]service.WordProgress{"go": {Status: service.StatusStudy, Mode: 1}}
-
-	save := func(id int64, w map[string]service.WordProgress, created, solved, reminded time.Time) {
-		t.Helper()
-		require.NoError(t, s.Users.Save(ctx, &service.User{ID: id, Words: w,
-			CreatedAt: created, LastSolvedAt: solved, LastRemindedAt: reminded}))
+	words := map[string]service.WordProgress{
+		"go": {
+			Status: service.StatusStudy,
+			Mode:   1,
+		},
 	}
-	save(1, words, old, time.Time{}, time.Time{}) // due
-	save(2, words, old, now, time.Time{})         // solved recently
-	save(3, words, old, time.Time{}, now)         // reminded recently
-	save(4, nil, old, time.Time{}, time.Time{})   // no words
-	save(5, words, now, time.Time{}, time.Time{}) // new account
+
+	save := func(u service.User) {
+		t.Helper()
+		require.NoError(t, s.Users.Save(ctx, &u))
+	}
+	save(service.User{
+		ID:        1,
+		Words:     words,
+		CreatedAt: old,
+	}) // due
+	save(service.User{
+		ID:           2,
+		Words:        words,
+		CreatedAt:    old,
+		LastSolvedAt: now,
+	}) // solved recently
+	save(service.User{
+		ID:             3,
+		Words:          words,
+		CreatedAt:      old,
+		LastRemindedAt: now,
+	}) // reminded recently
+	save(service.User{
+		ID:        4,
+		CreatedAt: old,
+	}) // no words
+	save(service.User{
+		ID:        5,
+		Words:     words,
+		CreatedAt: now,
+	}) // new account
 
 	got, err := s.Users.DueForReminder(ctx, before)
 	require.NoError(t, err)

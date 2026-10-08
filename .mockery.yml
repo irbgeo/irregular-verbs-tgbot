@@ -1,7 +1,10 @@
 template: testify
-dir: "{{.InterfaceDir}}/mocks"
-pkgname: "mocks"
-filename: "mock_{{.InterfaceName}}.go"
+# The mock lives in package bot as a _test.go file: Sender's params types are in
+# package bot, so a separate mocks package would form an import cycle with the
+# bot tests.
+dir: "{{.InterfaceDir}}"
+pkgname: "bot"
+filename: "mock_{{.InterfaceName | snakecase}}_test.go"
 packages:
   github.com/irbgeo/irregular-verbs-tgbot/internal/bot:
     interfaces:

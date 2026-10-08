@@ -21,10 +21,19 @@ func TestBuildMyWordsView(t *testing.T) {
 
 func TestBuildWordListView(t *testing.T) {
 	s := New(nil, testCatalog()) // be, go (elementary); build (pre-intermediate)
-	u := &User{Words: map[string]WordProgress{"go": {Status: StatusStudy}}}
+	u := &User{
+		Words: map[string]WordProgress{
+			"go": {
+				Status: StatusStudy,
+			},
+		},
+	}
 
 	// "all" level: all 3 words in catalog order
-	v := s.buildWordListView(u, buildWordListViewArgs{Level: "all", Page: 0})
+	v := s.buildWordListView(u, buildWordListViewArgs{
+		Level: "all",
+		Page:  0,
+	})
 	require.Equal(t, 1, v.Pages, "pages want 1 (3 words)")
 	// order: elementary(be, go) then pre-intermediate(build)
 	require.Len(t, v.Items, 3)
@@ -34,7 +43,10 @@ func TestBuildWordListView(t *testing.T) {
 	require.Equal(t, StatusStudy, v.Items[1].Status)
 
 	// elementary level: only be, go
-	el := s.buildWordListView(u, buildWordListViewArgs{Level: "elementary", Page: 0})
+	el := s.buildWordListView(u, buildWordListViewArgs{
+		Level: "elementary",
+		Page:  0,
+	})
 	require.Len(t, el.Items, 2)
 	require.Equal(t, "be", el.Items[0].Base)
 	require.Equal(t, "go", el.Items[1].Base)
@@ -44,10 +56,21 @@ func TestBuildWordListView(t *testing.T) {
 func listUser() *User {
 	return &User{
 		Words: map[string]WordProgress{
-			"go": {Status: StatusStudy},
-			"be": {Status: StatusLearned},
-			"do": {Status: StatusSkipped},
+			"go": {
+				Status: StatusStudy,
+			},
+			"be": {
+				Status: StatusLearned,
+			},
+			"do": {
+				Status: StatusSkipped,
+			},
 		},
-		State: State{List: &ListState{Kind: KindMyWords, Draft: map[string]string{}}},
+		State: State{
+			List: &ListState{
+				Kind:  KindMyWords,
+				Draft: map[string]string{},
+			},
+		},
 	}
 }

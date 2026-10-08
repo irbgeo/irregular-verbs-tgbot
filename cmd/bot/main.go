@@ -17,15 +17,9 @@ import (
 )
 
 func main() {
-	if err := run(); err != nil {
-		log.Fatalf("fatal: %v", err)
-	}
-}
-
-func run() error {
 	cfg, err := config.Load()
 	if err != nil {
-		return err
+		log.Fatalf("config: %v", err)
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -33,24 +27,23 @@ func run() error {
 
 	connectCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	st, err := store.Connect(connectCtx, store.ConnectParams{
-		URI:    cfg.MongoURI,
-		DBName: cfg.MongoDB,
-	})
+	st, err := store.Connect(connectCtx, &cfg)
 	if err != nil {
-		return err
+		log.Fatalf("store: %v", err)
 	}
 	defer st.Disconnect(context.Background()) // nolint:errcheck
 
 	list, err := service.LoadVerbs(cfg.VerbsPath)
 	if err != nil {
-		return err
+		log.Fatalf("verbs: %v", err)
 	}
-	if err := service.SeedVerbs(ctx, service.SeedVerbsParams{
+	seedVerbsParams := service.SeedVerbsParams{
 		Repo:  st.Verbs,
 		Verbs: list,
-	}); err != nil {
-		return err
+	}
+	err = service.SeedVerbs(ctx, seedVerbsParams)
+	if err != nil {
+		log.Fatalf("seed verbs: %v", err)
 	}
 	log.Printf("seeded %d verbs", len(list))
 
@@ -58,17 +51,24 @@ func run() error {
 
 	client, err := tgbot.NewClient(cfg.BotToken)
 	if err != nil {
-		return err
+		log.Fatalf("telegram client: %v", err)
 	}
 
 	tgSender := bot.NewTelegramSender(client)
 	router := bot.New(svc, tgSender)
 
-	worker.New(svc, router).Start(ctx)
+	w := worker.New(svc, router)
+	w.Start(ctx)
 
 	log.Println("bot started (long polling)")
-	return client.Poll(ctx, tgbot.PollOptions{
+	pollOptions := tgbot.PollOptions{
 		Timeout: 10,
-		OnError: func(err error) { log.Printf("poll: %v", err) },
-	}, router.Handle)
+		OnError: func(err error) {
+			log.Printf("poll: %v", err)
+		},
+	}
+	err = client.Poll(ctx, pollOptions, router.Handle)
+	if err != nil {
+		log.Fatalf("poll: %v", err)
+	}
 }

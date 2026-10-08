@@ -9,10 +9,21 @@ import (
 func TestLearnPoolSplitsByStatus(t *testing.T) {
 	svc, _ := newLearnSvc()
 	u := learnUser(map[string]WordProgress{
-		"go":   {Status: StatusStudy, Mode: 1},
-		"be":   {Status: StatusLearned},
-		"do":   {Status: StatusSkipped},
-		"make": {Status: StatusStudy, Mode: 2, Box: 3},
+		"go": {
+			Status: StatusStudy,
+			Mode:   1,
+		},
+		"be": {
+			Status: StatusLearned,
+		},
+		"do": {
+			Status: StatusSkipped,
+		},
+		"make": {
+			Status: StatusStudy,
+			Mode:   2,
+			Box:    3,
+		},
 	})
 	study, learned := svc.learnPool(u)
 	require.Len(t, study, 2)
@@ -21,7 +32,11 @@ func TestLearnPoolSplitsByStatus(t *testing.T) {
 
 func TestPickEmptyPool(t *testing.T) {
 	svc, _ := newLearnSvc()
-	u := learnUser(map[string]WordProgress{"do": {Status: StatusSkipped}})
+	u := learnUser(map[string]WordProgress{
+		"do": {
+			Status: StatusSkipped,
+		},
+	})
 	_, ok := svc.pickLearnWord(u, nil)
 	require.False(t, ok, "empty pool must return ok=false")
 }
@@ -29,8 +44,13 @@ func TestPickEmptyPool(t *testing.T) {
 func TestPickWeightChoosesStudyThenLearned(t *testing.T) {
 	svc, _ := newLearnSvc()
 	u := learnUser(map[string]WordProgress{
-		"go": {Status: StatusStudy, Mode: 1},
-		"be": {Status: StatusLearned},
+		"go": {
+			Status: StatusStudy,
+			Mode:   1,
+		},
+		"be": {
+			Status: StatusLearned,
+		},
 	})
 	// roll < 90 -> study group
 	svc.rng = func(n int) int { return 0 }
@@ -51,7 +71,12 @@ func TestPickWeightChoosesStudyThenLearned(t *testing.T) {
 
 func TestPickEmptyGroupFallsBack(t *testing.T) {
 	svc, _ := newLearnSvc()
-	u := learnUser(map[string]WordProgress{"go": {Status: StatusStudy, Mode: 1}})
+	u := learnUser(map[string]WordProgress{
+		"go": {
+			Status: StatusStudy,
+			Mode:   1,
+		},
+	})
 	// roll picks learned, but learned empty -> fall back to study
 	svc.rng = func(n int) int {
 		if n == 100 {
@@ -67,8 +92,14 @@ func TestPickEmptyGroupFallsBack(t *testing.T) {
 func TestPickExcludesRecent(t *testing.T) {
 	svc, _ := newLearnSvc()
 	u := learnUser(map[string]WordProgress{
-		"go": {Status: StatusStudy, Mode: 1},
-		"do": {Status: StatusStudy, Mode: 1},
+		"go": {
+			Status: StatusStudy,
+			Mode:   1,
+		},
+		"do": {
+			Status: StatusStudy,
+			Mode:   1,
+		},
 	})
 	svc.rng = func(n int) int { return 0 } // study group, index 0 of candidates
 	// recent excludes "do" (study sorted: [do, go] by allBases order is level+alpha)
@@ -79,7 +110,12 @@ func TestPickExcludesRecent(t *testing.T) {
 
 func TestPickIgnoresRecentWhenAllExcluded(t *testing.T) {
 	svc, _ := newLearnSvc()
-	u := learnUser(map[string]WordProgress{"go": {Status: StatusStudy, Mode: 1}})
+	u := learnUser(map[string]WordProgress{
+		"go": {
+			Status: StatusStudy,
+			Mode:   1,
+		},
+	})
 	svc.rng = func(n int) int { return 0 }
 	got, ok := svc.pickLearnWord(u, []string{"go"})
 	require.True(t, ok, "should ignore ring when all excluded")
@@ -89,14 +125,11 @@ func TestPickIgnoresRecentWhenAllExcluded(t *testing.T) {
 // learnCatalog has 6 verbs with common_mistakes and distinct translations,
 // enough to fill 4-option form choices and 5-option translation choices.
 func learnCatalog() []Verb {
-	return []Verb{
-		{Base: "go", Level: "elementary", Past: map[string][]string{"gb": {"went"}, "us": {"went"}}, Participle: map[string][]string{"gb": {"gone"}, "us": {"gone"}}, Translations: []string{"идти"}, CommonMistakes: []string{"goed", "wented"}},
-		{Base: "be", Level: "elementary", Past: map[string][]string{"gb": {"was", "were"}, "us": {"was", "were"}}, Participle: map[string][]string{"gb": {"been"}, "us": {"been"}}, Translations: []string{"быть"}, CommonMistakes: []string{"beed", "are"}},
-		{Base: "do", Level: "elementary", Past: map[string][]string{"gb": {"did"}, "us": {"did"}}, Participle: map[string][]string{"gb": {"done"}, "us": {"done"}}, Translations: []string{"делать"}, CommonMistakes: []string{"doed", "done"}},
-		{Base: "make", Level: "elementary", Past: map[string][]string{"gb": {"made"}, "us": {"made"}}, Participle: map[string][]string{"gb": {"made"}, "us": {"made"}}, Translations: []string{"создавать"}, CommonMistakes: []string{"marked", "maded"}},
-		{Base: "see", Level: "elementary", Past: map[string][]string{"gb": {"saw"}, "us": {"saw"}}, Participle: map[string][]string{"gb": {"seen"}, "us": {"seen"}}, Translations: []string{"видеть"}, CommonMistakes: []string{"seed", "sawed"}},
-		{Base: "take", Level: "elementary", Past: map[string][]string{"gb": {"took"}, "us": {"took"}}, Participle: map[string][]string{"gb": {"taken"}, "us": {"taken"}}, Translations: []string{"брать"}, CommonMistakes: []string{"taked", "tooked"}},
+	verbs, err := LoadVerbs("testdata/learn_catalog.json")
+	if err != nil {
+		panic(err)
 	}
+	return verbs
 }
 
 func newLearnSvc() (*Service, *fakeUserRepo) {
@@ -105,5 +138,11 @@ func newLearnSvc() (*Service, *fakeUserRepo) {
 }
 
 func learnUser(words map[string]WordProgress) *User {
-	return &User{ID: 7, Settings: Settings{Variant: "gb"}, Words: words}
+	return &User{
+		ID: 7,
+		Settings: Settings{
+			Variant: "gb",
+		},
+		Words: words,
+	}
 }

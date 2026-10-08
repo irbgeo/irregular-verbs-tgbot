@@ -23,7 +23,10 @@ func TestSetVariantGoesToMenu(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := newSvc()
 	_, _ = svc.Start(ctx, 7)
-	v, err := svc.SetVariant(ctx, SetVariantParams{UserID: 7, Variant: "us"})
+	v, err := svc.SetVariant(ctx, SetVariantParams{
+		UserID:  7,
+		Variant: "us",
+	})
 	require.NoError(t, err)
 	require.Equal(t, ScreenMainMenu, v.Screen)
 	u, _ := repo.Get(ctx, 7)
@@ -33,7 +36,10 @@ func TestSetVariantGoesToMenu(t *testing.T) {
 func TestSetVariantRejectsUnknown(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := newSvc()
-	_, err := svc.SetVariant(ctx, SetVariantParams{UserID: 7, Variant: "xx"})
+	_, err := svc.SetVariant(ctx, SetVariantParams{
+		UserID:  7,
+		Variant: "xx",
+	})
 	require.Error(t, err, "want error")
 	u, _ := repo.Get(ctx, 7)
 	require.Nil(t, u, "must not create user on invalid variant")
@@ -42,17 +48,29 @@ func TestSetVariantRejectsUnknown(t *testing.T) {
 func TestStartOnboardedGoesToMenu(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := newSvc()
-	_ = repo.Save(ctx, &User{ID: 7, Settings: Settings{Variant: "gb"}, State: State{Screen: string(ScreenTestDone)}})
+	_ = repo.Save(ctx, &User{
+		ID: 7,
+		Settings: Settings{
+			Variant: "gb",
+		},
+		State: State{
+			Screen: string(ScreenTestDone),
+		},
+	})
 	v, _ := svc.Start(ctx, 7)
 	require.Equal(t, ScreenMainMenu, v.Screen)
 }
 
 type fakeUserRepo struct{ m map[int64]*User }
 
-func newFakeUserRepo() *fakeUserRepo { return &fakeUserRepo{m: map[int64]*User{}} }
+func newFakeUserRepo() *fakeUserRepo {
+	return &fakeUserRepo{
+		m: map[int64]*User{},
+	}
+}
 
-func (f *fakeUserRepo) Get(_ context.Context, id int64) (*User, error) {
-	u, ok := f.m[id]
+func (s *fakeUserRepo) Get(_ context.Context, id int64) (*User, error) {
+	u, ok := s.m[id]
 	if !ok {
 		return nil, nil
 	}
@@ -60,17 +78,17 @@ func (f *fakeUserRepo) Get(_ context.Context, id int64) (*User, error) {
 	return &cp, nil
 }
 
-func (f *fakeUserRepo) Save(_ context.Context, u *User) error {
+func (s *fakeUserRepo) Save(_ context.Context, u *User) error {
 	cp := *u
-	f.m[u.ID] = &cp
+	s.m[u.ID] = &cp
 	return nil
 }
 
 // DueForReminder mirrors the Mongo filter: created/solved/reminded <= before
 // and a non-empty words map.
-func (f *fakeUserRepo) DueForReminder(_ context.Context, before time.Time) ([]*User, error) {
+func (s *fakeUserRepo) DueForReminder(_ context.Context, before time.Time) ([]*User, error) {
 	var out []*User
-	for _, u := range f.m {
+	for _, u := range s.m {
 		if len(u.Words) == 0 ||
 			u.CreatedAt.After(before) ||
 			u.LastSolvedAt.After(before) ||

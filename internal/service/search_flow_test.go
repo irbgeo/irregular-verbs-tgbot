@@ -23,7 +23,10 @@ func TestSearchPopulatesResults(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := searchSvc(t)
 	_, _ = svc.OpenSearch(ctx, 7)
-	v, err := svc.Search(ctx, SearchParams{UserID: 7, Query: "go run"})
+	v, err := svc.Search(ctx, SearchParams{
+		UserID: 7,
+		Query:  "go run",
+	})
 	require.NoError(t, err)
 	require.Equal(t, ScreenSearch, v.Screen, "search view = %+v", v)
 	require.NotNil(t, v.List, "search view = %+v", v)
@@ -40,9 +43,15 @@ func TestSearchTapAddsToStudyOnCommit(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := searchSvc(t)
 	_, _ = svc.OpenSearch(ctx, 7)
-	_, _ = svc.Search(ctx, SearchParams{UserID: 7, Query: "go"})
+	_, _ = svc.Search(ctx, SearchParams{
+		UserID: 7,
+		Query:  "go",
+	})
 	// tap "go" -> draft study; words unchanged until commit
-	_, _ = svc.ListToggle(ctx, ListToggleParams{UserID: 7, Base: "go"})
+	_, _ = svc.ListToggle(ctx, ListToggleParams{
+		UserID: 7,
+		Base:   "go",
+	})
 	u, _ := repo.Get(ctx, 7)
 	require.Equal(t, StatusStudy, u.State.List.Draft["go"], "draft = %+v", u.State.List.Draft)
 	_, ok := u.Words["go"]
@@ -58,7 +67,10 @@ func TestSearchBackToMenu(t *testing.T) {
 	ctx := context.Background()
 	svc, _ := searchSvc(t)
 	_, _ = svc.OpenSearch(ctx, 7)
-	_, _ = svc.Search(ctx, SearchParams{UserID: 7, Query: "go"})
+	_, _ = svc.Search(ctx, SearchParams{
+		UserID: 7,
+		Query:  "go",
+	})
 	v, _ := svc.ListBack(ctx, 7)
 	require.Equal(t, ScreenMainMenu, v.Screen, "back from search = %s", v.Screen)
 }
@@ -67,7 +79,10 @@ func TestOnTextRoutesToSearch(t *testing.T) {
 	ctx := context.Background()
 	svc, _ := searchSvc(t)
 	_, _ = svc.OpenSearch(ctx, 7)
-	v, err := svc.OnText(ctx, OnTextParams{UserID: 7, Text: "go"})
+	v, err := svc.OnText(ctx, OnTextParams{
+		UserID: 7,
+		Text:   "go",
+	})
 	require.NoError(t, err)
 	require.Equal(t, ScreenSearch, v.Screen, "OnText on search screen must search; got %+v", v)
 	require.NotNil(t, v.List, "OnText on search screen must search; got %+v", v)
@@ -79,8 +94,19 @@ func TestOnTextOffSearchDelegatesToAnswer(t *testing.T) {
 	ctx := context.Background()
 	svc, repo := searchSvc(t)
 	// not on the search screen: OnText must behave like Answer (no panic, no search list)
-	_ = repo.Save(ctx, &User{ID: 7, Settings: Settings{Variant: "gb"}, State: State{Screen: string(ScreenMainMenu)}})
-	v, err := svc.OnText(ctx, OnTextParams{UserID: 7, Text: "whatever"})
+	_ = repo.Save(ctx, &User{
+		ID: 7,
+		Settings: Settings{
+			Variant: "gb",
+		},
+		State: State{
+			Screen: string(ScreenMainMenu),
+		},
+	})
+	v, err := svc.OnText(ctx, OnTextParams{
+		UserID: 7,
+		Text:   "whatever",
+	})
 	require.NoError(t, err)
 	require.False(t, v.List != nil && v.List.Kind == KindSearch, "off-search OnText must not produce a search list; got %+v", v)
 }
@@ -88,6 +114,11 @@ func TestOnTextOffSearchDelegatesToAnswer(t *testing.T) {
 func searchSvc(t *testing.T) (*Service, *fakeUserRepo) {
 	t.Helper()
 	repo := newFakeUserRepo()
-	_ = repo.Save(context.Background(), &User{ID: 7, Settings: Settings{Variant: "gb"}})
+	_ = repo.Save(context.Background(), &User{
+		ID: 7,
+		Settings: Settings{
+			Variant: "gb",
+		},
+	})
 	return New(repo, searchCatalog()), repo
 }

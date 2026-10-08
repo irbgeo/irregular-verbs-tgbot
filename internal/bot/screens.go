@@ -23,7 +23,10 @@ func render(v *service.View) (string, *tgbot.InlineKeyboardMarkup) {
 	switch v.Screen {
 	case service.ScreenOnboardingVariant:
 		return "Выберите вариант форм:", tgbot.InlineKeyboard(
-			[]tgbot.InlineKeyboardButton{tgbot.Button("🇬🇧 British", "variant:gb"), tgbot.Button("🇺🇸 American", "variant:us")},
+			[]tgbot.InlineKeyboardButton{
+				tgbot.Button("🇬🇧 British", "variant:gb"),
+				tgbot.Button("🇺🇸 American", "variant:us"),
+			},
 		)
 	case service.ScreenMainMenu:
 		return "Главное меню:", tgbot.InlineKeyboard(
@@ -55,16 +58,25 @@ func render(v *service.View) (string, *tgbot.InlineKeyboardMarkup) {
 			return withNewWord(renderFeedback(v.Feedback), learnPrompt(v.Quiz)), tgbot.InlineKeyboard(rows...)
 		}
 		return withNewWord(renderFeedback(v.Feedback), quizPrompt(v.Quiz)), tgbot.InlineKeyboard(
-			[]tgbot.InlineKeyboardButton{tgbot.Button("💡 Помощь", "quiz:help"), tgbot.Button("⏭️ Скип", "quiz:skip")},
+			[]tgbot.InlineKeyboardButton{
+				tgbot.Button("💡 Помощь", "quiz:help"),
+				tgbot.Button("⏭️ Скип", "quiz:skip"),
+			},
 			[]tgbot.InlineKeyboardButton{tgbot.Button("⬅️ Меню", "nav:menu")},
 		)
 	case service.ScreenLearnEmpty:
 		return "Пока нечего учить 🙂", tgbot.InlineKeyboard(
-			[]tgbot.InlineKeyboardButton{tgbot.Button("🧪 Тест", "menu:test"), tgbot.Button("⬅️ Меню", "nav:menu")},
+			[]tgbot.InlineKeyboardButton{
+				tgbot.Button("🧪 Тест", "menu:test"),
+				tgbot.Button("⬅️ Меню", "nav:menu"),
+			},
 		)
 	case service.ScreenTestResult:
 		return renderFeedback(v.Feedback) + "Добавить слово в изучение?", tgbot.InlineKeyboard(
-			[]tgbot.InlineKeyboardButton{tgbot.Button("✅ В изучение", "res:keep"), tgbot.Button("⏭️ Скип", "res:drop")},
+			[]tgbot.InlineKeyboardButton{
+				tgbot.Button("✅ В изучение", "res:keep"),
+				tgbot.Button("⏭️ Скип", "res:drop"),
+			},
 		)
 	case service.ScreenTestDone:
 		return "Тест уровня пройден 👍", tgbot.InlineKeyboard(
@@ -129,17 +141,17 @@ func renderFeedback(f *service.Feedback) string {
 	return out + "\n\n"
 }
 
-func statusIcon(status string) string {
-	switch status {
-	case service.StatusStudy:
-		return "📘"
-	case service.StatusLearned:
-		return "✅"
-	case service.StatusSkipped:
-		return "❌"
-	default:
-		return "▫️"
+func renderMyWords(l *service.ListView) (string, *tgbot.InlineKeyboardMarkup) {
+	if l == nil {
+		return "", nil
 	}
+	rows := wordRows(l.Items)
+	rows = append(rows, controlRow(l))
+	text := fmt.Sprintf("📋 Мои слова (стр. %d/%d)", l.Page+1, l.Pages) + infoBlock(l.Selected)
+	if len(l.Items) == 0 {
+		text += "\n\nПусто."
+	}
+	return text, tgbot.InlineKeyboard(rows...)
 }
 
 func wordRows(items []service.ListItem) [][]tgbot.InlineKeyboardButton {
@@ -151,13 +163,17 @@ func wordRows(items []service.ListItem) [][]tgbot.InlineKeyboardButton {
 	return rows
 }
 
-// infoBlock renders the tapped word's full info (3 forms + translation) shown
-// in the message text below the header. Empty when no word is selected.
-func infoBlock(sel *service.ListItem) string {
-	if sel == nil {
-		return ""
+func statusIcon(status string) string {
+	switch status {
+	case service.StatusStudy:
+		return "📘"
+	case service.StatusLearned:
+		return "✅"
+	case service.StatusSkipped:
+		return "❌"
+	default:
+		return "▫️"
 	}
-	return "\n\n" + sel.Base + " - " + sel.Past + " - " + sel.Participle + "\n" + sel.Translation
 }
 
 // controlRow is the single emoji control row: ↩️ ⬅️ ❌ ✅ ➡️ (dynamic).
@@ -175,16 +191,26 @@ func controlRow(l *service.ListView) []tgbot.InlineKeyboardButton {
 	return row
 }
 
-func renderMyWords(l *service.ListView) (string, *tgbot.InlineKeyboardMarkup) {
+// infoBlock renders the tapped word's full info (3 forms + translation) shown
+// in the message text below the header. Empty when no word is selected.
+func infoBlock(sel *service.ListItem) string {
+	if sel == nil {
+		return ""
+	}
+	return "\n\n" + sel.Base + " - " + sel.Past + " - " + sel.Participle + "\n" + sel.Translation
+}
+
+func renderWordList(l *service.ListView) (string, *tgbot.InlineKeyboardMarkup) {
 	if l == nil {
 		return "", nil
 	}
+	pool := levelLabels[l.Level]
+	if l.Level == "all" {
+		pool = "Все слова"
+	}
+	text := fmt.Sprintf("📚 Список слов — %s (стр. %d/%d)", pool, l.Page+1, l.Pages) + infoBlock(l.Selected)
 	rows := wordRows(l.Items)
 	rows = append(rows, controlRow(l))
-	text := fmt.Sprintf("📋 Мои слова (стр. %d/%d)", l.Page+1, l.Pages) + infoBlock(l.Selected)
-	if len(l.Items) == 0 {
-		text += "\n\nПусто."
-	}
 	return text, tgbot.InlineKeyboard(rows...)
 }
 
@@ -197,20 +223,6 @@ func renderSearch(l *service.ListView) (string, *tgbot.InlineKeyboardMarkup) {
 		return "🔎 Поиск: ничего не найдено" + infoBlock(l.Selected), tgbot.InlineKeyboard(backRow)
 	}
 	text := fmt.Sprintf("🔎 Поиск (стр. %d/%d)", l.Page+1, l.Pages) + infoBlock(l.Selected)
-	rows := wordRows(l.Items)
-	rows = append(rows, controlRow(l))
-	return text, tgbot.InlineKeyboard(rows...)
-}
-
-func renderWordList(l *service.ListView) (string, *tgbot.InlineKeyboardMarkup) {
-	if l == nil {
-		return "", nil
-	}
-	pool := levelLabels[l.Level]
-	if l.Level == "all" {
-		pool = "Все слова"
-	}
-	text := fmt.Sprintf("📚 Список слов — %s (стр. %d/%d)", pool, l.Page+1, l.Pages) + infoBlock(l.Selected)
 	rows := wordRows(l.Items)
 	rows = append(rows, controlRow(l))
 	return text, tgbot.InlineKeyboard(rows...)

@@ -3,32 +3,25 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 )
 
 // Start ensures the user exists and returns the screen to show.
 func (s *Service) Start(ctx context.Context, userID int64) (View, error) {
-	u, err := s.users.Get(ctx, userID)
+	u, err := s.load(ctx, userID)
 	if err != nil {
 		return View{}, err
 	}
-	if u == nil {
-		u = &User{
-			ID:        userID,
-			CreatedAt: s.now(),
-		}
-	}
+	screen := ScreenOnboardingVariant
 	if onboarded(u) {
-		u.State = State{Screen: string(ScreenMainMenu)}
-		if err := s.save(ctx, u); err != nil {
-			return View{}, err
-		}
-		return View{Screen: ScreenMainMenu}, nil
+		screen = ScreenMainMenu
 	}
-	u.State = State{Screen: string(ScreenOnboardingVariant)}
-	if err := s.save(ctx, u); err != nil {
+	u.State = State{Screen: string(screen)}
+	err = s.save(ctx, u)
+	if err != nil {
 		return View{}, err
 	}
-	return View{Screen: ScreenOnboardingVariant}, nil
+	return View{Screen: screen}, nil
 }
 
 // SetVariant validates and stores the chosen variant, then shows the menu.
@@ -42,7 +35,8 @@ func (s *Service) SetVariant(ctx context.Context, p SetVariantParams) (View, err
 	}
 	u.Settings.Variant = p.Variant
 	u.State = State{Screen: string(ScreenMainMenu)}
-	if err := s.save(ctx, u); err != nil {
+	err = s.save(ctx, u)
+	if err != nil {
 		return View{}, err
 	}
 	return View{Screen: ScreenMainMenu}, nil
@@ -55,13 +49,12 @@ func (s *Service) OpenMenu(ctx context.Context, userID int64) (View, error) {
 		return View{}, err
 	}
 	u.State = State{Screen: string(ScreenMainMenu)}
-	if err := s.save(ctx, u); err != nil {
+	err = s.save(ctx, u)
+	if err != nil {
 		return View{}, err
 	}
 	return View{Screen: ScreenMainMenu}, nil
 }
-
-func onboarded(u *User) bool { return u.Settings.Variant != "" }
 
 // load fetches the user, creating a fresh one if missing.
 func (s *Service) load(ctx context.Context, userID int64) (*User, error) {
@@ -72,14 +65,16 @@ func (s *Service) load(ctx context.Context, userID int64) (*User, error) {
 	if u == nil {
 		u = &User{
 			ID:        userID,
-			CreatedAt: s.now(),
+			CreatedAt: time.Now(),
 		}
 	}
 	return u, nil
 }
 
+func onboarded(u *User) bool { return u.Settings.Variant != "" }
+
 // save stamps activity and persists.
 func (s *Service) save(ctx context.Context, u *User) error {
-	u.LastActiveAt = s.now()
+	u.LastActiveAt = time.Now()
 	return s.users.Save(ctx, u)
 }

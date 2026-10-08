@@ -10,47 +10,54 @@ import (
 
 // Sender sends Telegram messages. Mocked in tests; real impl wraps *tgbot.Client.
 type Sender interface {
-	Send(ctx context.Context, chatID int64, text string, kb *tgbot.InlineKeyboardMarkup) error
-	Edit(ctx context.Context, chatID, messageID int64, text string, kb *tgbot.InlineKeyboardMarkup) error
+	Send(ctx context.Context, p SendParams) error
+	Edit(ctx context.Context, p EditParams) error
 	Answer(ctx context.Context, callbackID string) error
-	AnswerText(ctx context.Context, callbackID, text string) error
+	AnswerText(ctx context.Context, p AnswerTextParams) error
 }
 
-// TelegramSender adapts *tgbot.Client to the Sender interface.
-type TelegramSender struct {
+// telegramSender adapts *tgbot.Client to the Sender interface.
+type telegramSender struct {
 	client *tgbot.Client
 }
 
-var _ Sender = TelegramSender{}
+var _ Sender = (*telegramSender)(nil)
 
+// NewTelegramSender creates a Sender backed by the Telegram client.
 func NewTelegramSender(
 	client *tgbot.Client,
-) TelegramSender {
-	return TelegramSender{
+) *telegramSender {
+	return &telegramSender{
 		client: client,
 	}
 }
 
-func (s TelegramSender) Send(ctx context.Context, chatID int64, text string, kb *tgbot.InlineKeyboardMarkup) error {
+// Send sends a new message, with the keyboard if one is given.
+func (s *telegramSender) Send(ctx context.Context, p SendParams) error {
 	var opts *tgbot.SendMessageOptions
-	if kb != nil {
-		opts = &tgbot.SendMessageOptions{ReplyMarkup: kb}
+	if p.Keyboard != nil {
+		opts = &tgbot.SendMessageOptions{ReplyMarkup: p.Keyboard}
 	}
-	_, err := s.client.SendMessage(ctx, chatID, text, opts)
+	_, err := s.client.SendMessage(ctx, p.ChatID, p.Text, opts)
 	return err
 }
 
-func (s TelegramSender) Edit(ctx context.Context, chatID, messageID int64, text string, kb *tgbot.InlineKeyboardMarkup) error {
-	_, err := s.client.EditMessageText(ctx, chatID, messageID, text, &tgbot.EditMessageTextOptions{ReplyMarkup: kb})
+// Edit replaces the text and keyboard of an existing message.
+func (s *telegramSender) Edit(ctx context.Context, p EditParams) error {
+	opts := &tgbot.EditMessageTextOptions{ReplyMarkup: p.Keyboard}
+	_, err := s.client.EditMessageText(ctx, p.ChatID, p.MessageID, p.Text, opts)
 	return err
 }
 
-func (s TelegramSender) Answer(ctx context.Context, callbackID string) error {
+// Answer acknowledges a callback query without a popup.
+func (s *telegramSender) Answer(ctx context.Context, callbackID string) error {
 	_, err := s.client.AnswerCallback(ctx, callbackID)
 	return err
 }
 
-func (s TelegramSender) AnswerText(ctx context.Context, callbackID, text string) error {
-	_, err := s.client.AnswerCallbackQuery(ctx, callbackID, &tgbot.AnswerCallbackQueryOptions{Text: text})
+// AnswerText acknowledges a callback query with a popup text.
+func (s *telegramSender) AnswerText(ctx context.Context, p AnswerTextParams) error {
+	opts := &tgbot.AnswerCallbackQueryOptions{Text: p.Text}
+	_, err := s.client.AnswerCallbackQuery(ctx, p.CallbackID, opts)
 	return err
 }
